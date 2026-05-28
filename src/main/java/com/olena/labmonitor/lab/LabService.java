@@ -90,6 +90,10 @@ public class LabService {
                 .orElseThrow(() -> new ResourceNotFoundException("Lab with id " + id + " was not found"));
     }
 
+    public Lab getExistingLab(Long id) {
+        return getLab(id);
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }
