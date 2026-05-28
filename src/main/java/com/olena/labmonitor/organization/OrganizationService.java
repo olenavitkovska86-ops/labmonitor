@@ -64,6 +64,10 @@ public class OrganizationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Organization with id " + id + " was not found"));
     }
 
+    public Organization getExistingOrganization(Long id) {
+        return getOrganization(id);
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }

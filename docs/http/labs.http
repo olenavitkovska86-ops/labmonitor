@@ -1,0 +1,68 @@
+### Variables
+@baseUrl = http://localhost:8080
+@organizationId = 1
+@labId = 1
+
+### Get all labs
+GET {{baseUrl}}/api/labs
+
+### Get labs by organization
+GET {{baseUrl}}/api/labs?organizationId={{organizationId}}
+
+### Search labs by name
+GET {{baseUrl}}/api/labs?search=main
+
+### Search labs by organization and name
+GET {{baseUrl}}/api/labs?organizationId={{organizationId}}&search=main
+
+### Get lab by id
+GET {{baseUrl}}/api/labs/{{labId}}
+
+### Create lab
+POST {{baseUrl}}/api/labs
+Content-Type: application/json
+
+{
+  "organizationId": {{organizationId}},
+  "name": "Main Chemistry Lab",
+  "location": "Building A, Floor 2",
+  "description": "Primary lab for chemical experiments"
+}
+
+### Create second lab
+POST {{baseUrl}}/api/labs
+Content-Type: application/json
+
+{
+  "organizationId": {{organizationId}},
+  "name": "Microbiology Lab",
+  "location": "Building B, Floor 1",
+  "description": "Lab for microbiology research"
+}
+
+### Update lab
+PUT {{baseUrl}}/api/labs/{{labId}}
+Content-Type: application/json
+
+{
+  "name": "Main Chemistry Lab Updated",
+  "location": "Building A, Floor 3",
+  "description": "Updated lab description"
+}
+
+### Deactivate lab
+POST {{baseUrl}}/api/labs/{{labId}}/deactivate
+
+### Validation error: empty name
+POST {{baseUrl}}/api/labs
+Content-Type: application/json
+
+{
+  "organizationId": {{organizationId}},
+  "name": "",
+  "location": "Building A",
+  "description": "Invalid lab without name"
+}
+
+### Not found error
+GET {{baseUrl}}/api/labs/999999
