@@ -68,18 +68,18 @@ public class LabService {
         boolean hasSearch = hasText(search);
 
         if (organizationId != null && hasSearch) {
-            return labRepository.findByOrganizationIdAndNameContainingIgnoreCaseOrderByIdAsc(
+            return labRepository.searchByOrganizationAndName(
                     organizationId,
                     search.trim()
             );
         }
 
         if (organizationId != null) {
-            return labRepository.findByOrganizationIdOrderByIdAsc(organizationId);
+            return labRepository.findByOrganization(organizationId);
         }
 
         if (hasSearch) {
-            return labRepository.findByNameContainingIgnoreCaseOrderByIdAsc(search.trim());
+            return labRepository.searchByName(search.trim());
         }
 
         return labRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));

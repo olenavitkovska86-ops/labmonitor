@@ -68,15 +68,15 @@ public class RoomService {
         boolean hasSearch = hasText(search);
 
         if (labId != null && hasSearch) {
-            return roomRepository.findByLabIdAndNameContainingIgnoreCaseOrderByIdAsc(labId, search.trim());
+            return roomRepository.searchByLabAndName(labId, search.trim());
         }
 
         if (labId != null) {
-            return roomRepository.findByLabIdOrderByIdAsc(labId);
+            return roomRepository.findByLab(labId);
         }
 
         if (hasSearch) {
-            return roomRepository.findByNameContainingIgnoreCaseOrderByIdAsc(search.trim());
+            return roomRepository.searchByName(search.trim());
         }
 
         return roomRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
