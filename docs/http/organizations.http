@@ -1,0 +1,54 @@
+### Variables
+@baseUrl = http://localhost:8080
+@organizationId = 1
+
+### Get all organizations
+GET {{baseUrl}}/api/organizations
+
+### Search organizations by name
+GET {{baseUrl}}/api/organizations?search=lab
+
+### Get organization by id
+GET {{baseUrl}}/api/organizations/{{organizationId}}
+
+### Create organization
+POST {{baseUrl}}/api/organizations
+Content-Type: application/json
+
+{
+  "name": "Central Lab Center",
+  "description": "Main laboratory center for monitoring"
+}
+
+### Create second organization
+POST {{baseUrl}}/api/organizations
+Content-Type: application/json
+
+{
+  "name": "Bio Research Lab",
+  "description": "Organization for biological research laboratories"
+}
+
+### Update organization
+PUT {{baseUrl}}/api/organizations/{{organizationId}}
+Content-Type: application/json
+
+{
+  "name": "Central Lab Center Updated",
+  "description": "Updated laboratory center description"
+}
+
+### Delete organization
+DELETE {{baseUrl}}/api/organizations/{{organizationId}}
+
+### Validation error: empty name
+POST {{baseUrl}}/api/organizations
+Content-Type: application/json
+
+{
+  "name": "",
+  "description": "Invalid organization without name"
+}
+
+### Not found error
+GET {{baseUrl}}/api/organizations/999999
