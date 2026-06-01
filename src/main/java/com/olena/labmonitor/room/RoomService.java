@@ -68,11 +68,11 @@ public class RoomService {
         boolean hasSearch = hasText(search);
 
         if (labId != null && hasSearch) {
-            return roomRepository.searchByLabAndName(labId, search.trim());
+            return roomRepository.searchByLabIdAndName(labId, search.trim());
         }
 
         if (labId != null) {
-            return roomRepository.findByLab(labId);
+            return roomRepository.findByLabId(labId);
         }
 
         if (hasSearch) {

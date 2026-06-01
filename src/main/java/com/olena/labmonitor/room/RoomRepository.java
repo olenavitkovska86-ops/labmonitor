@@ -14,7 +14,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
             where room.lab.id = :labId
             order by room.id asc
             """)
-    List<Room> findByLab(@Param("labId") Long labId);
+    List<Room> findByLabId(@Param("labId") Long labId);
 
     @Query("""
             select room
@@ -31,7 +31,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
               and lower(room.name) like lower(concat('%', :name, '%'))
             order by room.id asc
             """)
-    List<Room> searchByLabAndName(
+    List<Room> searchByLabIdAndName(
             @Param("labId") Long labId,
             @Param("name") String name
     );

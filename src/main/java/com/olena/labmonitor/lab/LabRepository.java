@@ -14,7 +14,7 @@ public interface LabRepository extends JpaRepository<Lab, Long> {
             where lab.organization.id = :organizationId
             order by lab.id asc
             """)
-    List<Lab> findByOrganization(@Param("organizationId") Long organizationId);
+    List<Lab> findByOrganizationId(@Param("organizationId") Long organizationId);
 
     @Query("""
             select lab
@@ -31,7 +31,7 @@ public interface LabRepository extends JpaRepository<Lab, Long> {
               and lower(lab.name) like lower(concat('%', :name, '%'))
             order by lab.id asc
             """)
-    List<Lab> searchByOrganizationAndName(
+    List<Lab> searchByOrganizationIdAndName(
             @Param("organizationId") Long organizationId,
             @Param("name") String name
     );

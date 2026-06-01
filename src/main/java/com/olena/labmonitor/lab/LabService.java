@@ -68,14 +68,14 @@ public class LabService {
         boolean hasSearch = hasText(search);
 
         if (organizationId != null && hasSearch) {
-            return labRepository.searchByOrganizationAndName(
+            return labRepository.searchByOrganizationIdAndName(
                     organizationId,
                     search.trim()
             );
         }
 
         if (organizationId != null) {
-            return labRepository.findByOrganization(organizationId);
+            return labRepository.findByOrganizationId(organizationId);
         }
 
         if (hasSearch) {
