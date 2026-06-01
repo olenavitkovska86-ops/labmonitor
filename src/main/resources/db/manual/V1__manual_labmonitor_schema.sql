@@ -30,12 +30,16 @@ CREATE TABLE users (
                        last_name VARCHAR(100) NOT NULL,
                        phone VARCHAR(50),
                        status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+                       global_role VARCHAR(30) NOT NULL DEFAULT 'NONE',
                        last_login_at DATETIME(6),
                        created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
                        updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
 
                        CONSTRAINT chk_users_status
                            CHECK (status IN ('ACTIVE', 'INVITED', 'DISABLED')),
+
+                       CONSTRAINT chk_users_global_role
+                           CHECK (global_role IN ('NONE', 'SUPER_ADMIN')),
 
                        CONSTRAINT chk_users_email
                            CHECK (email LIKE '%@%')
@@ -45,7 +49,7 @@ CREATE TABLE users (
 -- ============================================================
 -- 3. MEMBERSHIPS
 -- User role inside organization
--- Roles: ADMIN / OPERATOR
+-- Roles: LAB_ADMIN / LIMITED_EMPLOYEE
 -- ============================================================
 
 CREATE TABLE memberships (
@@ -66,7 +70,7 @@ CREATE TABLE memberships (
                                      ON DELETE CASCADE,
 
                              CONSTRAINT chk_membership_role
-                                 CHECK (role IN ('ADMIN', 'OPERATOR')),
+                                 CHECK (role IN ('LAB_ADMIN', 'LIMITED_EMPLOYEE')),
 
                              CONSTRAINT uq_membership_org_user
                                  UNIQUE (organization_id, user_id)
