@@ -1,108 +1,124 @@
- ## Roles and Permissions
+## Roles and Permissions
 
-  1. Operator
+1. LIMITED_EMPLOYEE
 
-  Can:
-  - view dashboard
-  - view labs
-  - view rooms
-  - view room details
-  - view sensors
-  - view sensor details
-  - view current sensor readings
-  - view sensor readings history
-  - view cameras
-  - view camera details
-  - view camera status
-  - view camera events
-  - view alerts
-  - filter alerts
-  - acknowledge alerts
-  - resolve alerts
-  - view own profile
-  - update own profile
-  - change own password
+Can:
+- view dashboard
+- view labs
+- view rooms
+- view room details
+- view sensors
+- view sensor details
+- view current sensor readings
+- view sensor readings history
+- view cameras
+- view camera details
+- view camera status
+- view camera events
+- view alerts
+- filter alerts
+- acknowledge alerts
+- resolve alerts
+- view own profile
+- update own profile
+- change own password
 
-  Cannot:
-  - create/update/delete organizations
-  - invite users
-  - change user roles
-  - create/update/deactivate labs
-  - create/update/deactivate rooms
-  - add/update/deactivate sensors
-  - set sensor safe range
-  - add/update/deactivate cameras
-  - view audit logs
-
-
-  2. Organization Admin
-
-  Can do everything Operator can, plus:
-
-  Organization:
-  - view organization info
-  - update organization info
-
-  Users:
-  - view organization users
-  - search organization users
-  - invite user by email
-  - change user role
-  - disable user access
-
-  Labs:
-  - create lab
-  - update lab
-  - deactivate lab
-
-  Rooms:
-  - create room
-  - update room
-  - deactivate room
-
-  Sensors:
-  - add sensor
-  - update sensor
-  - set safe value range
-  - deactivate sensor
-
-  Cameras:
-  - add camera
-  - update camera
-  - deactivate camera
-
-  Audit:
-  - view organization audit logs
-  - filter organization audit logs
+Cannot:
+- create/update/delete organizations
+- create/update/deactivate labs
+- create/update/deactivate rooms
+- add/update/deactivate sensors
+- set sensor safe range
+- add/update/deactivate cameras
+- create/invite users
+- disable users
+- change user roles
+- view audit logs
 
 
-  3. System Admin
+2. LAB_ADMIN
 
-  Can do everything Organization Admin can, plus:
+Can do everything LIMITED_EMPLOYEE can, plus:
 
-  Organizations:
-  - view all organizations
-  - search organizations
-  - create organization
-  - update any organization
-  - delete organization
+Sensors:
+- update sensor settings
+- set sensor safe range
 
-  System users:
-  - view all users
-  - search all users
-  - disable any user
+Cameras:
+- update camera operational settings
 
-  Audit:
-  - view all audit logs
-  - filter all audit logs by organization
-  - filter all audit logs by user
-  - filter all audit logs by action
+Alerts:
+- add alert notes
+- add resolution notes
+
+Logs:
+- view lab activity logs
+- view process audit logs
+
+Cannot:
+- create/update/delete organizations
+- create/update/deactivate labs
+- create/update/deactivate rooms
+- add/deactivate sensors
+- add/deactivate cameras
+- create/invite users
+- disable users
+- change user roles
+- view system-wide audit logs
 
 
-  Permission hierarchy:
+3. SUPER_ADMIN
 
-  Operator
-      ↓
-  Organization Admin = Operator + organization management
-      ↓
-  System Admin = Organization Admin + system management
+Can do everything LAB_ADMIN can, plus:
+
+Organizations:
+- view all organizations
+- search organizations
+- create organization
+- update any organization
+- delete organization
+
+Users:
+- view all users
+- search all users
+- create/invite users
+- disable users
+- assign roles
+- change user roles
+- remove users from organizations
+
+Labs:
+- create lab
+- update lab
+- deactivate lab
+
+Rooms:
+- create room
+- update room
+- deactivate room
+
+Sensors:
+- add sensor
+- update sensor
+- set sensor safe range
+- deactivate sensor
+
+Cameras:
+- add camera
+- update camera
+- deactivate camera
+
+Audit:
+- view all audit logs
+- filter all audit logs by organization
+- filter all audit logs by user
+- filter all audit logs by action
+
+
+Permission hierarchy:
+
+LIMITED_EMPLOYEE
+    ↓
+LAB_ADMIN = LIMITED_EMPLOYEE + lab process/equipment settings
+    ↓
+SUPER_ADMIN = LAB_ADMIN + system structure and user management

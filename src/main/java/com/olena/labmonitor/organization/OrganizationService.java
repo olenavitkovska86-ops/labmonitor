@@ -30,7 +30,7 @@ public class OrganizationService {
     @Transactional(readOnly = true)
     public List<OrganizationResponse> findAll(String search) {
         List<Organization> organizations = hasText(search)
-                ? organizationRepository.findByNameContainingIgnoreCaseOrderByIdAsc(search.trim())
+                ? organizationRepository.searchByName(search.trim())
                 : organizationRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
 
         return organizations

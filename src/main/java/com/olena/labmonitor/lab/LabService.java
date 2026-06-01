@@ -68,18 +68,18 @@ public class LabService {
         boolean hasSearch = hasText(search);
 
         if (organizationId != null && hasSearch) {
-            return labRepository.findByOrganizationIdAndNameContainingIgnoreCaseOrderByIdAsc(
+            return labRepository.searchByOrganizationIdAndName(
                     organizationId,
                     search.trim()
             );
         }
 
         if (organizationId != null) {
-            return labRepository.findByOrganizationIdOrderByIdAsc(organizationId);
+            return labRepository.findByOrganizationId(organizationId);
         }
 
         if (hasSearch) {
-            return labRepository.findByNameContainingIgnoreCaseOrderByIdAsc(search.trim());
+            return labRepository.searchByName(search.trim());
         }
 
         return labRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
@@ -88,6 +88,10 @@ public class LabService {
     private Lab getLab(Long id) {
         return labRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lab with id " + id + " was not found"));
+    }
+
+    public Lab getExistingLab(Long id) {
+        return getLab(id);
     }
 
     private boolean hasText(String value) {

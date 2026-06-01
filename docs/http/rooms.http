@@ -1,0 +1,37 @@
+### Create room
+POST http://localhost:8080/api/rooms
+Content-Type: application/json
+
+{
+  "labId": 1,
+  "name": "Chemistry Room 101",
+  "type": "EXPERIMENT_ROOM",
+  "floor": 1,
+  "area": 42.50
+}
+
+### View all rooms
+GET http://localhost:8080/api/rooms
+
+### View rooms by lab
+GET http://localhost:8080/api/rooms?labId=1
+
+### Search rooms
+GET http://localhost:8080/api/rooms?search=chem
+
+### View room by id
+GET http://localhost:8080/api/rooms/1
+
+### Update room
+PUT http://localhost:8080/api/rooms/1
+Content-Type: application/json
+
+{
+  "name": "Chemistry Room 101A",
+  "type": "EXPERIMENT_ROOM",
+  "floor": 1,
+  "area": 45.00
+}
+
+### Deactivate room
+POST http://localhost:8080/api/rooms/1/deactivate
