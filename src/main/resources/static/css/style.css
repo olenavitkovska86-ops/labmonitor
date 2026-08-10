@@ -14,6 +14,7 @@ body {
 
 button,
 input,
+select,
 textarea {
     font: inherit;
 }
@@ -178,6 +179,7 @@ a.module-card:hover {
 }
 
 input,
+select,
 textarea {
     width: 100%;
     border: 1px solid #cbd5e1;
@@ -188,6 +190,7 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
     border-color: #16809a;
     outline: 3px solid rgb(22 128 154 / 14%);
@@ -211,9 +214,11 @@ form label {
 }
 
 .button {
+    display: inline-block;
     padding: 10px 16px;
     border-radius: 8px;
     font-weight: 700;
+    text-decoration: none;
 }
 
 .button-primary {
@@ -276,13 +281,47 @@ th {
     text-transform: uppercase;
 }
 
+.table-link {
+    color: #126c82;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.table-link:hover {
+    text-decoration: underline;
+}
+
 .actions-column {
     width: 170px;
 }
 
 .row-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+}
+
+.status {
+    display: inline-block;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 750;
+}
+
+.status-active {
+    color: #17663a;
+    background: #e9f8ef;
+}
+
+.status-inactive {
+    color: #64748b;
+    background: #edf1f3;
+}
+
+.button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
 }
 
 .message {

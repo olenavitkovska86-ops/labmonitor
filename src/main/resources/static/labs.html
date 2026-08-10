@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labs | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">LabMonitor</a>
+    <span class="subtitle">Laboratory management</span>
+</header>
+
+<main class="page">
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Administration</p>
+            <h1>Labs</h1>
+            <p class="intro">Create and manage labs within organizations.</p>
+        </div>
+        <button id="show-create-form" class="button button-primary" type="button">
+            Add lab
+        </button>
+    </section>
+
+    <section id="lab-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading">
+            <h2 id="form-title">New lab</h2>
+            <button id="close-form" class="icon-button" type="button" aria-label="Close">&times;</button>
+        </div>
+
+        <form id="lab-form">
+            <input id="lab-id" type="hidden">
+
+            <label for="lab-organization">Organization</label>
+            <select id="lab-organization" required>
+                <option value="">Select an organization</option>
+            </select>
+
+            <label for="lab-name">Name</label>
+            <input id="lab-name" maxlength="150" required>
+
+            <label for="lab-location">Location</label>
+            <input id="lab-location" maxlength="255">
+
+            <label for="lab-description">Description</label>
+            <textarea id="lab-description" maxlength="500" rows="4"></textarea>
+
+            <div id="form-error" class="message message-error hidden" role="alert"></div>
+
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Save</button>
+                <button id="cancel-form" class="button button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <form id="search-form" class="toolbar">
+            <label class="search">
+                <span>Search</span>
+                <input id="search-input" type="search" placeholder="Lab name">
+            </label>
+
+            <label class="search">
+                <span>Organization</span>
+                <select id="organization-filter">
+                    <option value="">All organizations</option>
+                </select>
+            </label>
+
+            <button class="button button-secondary" type="submit">Search</button>
+            <button id="clear-search" class="button button-link" type="button">Clear</button>
+        </form>
+
+        <div id="page-message" class="message hidden" role="status"></div>
+        <p id="loading-state" class="state">Loading labs...</p>
+        <p id="empty-state" class="state hidden">No labs found.</p>
+
+        <div id="table-wrapper" class="table-wrapper hidden">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Organization</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th class="actions-column">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="lab-rows"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/js/labs.js"></script>
+</body>
+</html>
