@@ -33,10 +33,38 @@ DB_PASSWORD=your_local_password
 
 Configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` in your IDE run configuration or terminal environment if your local settings are different from the defaults.
 
-4. The application runs on:
+4. The application runs on port `8080`.
+
+Open the web interface in a browser:
 
 ```text
 http://localhost:8080
+http://localhost:8080/organizations.html
+```
+
+The root URL opens the LabMonitor home page. The organizations page provides a
+web interface for viewing, searching, creating, editing, and deleting organizations.
+
+The implemented REST API endpoints are also available directly:
+
+```text
+http://localhost:8080/api/organizations
+http://localhost:8080/api/labs
+http://localhost:8080/api/rooms
+```
+
+If the corresponding database table is empty, an API endpoint returns an empty
+JSON array:
+
+```json
+[]
+```
+
+A successful application startup is confirmed by these messages in the log:
+
+```text
+Tomcat started on port 8080
+Started LabmonitorApplication
 ```
 
 ## Database
