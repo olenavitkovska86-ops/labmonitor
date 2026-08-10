@@ -1,0 +1,39 @@
+### Variables
+@baseUrl = http://localhost:8080
+@sensorId = 1
+
+### Create reading with current server time
+POST {{baseUrl}}/api/sensor-readings
+Content-Type: application/json
+
+{
+  "sensorId": {{sensorId}},
+  "value": 23.1
+}
+
+### Create reading with explicit measurement time
+POST {{baseUrl}}/api/sensor-readings
+Content-Type: application/json
+
+{
+  "sensorId": {{sensorId}},
+  "value": 23.1,
+  "measuredAt": "2026-08-10T20:00:00"
+}
+
+### Get current reading
+GET {{baseUrl}}/api/sensors/{{sensorId}}/current-reading
+
+### Get reading history
+GET {{baseUrl}}/api/sensors/{{sensorId}}/readings
+
+### Validation error: missing value
+POST {{baseUrl}}/api/sensor-readings
+Content-Type: application/json
+
+{
+  "sensorId": {{sensorId}}
+}
+
+### Not found error
+GET {{baseUrl}}/api/sensors/999999/readings

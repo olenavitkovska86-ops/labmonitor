@@ -92,6 +92,10 @@ public class SensorService {
                 .orElseThrow(() -> new ResourceNotFoundException("Sensor with id " + id + " was not found"));
     }
 
+    public Sensor getExistingSensor(Long id) {
+        return getSensor(id);
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }
