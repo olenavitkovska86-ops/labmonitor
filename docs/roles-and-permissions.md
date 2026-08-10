@@ -25,9 +25,9 @@ Can:
 
 Cannot:
 - create/update/delete organizations
-- create/update/deactivate labs
-- create/update/deactivate rooms
-- add/update/deactivate sensors
+- create/update/activate/deactivate labs
+- create/update/activate/deactivate rooms
+- add/update/activate/deactivate sensors
 - set sensor safe range
 - add/update/deactivate cameras
 - create/invite users
@@ -57,9 +57,9 @@ Logs:
 
 Cannot:
 - create/update/delete organizations
-- create/update/deactivate labs
-- create/update/deactivate rooms
-- add/deactivate sensors
+- create/update/activate/deactivate labs
+- create/update/activate/deactivate rooms
+- add/activate/deactivate sensors
 - add/deactivate cameras
 - create/invite users
 - disable users
@@ -90,17 +90,20 @@ Users:
 Labs:
 - create lab
 - update lab
+- activate lab
 - deactivate lab
 
 Rooms:
 - create room
 - update room
+- activate room
 - deactivate room
 
 Sensors:
 - add sensor
 - update sensor
 - set sensor safe range
+- activate sensor
 - deactivate sensor
 
 Cameras:

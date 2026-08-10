@@ -63,13 +63,19 @@ Status values:
 - One lab can contain many rooms.
 - Each room belongs to one lab.
 - A room has a type, floor, area, and active state.
+- A room can be activated only when its lab is active.
+- Deactivating a lab does not overwrite the active state of its rooms or sensors.
 
 ### Room to Sensor
 
 - One room can contain many sensors.
 - Each sensor belongs to one room.
 - A sensor has a type, unit, device status, safe range, and active state.
-- Deactivated sensors cannot accept new readings.
+- A sensor is operational only when the sensor, its room, and its lab are active.
+- New sensors cannot be created in an inactive room or lab.
+- A sensor cannot be activated or accept new readings while its room or lab is
+  inactive.
+- Deactivating a room does not overwrite the active state of its sensors.
 
 ### Sensor to SensorReading
 
@@ -108,15 +114,14 @@ Status values:
 
 ## Recommended Implementation Order
 
-1. Complete and merge `SensorReading` backend and web history.
-2. Detect sensor readings outside the configured safe range.
-3. Implement `Alert` creation, listing, acknowledgement, and resolution.
-4. Implement `User`, `Membership`, authentication, and role-based access.
-5. Implement `Camera` and `CameraEvent`.
-6. Implement `AuditLog`.
-7. Implement `EnergyReading` and `SecurityState` if they remain in the final
+1. Detect sensor readings outside the configured safe range.
+2. Implement `Alert` creation, listing, acknowledgement, and resolution.
+3. Implement `User`, `Membership`, authentication, and role-based access.
+4. Implement `Camera` and `CameraEvent`.
+5. Implement `AuditLog`.
+6. Implement `EnergyReading` and `SecurityState` if they remain in the final
    project scope.
-8. Add analytics and Power BI after enough historical data is available.
+7. Add analytics and Power BI after enough historical data is available.
 
 ## Related Documentation
 
