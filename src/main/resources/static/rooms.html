@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rooms | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">LabMonitor</a>
+    <span class="subtitle">Laboratory management</span>
+</header>
+
+<main class="page">
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Administration</p>
+            <h1>Rooms</h1>
+            <p class="intro">Create and manage rooms within laboratories.</p>
+        </div>
+        <button id="show-create-form" class="button button-primary" type="button">
+            Add room
+        </button>
+    </section>
+
+    <section id="room-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading">
+            <h2 id="form-title">New room</h2>
+            <button id="close-form" class="icon-button" type="button" aria-label="Close">&times;</button>
+        </div>
+
+        <form id="room-form">
+            <input id="room-id" type="hidden">
+
+            <label for="room-lab">Lab</label>
+            <select id="room-lab" required>
+                <option value="">Select a lab</option>
+            </select>
+
+            <label for="room-name">Name</label>
+            <input id="room-name" maxlength="100" required>
+
+            <label for="room-type">Type</label>
+            <select id="room-type" required>
+                <option value="">Select a room type</option>
+                <option value="EXPERIMENT_ROOM">Experiment room</option>
+                <option value="STORAGE_ROOM">Storage room</option>
+                <option value="SERVER_ROOM">Server room</option>
+                <option value="CLEAN_ROOM">Clean room</option>
+                <option value="OFFICE">Office</option>
+                <option value="ENTRANCE">Entrance</option>
+                <option value="OTHER">Other</option>
+            </select>
+
+            <label for="room-floor">Floor</label>
+            <input id="room-floor" type="number" step="1">
+
+            <label for="room-area">Area (m²)</label>
+            <input id="room-area" type="number" min="0.01" step="0.01">
+
+            <div id="form-error" class="message message-error hidden" role="alert"></div>
+
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Save</button>
+                <button id="cancel-form" class="button button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <form id="search-form" class="toolbar">
+            <label class="search">
+                <span>Search</span>
+                <input id="search-input" type="search" placeholder="Room name">
+            </label>
+
+            <label class="search">
+                <span>Lab</span>
+                <select id="lab-filter">
+                    <option value="">All labs</option>
+                </select>
+            </label>
+
+            <button class="button button-secondary" type="submit">Search</button>
+            <button id="clear-search" class="button button-link" type="button">Clear</button>
+        </form>
+
+        <div id="page-message" class="message hidden" role="status"></div>
+        <p id="loading-state" class="state">Loading rooms...</p>
+        <p id="empty-state" class="state hidden">No rooms found.</p>
+
+        <div id="table-wrapper" class="table-wrapper hidden">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Lab</th>
+                    <th>Type</th>
+                    <th>Floor</th>
+                    <th>Area</th>
+                    <th>Status</th>
+                    <th class="actions-column">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="room-rows"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/js/rooms.js"></script>
+</body>
+</html>
