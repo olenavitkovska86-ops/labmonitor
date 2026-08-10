@@ -1,5 +1,6 @@
 package com.olena.labmonitor.sensor;
 
+import com.olena.labmonitor.common.exception.InvalidOperationException;
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.room.Room;
 import com.olena.labmonitor.room.RoomService;
@@ -27,6 +28,7 @@ public class SensorService {
 
     public SensorResponse create(CreateSensorRequest request) {
         Room room = roomService.getExistingRoom(request.roomId());
+        requireActiveParents(room, "create a sensor");
         Sensor sensor = new Sensor(room, request.name(), request.type(), request.unit());
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
 
@@ -71,6 +73,7 @@ public class SensorService {
 
     public SensorResponse activate(Long id) {
         Sensor sensor = getSensor(id);
+        requireActiveParents(sensor.getRoom(), "activate sensor with id " + id);
         sensor.activate();
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
 
@@ -102,6 +105,23 @@ public class SensorService {
 
     public Sensor getExistingSensor(Long id) {
         return getSensor(id);
+    }
+
+    public void requireOperationalParents(Sensor sensor, String operation) {
+        requireActiveParents(sensor.getRoom(), operation);
+    }
+
+    private void requireActiveParents(Room room, String operation) {
+        if (!room.getLab().isActive()) {
+            throw new InvalidOperationException(
+                    "Cannot " + operation + " because lab with id " + room.getLab().getId() + " is inactive"
+            );
+        }
+        if (!room.isActive()) {
+            throw new InvalidOperationException(
+                    "Cannot " + operation + " because room with id " + room.getId() + " is inactive"
+            );
+        }
     }
 
     private boolean hasText(String value) {

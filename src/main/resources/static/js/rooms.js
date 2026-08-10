@@ -185,11 +185,13 @@ function createActionsCell(room) {
     const editButton = createButton("Edit", "button button-secondary button-small");
     editButton.addEventListener("click", () => openEditForm(room));
 
-    const deactivateButton = createButton("Deactivate", "button button-danger button-small");
-    deactivateButton.disabled = !room.active;
-    deactivateButton.addEventListener("click", () => deactivateRoom(room));
+    const lifecycleButton = createButton(
+        room.active ? "Deactivate" : "Activate",
+        `button ${room.active ? "button-danger" : "button-primary"} button-small`
+    );
+    lifecycleButton.addEventListener("click", () => changeRoomActivity(room));
 
-    actions.append(editButton, deactivateButton);
+    actions.append(editButton, lifecycleButton);
     cell.append(actions);
     return cell;
 }
@@ -265,16 +267,17 @@ async function saveRoom(event) {
     }
 }
 
-async function deactivateRoom(room) {
-    const confirmed = window.confirm(`Deactivate room "${room.name}"?`);
+async function changeRoomActivity(room) {
+    const action = room.active ? "deactivate" : "activate";
+    const confirmed = window.confirm(`${room.active ? "Deactivate" : "Activate"} room "${room.name}"?`);
     if (!confirmed) {
         return;
     }
 
     try {
-        await request(`${roomsApiUrl}/${room.id}/deactivate`, {method: "POST"});
+        await request(`${roomsApiUrl}/${room.id}/${action}`, {method: "POST"});
         await loadRooms();
-        showMessage(pageMessage, "Room deactivated.");
+        showMessage(pageMessage, room.active ? "Room deactivated." : "Room activated.");
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     }

@@ -64,6 +64,14 @@ public class LabService {
         return LabResponse.from(savedLab);
     }
 
+    public LabResponse activate(Long id) {
+        Lab lab = getLab(id);
+        lab.activate();
+        Lab savedLab = labRepository.saveAndFlush(lab);
+
+        return LabResponse.from(savedLab);
+    }
+
     private List<Lab> findLabs(Long organizationId, String search) {
         boolean hasSearch = hasText(search);
 

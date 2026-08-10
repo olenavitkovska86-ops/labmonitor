@@ -55,4 +55,9 @@ public class RoomController {
     public RoomResponse deactivate(@PathVariable Long id) {
         return roomService.deactivate(id);
     }
+
+    @PostMapping("/{id}/activate")
+    public RoomResponse activate(@PathVariable Long id) {
+        return roomService.activate(id);
+    }
 }

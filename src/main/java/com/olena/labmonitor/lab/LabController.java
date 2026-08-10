@@ -55,4 +55,9 @@ public class LabController {
     public LabResponse deactivate(@PathVariable Long id) {
         return labService.deactivate(id);
     }
+
+    @PostMapping("/{id}/activate")
+    public LabResponse activate(@PathVariable Long id) {
+        return labService.activate(id);
+    }
 }

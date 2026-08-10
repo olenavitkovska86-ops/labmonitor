@@ -162,11 +162,13 @@ function createActionsCell(lab) {
     const editButton = createButton("Edit", "button button-secondary button-small");
     editButton.addEventListener("click", () => openEditForm(lab));
 
-    const deactivateButton = createButton("Deactivate", "button button-danger button-small");
-    deactivateButton.disabled = !lab.active;
-    deactivateButton.addEventListener("click", () => deactivateLab(lab));
+    const lifecycleButton = createButton(
+        lab.active ? "Deactivate" : "Activate",
+        `button ${lab.active ? "button-danger" : "button-primary"} button-small`
+    );
+    lifecycleButton.addEventListener("click", () => changeLabActivity(lab));
 
-    actions.append(editButton, deactivateButton);
+    actions.append(editButton, lifecycleButton);
     cell.append(actions);
     return cell;
 }
@@ -240,16 +242,17 @@ async function saveLab(event) {
     }
 }
 
-async function deactivateLab(lab) {
-    const confirmed = window.confirm(`Deactivate lab "${lab.name}"?`);
+async function changeLabActivity(lab) {
+    const action = lab.active ? "deactivate" : "activate";
+    const confirmed = window.confirm(`${lab.active ? "Deactivate" : "Activate"} lab "${lab.name}"?`);
     if (!confirmed) {
         return;
     }
 
     try {
-        await request(`${labsApiUrl}/${lab.id}/deactivate`, {method: "POST"});
+        await request(`${labsApiUrl}/${lab.id}/${action}`, {method: "POST"});
         await loadLabs();
-        showMessage(pageMessage, "Lab deactivated.");
+        showMessage(pageMessage, lab.active ? "Lab deactivated." : "Lab activated.");
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     }
