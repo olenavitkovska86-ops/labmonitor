@@ -69,6 +69,14 @@ public class SensorService {
         return SensorResponse.from(savedSensor);
     }
 
+    public SensorResponse activate(Long id) {
+        Sensor sensor = getSensor(id);
+        sensor.activate();
+        Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
+
+        return SensorResponse.from(savedSensor);
+    }
+
     private List<Sensor> findSensors(Long roomId, String search) {
         boolean hasSearch = hasText(search);
 

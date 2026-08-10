@@ -50,6 +50,9 @@ Content-Type: application/json
 ### Deactivate sensor
 POST {{baseUrl}}/api/sensors/{{sensorId}}/deactivate
 
+### Activate sensor
+POST {{baseUrl}}/api/sensors/{{sensorId}}/activate
+
 ### Validation error: invalid safe range
 PUT {{baseUrl}}/api/sensors/{{sensorId}}/safe-range
 Content-Type: application/json

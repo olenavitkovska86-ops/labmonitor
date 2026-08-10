@@ -60,6 +60,7 @@ function renderSensorDetails() {
     sensorTitle.textContent = sensor.name;
     sensorDescription.textContent = `${sensor.type} sensor · ${sensor.status}`;
     safeRange.textContent = formatSafeRange();
+    document.querySelector("#back-to-sensors").href = `/sensors.html?roomId=${sensor.roomId}`;
 }
 
 async function loadReadings() {

@@ -141,5 +141,11 @@ public class Sensor {
 
     public void deactivate() {
         this.active = false;
+        this.status = SensorStatus.OFFLINE;
+    }
+
+    public void activate() {
+        this.active = true;
+        this.status = SensorStatus.OFFLINE;
     }
 }

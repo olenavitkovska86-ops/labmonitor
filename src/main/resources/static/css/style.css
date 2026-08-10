@@ -46,6 +46,20 @@ textarea {
     margin: 48px auto;
 }
 
+.back-navigation {
+    margin-bottom: 20px;
+}
+
+.back-link {
+    color: #126c82;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
 .hero,
 .panel-heading,
 .toolbar,

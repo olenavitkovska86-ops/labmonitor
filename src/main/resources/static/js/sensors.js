@@ -103,6 +103,8 @@ function applyRoomFromUrl() {
     if (roomId && roomsById.has(Number(roomId))) {
         roomFilter.value = roomId;
         roomInput.value = roomId;
+        const room = roomsById.get(Number(roomId));
+        document.querySelector("#back-to-rooms").href = `/rooms.html?labId=${room.labId}`;
     }
 }
 
@@ -257,11 +259,13 @@ function createActionsCell(sensor) {
     const rangeButton = createButton("Safe range", "button button-secondary button-small");
     rangeButton.addEventListener("click", () => openSafeRangeForm(sensor));
 
-    const deactivateButton = createButton("Deactivate", "button button-danger button-small");
-    deactivateButton.disabled = !sensor.active;
-    deactivateButton.addEventListener("click", () => deactivateSensor(sensor));
+    const activityButton = createButton(
+        sensor.active ? "Deactivate" : "Activate",
+        `button ${sensor.active ? "button-danger" : "button-primary"} button-small`
+    );
+    activityButton.addEventListener("click", () => changeSensorActivity(sensor));
 
-    actions.append(editButton, rangeButton, deactivateButton);
+    actions.append(editButton, rangeButton, activityButton);
     cell.append(actions);
     return cell;
 }
@@ -381,16 +385,17 @@ async function saveSafeRange(event) {
     }
 }
 
-async function deactivateSensor(sensor) {
-    const confirmed = window.confirm(`Deactivate sensor "${sensor.name}"?`);
+async function changeSensorActivity(sensor) {
+    const action = sensor.active ? "deactivate" : "activate";
+    const confirmed = window.confirm(`${sensor.active ? "Deactivate" : "Activate"} sensor "${sensor.name}"?`);
     if (!confirmed) {
         return;
     }
 
     try {
-        await request(`${sensorsApiUrl}/${sensor.id}/deactivate`, {method: "POST"});
+        await request(`${sensorsApiUrl}/${sensor.id}/${action}`, {method: "POST"});
         await loadSensors();
-        showMessage(pageMessage, "Sensor deactivated.");
+        showMessage(pageMessage, sensor.active ? "Sensor deactivated." : "Sensor activated.");
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     }

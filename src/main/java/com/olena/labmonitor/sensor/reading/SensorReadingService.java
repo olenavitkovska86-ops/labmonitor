@@ -1,5 +1,6 @@
 package com.olena.labmonitor.sensor.reading;
 
+import com.olena.labmonitor.common.exception.InvalidOperationException;
 import com.olena.labmonitor.sensor.Sensor;
 import com.olena.labmonitor.sensor.SensorService;
 import com.olena.labmonitor.sensor.reading.dto.CreateSensorReadingRequest;
@@ -28,6 +29,12 @@ public class SensorReadingService {
 
     public SensorReadingResponse create(CreateSensorReadingRequest request) {
         Sensor sensor = sensorService.getExistingSensor(request.sensorId());
+        if (!sensor.isActive()) {
+            throw new InvalidOperationException(
+                    "Inactive sensor with id " + sensor.getId() + " cannot accept readings"
+            );
+        }
+
         LocalDateTime measuredAt = request.measuredAt() == null
                 ? LocalDateTime.now()
                 : request.measuredAt();
