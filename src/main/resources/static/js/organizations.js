@@ -65,7 +65,7 @@ function renderOrganizations(organizations) {
         const row = document.createElement("tr");
         row.append(
             createCell(organization.id),
-            createCell(organization.name),
+            createOrganizationLinkCell(organization),
             createCell(organization.description || "—"),
             createActionsCell(organization)
         );
@@ -73,6 +73,16 @@ function renderOrganizations(organizations) {
     }
 
     tableWrapper.classList.remove("hidden");
+}
+
+function createOrganizationLinkCell(organization) {
+    const cell = document.createElement("td");
+    const link = document.createElement("a");
+    link.className = "table-link";
+    link.href = `/labs.html?organizationId=${organization.id}`;
+    link.textContent = organization.name;
+    cell.append(link);
+    return cell;
 }
 
 function createCell(value) {
