@@ -1,24 +1,37 @@
+const roomsApiUrl = "/api/rooms";
 const labsApiUrl = "/api/labs";
 const organizationsApiUrl = "/api/organizations";
 
-const rows = document.querySelector("#lab-rows");
+const rows = document.querySelector("#room-rows");
 const tableWrapper = document.querySelector("#table-wrapper");
 const loadingState = document.querySelector("#loading-state");
 const emptyState = document.querySelector("#empty-state");
 const pageMessage = document.querySelector("#page-message");
-const formPanel = document.querySelector("#lab-form-panel");
-const form = document.querySelector("#lab-form");
+const formPanel = document.querySelector("#room-form-panel");
+const form = document.querySelector("#room-form");
 const formTitle = document.querySelector("#form-title");
 const formError = document.querySelector("#form-error");
-const idInput = document.querySelector("#lab-id");
-const organizationInput = document.querySelector("#lab-organization");
-const nameInput = document.querySelector("#lab-name");
-const locationInput = document.querySelector("#lab-location");
-const descriptionInput = document.querySelector("#lab-description");
+const idInput = document.querySelector("#room-id");
+const labInput = document.querySelector("#room-lab");
+const nameInput = document.querySelector("#room-name");
+const typeInput = document.querySelector("#room-type");
+const floorInput = document.querySelector("#room-floor");
+const areaInput = document.querySelector("#room-area");
 const searchForm = document.querySelector("#search-form");
 const searchInput = document.querySelector("#search-input");
-const organizationFilter = document.querySelector("#organization-filter");
+const labFilter = document.querySelector("#lab-filter");
 
+const roomTypeLabels = {
+    EXPERIMENT_ROOM: "Experiment room",
+    STORAGE_ROOM: "Storage room",
+    SERVER_ROOM: "Server room",
+    CLEAN_ROOM: "Clean room",
+    OFFICE: "Office",
+    ENTRANCE: "Entrance",
+    OTHER: "Other"
+};
+
+let labsById = new Map();
 let organizationsById = new Map();
 let searchTimer;
 
@@ -42,30 +55,27 @@ async function request(url, options = {}) {
 
 async function initializePage() {
     try {
-        const organizations = await request(organizationsApiUrl);
+        const [labs, organizations] = await Promise.all([
+            request(labsApiUrl),
+            request(organizationsApiUrl)
+        ]);
+        labsById = new Map(labs.map(lab => [lab.id, lab]));
         organizationsById = new Map(organizations.map(organization => [organization.id, organization]));
-        renderOrganizationOptions(organizations);
-        applyOrganizationFromUrl();
-        await loadLabs();
+        renderLabOptions(labs);
+        applyLabFromUrl();
+        await loadRooms();
     } catch (error) {
         loadingState.classList.add("hidden");
         showMessage(pageMessage, error.message, true);
     }
 }
 
-function applyOrganizationFromUrl() {
-    const organizationId = new URLSearchParams(window.location.search).get("organizationId");
-
-    if (organizationId && organizationsById.has(Number(organizationId))) {
-        organizationFilter.value = organizationId;
-        organizationInput.value = organizationId;
-    }
-}
-
-function renderOrganizationOptions(organizations) {
-    for (const organization of organizations) {
-        organizationInput.append(createOption(organization.id, organization.name));
-        organizationFilter.append(createOption(organization.id, organization.name));
+function renderLabOptions(labs) {
+    for (const lab of labs) {
+        const organization = organizationsById.get(lab.organizationId);
+        const label = `${lab.name} (${organization?.name || `organization ${lab.organizationId}`})`;
+        labInput.append(createOption(lab.id, label));
+        labFilter.append(createOption(lab.id, label));
     }
 }
 
@@ -76,7 +86,16 @@ function createOption(value, label) {
     return option;
 }
 
-async function loadLabs() {
+function applyLabFromUrl() {
+    const labId = new URLSearchParams(window.location.search).get("labId");
+
+    if (labId && labsById.has(Number(labId))) {
+        labFilter.value = labId;
+        labInput.value = labId;
+    }
+}
+
+async function loadRooms() {
     loadingState.classList.remove("hidden");
     emptyState.classList.add("hidden");
     tableWrapper.classList.add("hidden");
@@ -85,18 +104,18 @@ async function loadLabs() {
     try {
         const parameters = new URLSearchParams();
         const search = searchInput.value.trim();
-        const organizationId = organizationFilter.value;
+        const labId = labFilter.value;
 
         if (search) {
             parameters.set("search", search);
         }
-        if (organizationId) {
-            parameters.set("organizationId", organizationId);
+        if (labId) {
+            parameters.set("labId", labId);
         }
 
         const query = parameters.toString();
-        const labs = await request(query ? `${labsApiUrl}?${query}` : labsApiUrl);
-        renderLabs(labs);
+        const rooms = await request(query ? `${roomsApiUrl}?${query}` : roomsApiUrl);
+        renderRooms(rooms);
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     } finally {
@@ -104,39 +123,31 @@ async function loadLabs() {
     }
 }
 
-function renderLabs(labs) {
+function renderRooms(rooms) {
     rows.replaceChildren();
 
-    if (labs.length === 0) {
+    if (rooms.length === 0) {
         emptyState.classList.remove("hidden");
         return;
     }
 
-    for (const lab of labs) {
-        const organization = organizationsById.get(lab.organizationId);
+    for (const room of rooms) {
+        const lab = labsById.get(room.labId);
         const row = document.createElement("tr");
         row.append(
-            createCell(lab.id),
-            createLabLinkCell(lab),
-            createCell(organization?.name || `Organization ${lab.organizationId}`),
-            createCell(lab.location || "—"),
-            createStatusCell(lab.active),
-            createActionsCell(lab)
+            createCell(room.id),
+            createCell(room.name),
+            createCell(lab?.name || `Lab ${room.labId}`),
+            createCell(roomTypeLabels[room.type] || room.type),
+            createCell(room.floor ?? "—"),
+            createCell(room.area == null ? "—" : `${room.area} m²`),
+            createStatusCell(room.active),
+            createActionsCell(room)
         );
         rows.append(row);
     }
 
     tableWrapper.classList.remove("hidden");
-}
-
-function createLabLinkCell(lab) {
-    const cell = document.createElement("td");
-    const link = document.createElement("a");
-    link.className = "table-link";
-    link.href = `/rooms.html?labId=${lab.id}`;
-    link.textContent = lab.name;
-    cell.append(link);
-    return cell;
 }
 
 function createCell(value) {
@@ -154,17 +165,17 @@ function createStatusCell(active) {
     return cell;
 }
 
-function createActionsCell(lab) {
+function createActionsCell(room) {
     const cell = document.createElement("td");
     const actions = document.createElement("div");
     actions.className = "row-actions";
 
     const editButton = createButton("Edit", "button button-secondary button-small");
-    editButton.addEventListener("click", () => openEditForm(lab));
+    editButton.addEventListener("click", () => openEditForm(room));
 
     const deactivateButton = createButton("Deactivate", "button button-danger button-small");
-    deactivateButton.disabled = !lab.active;
-    deactivateButton.addEventListener("click", () => deactivateLab(lab));
+    deactivateButton.disabled = !room.active;
+    deactivateButton.addEventListener("click", () => deactivateRoom(room));
 
     actions.append(editButton, deactivateButton);
     cell.append(actions);
@@ -182,22 +193,23 @@ function createButton(label, className) {
 function openCreateForm() {
     form.reset();
     idInput.value = "";
-    organizationInput.disabled = false;
-    organizationInput.value = organizationFilter.value;
-    formTitle.textContent = "New lab";
+    labInput.disabled = false;
+    labInput.value = labFilter.value;
+    formTitle.textContent = "New room";
     hideMessage(formError);
     formPanel.classList.remove("hidden");
-    organizationInput.focus();
+    labInput.focus();
 }
 
-function openEditForm(lab) {
-    idInput.value = lab.id;
-    organizationInput.value = lab.organizationId;
-    organizationInput.disabled = true;
-    nameInput.value = lab.name;
-    locationInput.value = lab.location || "";
-    descriptionInput.value = lab.description || "";
-    formTitle.textContent = "Edit lab";
+function openEditForm(room) {
+    idInput.value = room.id;
+    labInput.value = room.labId;
+    labInput.disabled = true;
+    nameInput.value = room.name;
+    typeInput.value = room.type;
+    floorInput.value = room.floor ?? "";
+    areaInput.value = room.area ?? "";
+    formTitle.textContent = "Edit room";
     hideMessage(formError);
     formPanel.classList.remove("hidden");
     formPanel.scrollIntoView({behavior: "smooth", block: "start"});
@@ -206,50 +218,51 @@ function openEditForm(lab) {
 function closeForm() {
     formPanel.classList.add("hidden");
     form.reset();
-    organizationInput.disabled = false;
+    labInput.disabled = false;
     hideMessage(formError);
 }
 
-async function saveLab(event) {
+async function saveRoom(event) {
     event.preventDefault();
     hideMessage(formError);
 
     const id = idInput.value;
-    const lab = {
+    const room = {
         name: nameInput.value.trim(),
-        location: locationInput.value.trim() || null,
-        description: descriptionInput.value.trim() || null
+        type: typeInput.value,
+        floor: floorInput.value === "" ? null : Number(floorInput.value),
+        area: areaInput.value === "" ? null : Number(areaInput.value)
     };
 
     if (!id) {
-        lab.organizationId = Number(organizationInput.value);
+        room.labId = Number(labInput.value);
     }
 
     try {
-        await request(id ? `${labsApiUrl}/${id}` : labsApiUrl, {
+        await request(id ? `${roomsApiUrl}/${id}` : roomsApiUrl, {
             method: id ? "PUT" : "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify(lab)
+            body: JSON.stringify(room)
         });
 
         closeForm();
-        await loadLabs();
-        showMessage(pageMessage, id ? "Lab updated." : "Lab created.");
+        await loadRooms();
+        showMessage(pageMessage, id ? "Room updated." : "Room created.");
     } catch (error) {
         showMessage(formError, error.message, true);
     }
 }
 
-async function deactivateLab(lab) {
-    const confirmed = window.confirm(`Deactivate lab "${lab.name}"?`);
+async function deactivateRoom(room) {
+    const confirmed = window.confirm(`Deactivate room "${room.name}"?`);
     if (!confirmed) {
         return;
     }
 
     try {
-        await request(`${labsApiUrl}/${lab.id}/deactivate`, {method: "POST"});
-        await loadLabs();
-        showMessage(pageMessage, "Lab deactivated.");
+        await request(`${roomsApiUrl}/${room.id}/deactivate`, {method: "POST"});
+        await loadRooms();
+        showMessage(pageMessage, "Room deactivated.");
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     }
@@ -271,18 +284,18 @@ document.querySelector("#close-form").addEventListener("click", closeForm);
 document.querySelector("#cancel-form").addEventListener("click", closeForm);
 searchForm.addEventListener("submit", event => {
     event.preventDefault();
-    loadLabs();
+    loadRooms();
 });
 document.querySelector("#clear-search").addEventListener("click", () => {
     searchInput.value = "";
-    organizationFilter.value = "";
-    loadLabs();
+    labFilter.value = "";
+    loadRooms();
 });
 searchInput.addEventListener("input", () => {
     window.clearTimeout(searchTimer);
-    searchTimer = window.setTimeout(loadLabs, 300);
+    searchTimer = window.setTimeout(loadRooms, 300);
 });
-organizationFilter.addEventListener("change", loadLabs);
-form.addEventListener("submit", saveLab);
+labFilter.addEventListener("change", loadRooms);
+form.addEventListener("submit", saveRoom);
 
 initializePage();
