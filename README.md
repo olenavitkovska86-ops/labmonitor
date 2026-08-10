@@ -43,6 +43,7 @@ http://localhost:8080/organizations.html
 http://localhost:8080/labs.html
 http://localhost:8080/rooms.html
 http://localhost:8080/sensors.html
+http://localhost:8080/sensor-readings.html?sensorId=1
 ```
 
 The root URL opens the LabMonitor home page. The web interface follows the
@@ -53,7 +54,8 @@ Organizations -> Labs -> Rooms -> Sensors
 ```
 
 The pages provide viewing, searching, creating, editing, and deactivation where
-supported. The sensor page also provides safe value range configuration.
+supported. The sensor page also provides safe value range configuration. Select a
+sensor name to view its current reading and measurement history.
 
 The implemented REST API endpoints are also available directly:
 
@@ -62,6 +64,8 @@ http://localhost:8080/api/organizations
 http://localhost:8080/api/labs
 http://localhost:8080/api/rooms
 http://localhost:8080/api/sensors
+http://localhost:8080/api/sensors/1/current-reading
+http://localhost:8080/api/sensors/1/readings
 ```
 
 If the corresponding database table is empty, an API endpoint returns an empty
@@ -106,4 +110,5 @@ docs/menu-sketch.md
 docs/roles-and-permissions.md
 docs/user-stories.md
 docs/http/sensors.http
+docs/http/sensor-readings.http
 ```
