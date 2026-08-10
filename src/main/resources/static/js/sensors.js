@@ -1,6 +1,7 @@
 const sensorsApiUrl = "/api/sensors";
 const roomsApiUrl = "/api/rooms";
 const labsApiUrl = "/api/labs";
+const organizationsApiUrl = "/api/organizations";
 
 const rows = document.querySelector("#sensor-rows");
 const tableWrapper = document.querySelector("#table-wrapper");
@@ -44,6 +45,7 @@ const sensorTypeLabels = {
 
 let roomsById = new Map();
 let labsById = new Map();
+let organizationsById = new Map();
 let searchTimer;
 
 async function request(url, options = {}) {
@@ -66,14 +68,17 @@ async function request(url, options = {}) {
 
 async function initializePage() {
     try {
-        const [rooms, labs] = await Promise.all([
+        const [rooms, labs, organizations] = await Promise.all([
             request(roomsApiUrl),
-            request(labsApiUrl)
+            request(labsApiUrl),
+            request(organizationsApiUrl)
         ]);
         roomsById = new Map(rooms.map(room => [room.id, room]));
         labsById = new Map(labs.map(lab => [lab.id, lab]));
+        organizationsById = new Map(organizations.map(organization => [organization.id, organization]));
         renderRoomOptions(rooms);
         applyRoomFromUrl();
+        renderSensorBreadcrumbs();
         await loadSensors();
     } catch (error) {
         loadingState.classList.add("hidden");
@@ -103,9 +108,33 @@ function applyRoomFromUrl() {
     if (roomId && roomsById.has(Number(roomId))) {
         roomFilter.value = roomId;
         roomInput.value = roomId;
-        const room = roomsById.get(Number(roomId));
-        document.querySelector("#back-to-rooms").href = `/rooms.html?labId=${room.labId}`;
     }
+}
+
+function renderSensorBreadcrumbs() {
+    const room = roomsById.get(Number(roomFilter.value));
+    const lab = room && labsById.get(room.labId);
+    const organization = lab && organizationsById.get(lab.organizationId);
+    const items = [
+        {label: "Home", href: "/"},
+        {label: "Organizations", href: "/organizations.html"}
+    ];
+
+    if (organization) {
+        items.push({label: organization.name, href: `/labs.html?organizationId=${organization.id}`});
+    }
+    if (lab) {
+        items.push({label: lab.name, href: `/rooms.html?labId=${lab.id}`});
+    } else {
+        items.push({label: "Labs", href: "/labs.html"});
+    }
+    if (room) {
+        items.push({label: room.name, href: `/sensors.html?roomId=${room.id}`});
+    } else {
+        items.push({label: "Rooms", href: "/rooms.html"});
+    }
+    items.push({label: "Sensors"});
+    renderBreadcrumbs(items);
 }
 
 async function loadSensors() {
@@ -424,13 +453,17 @@ searchForm.addEventListener("submit", event => {
 document.querySelector("#clear-search").addEventListener("click", () => {
     searchInput.value = "";
     roomFilter.value = "";
+    renderSensorBreadcrumbs();
     loadSensors();
 });
 searchInput.addEventListener("input", () => {
     window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(loadSensors, 300);
 });
-roomFilter.addEventListener("change", loadSensors);
+roomFilter.addEventListener("change", () => {
+    renderSensorBreadcrumbs();
+    loadSensors();
+});
 form.addEventListener("submit", saveSensor);
 safeRangeForm.addEventListener("submit", saveSafeRange);
 

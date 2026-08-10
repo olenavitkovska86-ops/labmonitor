@@ -46,6 +46,7 @@ async function initializePage() {
         organizationsById = new Map(organizations.map(organization => [organization.id, organization]));
         renderOrganizationOptions(organizations);
         applyOrganizationFromUrl();
+        renderLabBreadcrumbs();
         await loadLabs();
     } catch (error) {
         loadingState.classList.add("hidden");
@@ -60,6 +61,20 @@ function applyOrganizationFromUrl() {
         organizationFilter.value = organizationId;
         organizationInput.value = organizationId;
     }
+}
+
+function renderLabBreadcrumbs() {
+    const organization = organizationsById.get(Number(organizationFilter.value));
+    const items = [
+        {label: "Home", href: "/"},
+        {label: "Organizations", href: "/organizations.html"}
+    ];
+
+    if (organization) {
+        items.push({label: organization.name, href: `/labs.html?organizationId=${organization.id}`});
+    }
+    items.push({label: "Labs"});
+    renderBreadcrumbs(items);
 }
 
 function renderOrganizationOptions(organizations) {
@@ -279,13 +294,17 @@ searchForm.addEventListener("submit", event => {
 document.querySelector("#clear-search").addEventListener("click", () => {
     searchInput.value = "";
     organizationFilter.value = "";
+    renderLabBreadcrumbs();
     loadLabs();
 });
 searchInput.addEventListener("input", () => {
     window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(loadLabs, 300);
 });
-organizationFilter.addEventListener("change", loadLabs);
+organizationFilter.addEventListener("change", () => {
+    renderLabBreadcrumbs();
+    loadLabs();
+});
 form.addEventListener("submit", saveLab);
 
 initializePage();
