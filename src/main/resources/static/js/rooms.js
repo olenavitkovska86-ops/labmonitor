@@ -92,6 +92,8 @@ function applyLabFromUrl() {
     if (labId && labsById.has(Number(labId))) {
         labFilter.value = labId;
         labInput.value = labId;
+        const lab = labsById.get(Number(labId));
+        document.querySelector("#back-to-labs").href = `/labs.html?organizationId=${lab.organizationId}`;
     }
 }
 

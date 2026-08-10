@@ -64,4 +64,9 @@ public class SensorController {
     public SensorResponse deactivate(@PathVariable Long id) {
         return sensorService.deactivate(id);
     }
+
+    @PostMapping("/{id}/activate")
+    public SensorResponse activate(@PathVariable Long id) {
+        return sensorService.activate(id);
+    }
 }

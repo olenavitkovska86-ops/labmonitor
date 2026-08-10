@@ -103,6 +103,8 @@ function applyRoomFromUrl() {
     if (roomId && roomsById.has(Number(roomId))) {
         roomFilter.value = roomId;
         roomInput.value = roomId;
+        const room = roomsById.get(Number(roomId));
+        document.querySelector("#back-to-rooms").href = `/rooms.html?labId=${room.labId}`;
     }
 }
 
@@ -145,21 +147,68 @@ function renderSensors(sensors) {
     for (const sensor of sensors) {
         const room = roomsById.get(sensor.roomId);
         const row = document.createElement("tr");
+        const currentReadingCell = createCurrentReadingCell(sensor);
         row.append(
             createCell(sensor.id),
-            createCell(sensor.name),
+            createSensorLinkCell(sensor),
             createCell(room?.name || `Room ${sensor.roomId}`),
             createCell(sensorTypeLabels[sensor.type] || sensor.type),
             createCell(sensor.unit || "—"),
             createDeviceStatusCell(sensor.status),
+            currentReadingCell,
             createCell(formatSafeRange(sensor)),
             createStatusCell(sensor.active),
             createActionsCell(sensor)
         );
         rows.append(row);
+        loadCurrentReading(sensor, currentReadingCell);
     }
 
     tableWrapper.classList.remove("hidden");
+}
+
+function createSensorLinkCell(sensor) {
+    const cell = document.createElement("td");
+    const link = document.createElement("a");
+    link.className = "table-link";
+    link.href = `/sensor-readings.html?sensorId=${sensor.id}`;
+    link.textContent = sensor.name;
+    cell.append(link);
+    return cell;
+}
+
+function createCurrentReadingCell(sensor) {
+    const cell = document.createElement("td");
+    cell.textContent = "Loading...";
+    cell.dataset.sensorId = sensor.id;
+    return cell;
+}
+
+async function loadCurrentReading(sensor, cell) {
+    try {
+        const response = await fetch(`${sensorsApiUrl}/${sensor.id}/current-reading`);
+
+        if (response.status === 204) {
+            cell.textContent = "No readings";
+            return;
+        }
+
+        if (!response.ok) {
+            cell.textContent = "Unavailable";
+            return;
+        }
+
+        const reading = await response.json();
+        cell.textContent = `${reading.value}${reading.unit ? ` ${reading.unit}` : ""}`;
+        cell.className = isOutsideSafeRange(sensor, reading.value) ? "value-alert" : "value-safe";
+    } catch {
+        cell.textContent = "Unavailable";
+    }
+}
+
+function isOutsideSafeRange(sensor, value) {
+    return (sensor.minSafeValue != null && value < sensor.minSafeValue)
+        || (sensor.maxSafeValue != null && value > sensor.maxSafeValue);
 }
 
 function createCell(value) {
@@ -210,11 +259,13 @@ function createActionsCell(sensor) {
     const rangeButton = createButton("Safe range", "button button-secondary button-small");
     rangeButton.addEventListener("click", () => openSafeRangeForm(sensor));
 
-    const deactivateButton = createButton("Deactivate", "button button-danger button-small");
-    deactivateButton.disabled = !sensor.active;
-    deactivateButton.addEventListener("click", () => deactivateSensor(sensor));
+    const activityButton = createButton(
+        sensor.active ? "Deactivate" : "Activate",
+        `button ${sensor.active ? "button-danger" : "button-primary"} button-small`
+    );
+    activityButton.addEventListener("click", () => changeSensorActivity(sensor));
 
-    actions.append(editButton, rangeButton, deactivateButton);
+    actions.append(editButton, rangeButton, activityButton);
     cell.append(actions);
     return cell;
 }
@@ -334,16 +385,17 @@ async function saveSafeRange(event) {
     }
 }
 
-async function deactivateSensor(sensor) {
-    const confirmed = window.confirm(`Deactivate sensor "${sensor.name}"?`);
+async function changeSensorActivity(sensor) {
+    const action = sensor.active ? "deactivate" : "activate";
+    const confirmed = window.confirm(`${sensor.active ? "Deactivate" : "Activate"} sensor "${sensor.name}"?`);
     if (!confirmed) {
         return;
     }
 
     try {
-        await request(`${sensorsApiUrl}/${sensor.id}/deactivate`, {method: "POST"});
+        await request(`${sensorsApiUrl}/${sensor.id}/${action}`, {method: "POST"});
         await loadSensors();
-        showMessage(pageMessage, "Sensor deactivated.");
+        showMessage(pageMessage, sensor.active ? "Sensor deactivated." : "Sensor activated.");
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     }

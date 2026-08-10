@@ -69,6 +69,14 @@ public class SensorService {
         return SensorResponse.from(savedSensor);
     }
 
+    public SensorResponse activate(Long id) {
+        Sensor sensor = getSensor(id);
+        sensor.activate();
+        Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
+
+        return SensorResponse.from(savedSensor);
+    }
+
     private List<Sensor> findSensors(Long roomId, String search) {
         boolean hasSearch = hasText(search);
 
@@ -90,6 +98,10 @@ public class SensorService {
     private Sensor getSensor(Long id) {
         return sensorRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Sensor with id " + id + " was not found"));
+    }
+
+    public Sensor getExistingSensor(Long id) {
+        return getSensor(id);
     }
 
     private boolean hasText(String value) {

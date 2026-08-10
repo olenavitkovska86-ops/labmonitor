@@ -1,6 +1,7 @@
 package com.olena.labmonitor.common.error;
 
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
+import com.olena.labmonitor.common.exception.InvalidOperationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -17,6 +18,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> handleResourceNotFound(ResourceNotFoundException exception) {
         return buildError(HttpStatus.NOT_FOUND, exception.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(InvalidOperationException.class)
+    public ResponseEntity<ApiError> handleInvalidOperation(InvalidOperationException exception) {
+        return buildError(HttpStatus.CONFLICT, exception.getMessage(), List.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

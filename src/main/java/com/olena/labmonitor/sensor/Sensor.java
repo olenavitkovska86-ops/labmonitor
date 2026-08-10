@@ -132,7 +132,20 @@ public class Sensor {
         this.maxSafeValue = maxSafeValue;
     }
 
+    public void recordReading(LocalDateTime measuredAt) {
+        this.status = SensorStatus.ONLINE;
+        if (lastSeenAt == null || measuredAt.isAfter(lastSeenAt)) {
+            this.lastSeenAt = measuredAt;
+        }
+    }
+
     public void deactivate() {
         this.active = false;
+        this.status = SensorStatus.OFFLINE;
+    }
+
+    public void activate() {
+        this.active = true;
+        this.status = SensorStatus.OFFLINE;
     }
 }

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Readings | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">LabMonitor</a>
+    <span class="subtitle">Laboratory monitoring</span>
+</header>
+
+<main class="page">
+    <nav class="back-navigation" aria-label="Back navigation">
+        <a id="back-to-sensors" class="back-link" href="/sensors.html">&larr; Back to sensors</a>
+    </nav>
+
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Sensor history</p>
+            <h1 id="sensor-title">Sensor readings</h1>
+            <p id="sensor-description" class="intro">Loading sensor information...</p>
+        </div>
+        <button id="show-reading-form" class="button button-primary" type="button">
+            Add test reading
+        </button>
+    </section>
+
+    <section id="reading-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading">
+            <h2>New sensor reading</h2>
+            <button id="close-reading-form" class="icon-button" type="button" aria-label="Close">&times;</button>
+        </div>
+
+        <form id="reading-form">
+            <label for="reading-value">Value</label>
+            <input id="reading-value" type="number" step="0.001" required>
+
+            <label for="measured-at">Measurement time</label>
+            <input id="measured-at" type="datetime-local">
+            <p class="intro">Leave empty to use the current server time.</p>
+
+            <div id="form-error" class="message message-error hidden" role="alert"></div>
+
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Save reading</button>
+                <button id="cancel-reading-form" class="button button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="reading-summary" aria-label="Current sensor state">
+        <div class="summary-item">
+            <span class="summary-label">Current reading</span>
+            <span id="current-reading" class="summary-value">—</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Safe range</span>
+            <span id="safe-range" class="summary-value">—</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-label">Last measured</span>
+            <span id="last-measured" class="summary-value">—</span>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div id="page-message" class="message hidden" role="status"></div>
+        <p id="loading-state" class="state">Loading reading history...</p>
+        <p id="empty-state" class="state hidden">This sensor has no readings yet.</p>
+
+        <div id="table-wrapper" class="table-wrapper hidden">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Value</th>
+                    <th>Measured at</th>
+                    <th>Received at</th>
+                    <th>Safe</th>
+                </tr>
+                </thead>
+                <tbody id="reading-rows"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/js/sensor-readings.js"></script>
+</body>
+</html>
