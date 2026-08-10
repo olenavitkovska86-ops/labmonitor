@@ -334,6 +334,45 @@ th {
     opacity: 0.55;
 }
 
+.value-safe {
+    color: #17663a;
+    font-weight: 750;
+}
+
+.value-alert {
+    color: #b42318;
+    font-weight: 750;
+}
+
+.reading-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.summary-item {
+    padding: 18px;
+    border: 1px solid #dce4e8;
+    border-radius: 10px;
+    background: #f8fafb;
+}
+
+.summary-label {
+    display: block;
+    margin-bottom: 7px;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.summary-value {
+    font-size: 1.25rem;
+    font-weight: 750;
+}
+
 .message {
     margin: 14px 0;
     padding: 12px 14px;
@@ -364,6 +403,10 @@ th {
     }
 
     .module-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .reading-summary {
         grid-template-columns: 1fr;
     }
 
