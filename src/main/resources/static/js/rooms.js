@@ -136,7 +136,7 @@ function renderRooms(rooms) {
         const row = document.createElement("tr");
         row.append(
             createCell(room.id),
-            createCell(room.name),
+            createRoomLinkCell(room),
             createCell(lab?.name || `Lab ${room.labId}`),
             createCell(roomTypeLabels[room.type] || room.type),
             createCell(room.floor ?? "—"),
@@ -148,6 +148,16 @@ function renderRooms(rooms) {
     }
 
     tableWrapper.classList.remove("hidden");
+}
+
+function createRoomLinkCell(room) {
+    const cell = document.createElement("td");
+    const link = document.createElement("a");
+    link.className = "table-link";
+    link.href = `/sensors.html?roomId=${room.id}`;
+    link.textContent = room.name;
+    cell.append(link);
+    return cell;
 }
 
 function createCell(value) {

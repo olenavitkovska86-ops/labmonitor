@@ -40,10 +40,20 @@ Open the web interface in a browser:
 ```text
 http://localhost:8080
 http://localhost:8080/organizations.html
+http://localhost:8080/labs.html
+http://localhost:8080/rooms.html
+http://localhost:8080/sensors.html
 ```
 
-The root URL opens the LabMonitor home page. The organizations page provides a
-web interface for viewing, searching, creating, editing, and deleting organizations.
+The root URL opens the LabMonitor home page. The web interface follows the
+laboratory structure:
+
+```text
+Organizations -> Labs -> Rooms -> Sensors
+```
+
+The pages provide viewing, searching, creating, editing, and deactivation where
+supported. The sensor page also provides safe value range configuration.
 
 The implemented REST API endpoints are also available directly:
 
@@ -51,6 +61,7 @@ The implemented REST API endpoints are also available directly:
 http://localhost:8080/api/organizations
 http://localhost:8080/api/labs
 http://localhost:8080/api/rooms
+http://localhost:8080/api/sensors
 ```
 
 If the corresponding database table is empty, an API endpoint returns an empty
@@ -94,4 +105,5 @@ Project planning documents are stored in:
 docs/menu-sketch.md
 docs/roles-and-permissions.md
 docs/user-stories.md
+docs/http/sensors.http
 ```

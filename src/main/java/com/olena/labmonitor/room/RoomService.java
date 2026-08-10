@@ -87,6 +87,10 @@ public class RoomService {
                 .orElseThrow(() -> new ResourceNotFoundException("Room with id " + id + " was not found"));
     }
 
+    public Room getExistingRoom(Long id) {
+        return getRoom(id);
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }

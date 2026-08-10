@@ -319,6 +319,16 @@ th {
     background: #edf1f3;
 }
 
+.status-warning {
+    color: #8a5700;
+    background: #fff4d6;
+}
+
+.status-error {
+    color: #9f251c;
+    background: #feeceb;
+}
+
 .button:disabled {
     cursor: not-allowed;
     opacity: 0.55;
