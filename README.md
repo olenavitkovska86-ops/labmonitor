@@ -109,6 +109,7 @@ Project planning documents are stored in:
 docs/menu-sketch.md
 docs/roles-and-permissions.md
 docs/user-stories.md
+docs/architecture/domain-model.md
 docs/http/sensors.http
 docs/http/sensor-readings.http
 ```
