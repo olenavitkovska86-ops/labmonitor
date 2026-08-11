@@ -1,5 +1,6 @@
 package com.olena.labmonitor.room;
 
+import com.olena.labmonitor.common.exception.InvalidOperationException;
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.lab.Lab;
 import com.olena.labmonitor.lab.LabService;
@@ -26,6 +27,7 @@ public class RoomService {
 
     public RoomResponse create(CreateRoomRequest request) {
         Lab lab = labService.getExistingLab(request.labId());
+        requireActiveLab(lab, "create a room");
         Room room = new Room(lab, request.name(), request.type(), request.floor(), request.area());
         Room savedRoom = roomRepository.saveAndFlush(room);
 
@@ -64,6 +66,15 @@ public class RoomService {
         return RoomResponse.from(savedRoom);
     }
 
+    public RoomResponse activate(Long id) {
+        Room room = getRoom(id);
+        requireActiveLab(room.getLab(), "activate room with id " + id);
+        room.activate();
+        Room savedRoom = roomRepository.saveAndFlush(room);
+
+        return RoomResponse.from(savedRoom);
+    }
+
     private List<Room> findRooms(Long labId, String search) {
         boolean hasSearch = hasText(search);
 
@@ -85,6 +96,18 @@ public class RoomService {
     private Room getRoom(Long id) {
         return roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Room with id " + id + " was not found"));
+    }
+
+    public Room getExistingRoom(Long id) {
+        return getRoom(id);
+    }
+
+    private void requireActiveLab(Lab lab, String operation) {
+        if (!lab.isActive()) {
+            throw new InvalidOperationException(
+                    "Cannot " + operation + " because lab with id " + lab.getId() + " is inactive"
+            );
+        }
     }
 
     private boolean hasText(String value) {

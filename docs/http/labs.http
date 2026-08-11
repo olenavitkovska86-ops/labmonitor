@@ -53,6 +53,9 @@ Content-Type: application/json
 ### Deactivate lab
 POST {{baseUrl}}/api/labs/{{labId}}/deactivate
 
+### Activate lab
+POST {{baseUrl}}/api/labs/{{labId}}/activate
+
 ### Validation error: empty name
 POST {{baseUrl}}/api/labs
 Content-Type: application/json

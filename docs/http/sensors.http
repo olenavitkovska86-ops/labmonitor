@@ -1,0 +1,66 @@
+### Variables
+@baseUrl = http://localhost:8080
+@roomId = 1
+@sensorId = 1
+
+### Get all sensors
+GET {{baseUrl}}/api/sensors
+
+### Get sensors by room
+GET {{baseUrl}}/api/sensors?roomId={{roomId}}
+
+### Search sensors by name
+GET {{baseUrl}}/api/sensors?search=temperature
+
+### Search sensors by room and name
+GET {{baseUrl}}/api/sensors?roomId={{roomId}}&search=temperature
+
+### Get sensor by id
+GET {{baseUrl}}/api/sensors/{{sensorId}}
+
+### Create sensor
+POST {{baseUrl}}/api/sensors
+Content-Type: application/json
+
+{
+  "roomId": {{roomId}},
+  "name": "Room Temperature Sensor",
+  "type": "TEMPERATURE",
+  "unit": "°C"
+}
+
+### Update sensor
+PUT {{baseUrl}}/api/sensors/{{sensorId}}
+Content-Type: application/json
+
+{
+  "name": "Main Temperature Sensor",
+  "unit": "°C"
+}
+
+### Update safe range
+PUT {{baseUrl}}/api/sensors/{{sensorId}}/safe-range
+Content-Type: application/json
+
+{
+  "minSafeValue": 18.0,
+  "maxSafeValue": 25.0
+}
+
+### Deactivate sensor
+POST {{baseUrl}}/api/sensors/{{sensorId}}/deactivate
+
+### Activate sensor
+POST {{baseUrl}}/api/sensors/{{sensorId}}/activate
+
+### Validation error: invalid safe range
+PUT {{baseUrl}}/api/sensors/{{sensorId}}/safe-range
+Content-Type: application/json
+
+{
+  "minSafeValue": 30.0,
+  "maxSafeValue": 20.0
+}
+
+### Not found error
+GET {{baseUrl}}/api/sensors/999999

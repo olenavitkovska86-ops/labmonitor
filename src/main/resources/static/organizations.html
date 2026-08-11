@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">LabMonitor</a>
+    <span class="subtitle">Laboratory management</span>
+</header>
+
+<main class="page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a class="breadcrumb-link" href="/">Home</a>
+        <span class="breadcrumb-separator" aria-hidden="true">›</span>
+        <span class="breadcrumb-current" aria-current="page">Organizations</span>
+    </nav>
+
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Administration</p>
+            <h1>Organizations</h1>
+            <p class="intro">Create and manage laboratory organizations.</p>
+        </div>
+        <button id="show-create-form" class="button button-primary" type="button">
+            Add organization
+        </button>
+    </section>
+
+    <section id="organization-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading">
+            <h2 id="form-title">New organization</h2>
+            <button id="close-form" class="icon-button" type="button" aria-label="Close">&times;</button>
+        </div>
+
+        <form id="organization-form">
+            <input id="organization-id" type="hidden">
+
+            <label for="organization-name">Name</label>
+            <input id="organization-name" maxlength="150" required>
+
+            <label for="organization-description">Description</label>
+            <textarea id="organization-description" maxlength="500" rows="4"></textarea>
+
+            <div id="form-error" class="message message-error hidden" role="alert"></div>
+
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Save</button>
+                <button id="cancel-form" class="button button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <form id="search-form" class="toolbar">
+            <label class="search">
+                <span>Search</span>
+                <input id="search-input" type="search" placeholder="Organization name">
+            </label>
+            <button class="button button-secondary" type="submit">Search</button>
+            <button id="clear-search" class="button button-link" type="button">Clear</button>
+        </form>
+
+        <div id="page-message" class="message hidden" role="status"></div>
+        <p id="loading-state" class="state">Loading organizations...</p>
+        <p id="empty-state" class="state hidden">No organizations found.</p>
+
+        <div id="table-wrapper" class="table-wrapper hidden">
+            <table>
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th class="actions-column">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="organization-rows"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/js/organizations.js"></script>
+</body>
+</html>
