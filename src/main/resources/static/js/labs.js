@@ -46,6 +46,7 @@ async function initializePage() {
         organizationsById = new Map(organizations.map(organization => [organization.id, organization]));
         renderOrganizationOptions(organizations);
         applyOrganizationFromUrl();
+        renderLabBreadcrumbs();
         await loadLabs();
     } catch (error) {
         loadingState.classList.add("hidden");
@@ -60,6 +61,20 @@ function applyOrganizationFromUrl() {
         organizationFilter.value = organizationId;
         organizationInput.value = organizationId;
     }
+}
+
+function renderLabBreadcrumbs() {
+    const organization = organizationsById.get(Number(organizationFilter.value));
+    const items = [
+        {label: "Home", href: "/"},
+        {label: "Organizations", href: "/organizations.html"}
+    ];
+
+    if (organization) {
+        items.push({label: organization.name, href: `/labs.html?organizationId=${organization.id}`});
+    }
+    items.push({label: "Labs"});
+    renderBreadcrumbs(items);
 }
 
 function renderOrganizationOptions(organizations) {
@@ -162,11 +177,13 @@ function createActionsCell(lab) {
     const editButton = createButton("Edit", "button button-secondary button-small");
     editButton.addEventListener("click", () => openEditForm(lab));
 
-    const deactivateButton = createButton("Deactivate", "button button-danger button-small");
-    deactivateButton.disabled = !lab.active;
-    deactivateButton.addEventListener("click", () => deactivateLab(lab));
+    const lifecycleButton = createButton(
+        lab.active ? "Deactivate" : "Activate",
+        `button ${lab.active ? "button-danger" : "button-primary"} button-small`
+    );
+    lifecycleButton.addEventListener("click", () => changeLabActivity(lab));
 
-    actions.append(editButton, deactivateButton);
+    actions.append(editButton, lifecycleButton);
     cell.append(actions);
     return cell;
 }
@@ -240,16 +257,17 @@ async function saveLab(event) {
     }
 }
 
-async function deactivateLab(lab) {
-    const confirmed = window.confirm(`Deactivate lab "${lab.name}"?`);
+async function changeLabActivity(lab) {
+    const action = lab.active ? "deactivate" : "activate";
+    const confirmed = window.confirm(`${lab.active ? "Deactivate" : "Activate"} lab "${lab.name}"?`);
     if (!confirmed) {
         return;
     }
 
     try {
-        await request(`${labsApiUrl}/${lab.id}/deactivate`, {method: "POST"});
+        await request(`${labsApiUrl}/${lab.id}/${action}`, {method: "POST"});
         await loadLabs();
-        showMessage(pageMessage, "Lab deactivated.");
+        showMessage(pageMessage, lab.active ? "Lab deactivated." : "Lab activated.");
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     }
@@ -276,13 +294,17 @@ searchForm.addEventListener("submit", event => {
 document.querySelector("#clear-search").addEventListener("click", () => {
     searchInput.value = "";
     organizationFilter.value = "";
+    renderLabBreadcrumbs();
     loadLabs();
 });
 searchInput.addEventListener("input", () => {
     window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(loadLabs, 300);
 });
-organizationFilter.addEventListener("change", loadLabs);
+organizationFilter.addEventListener("change", () => {
+    renderLabBreadcrumbs();
+    loadLabs();
+});
 form.addEventListener("submit", saveLab);
 
 initializePage();

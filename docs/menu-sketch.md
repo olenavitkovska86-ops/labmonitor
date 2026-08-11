@@ -120,20 +120,20 @@
     14. Manage Labs
         1. Create lab
         2. Update lab
-        3. Deactivate lab
+        3. Activate/deactivate lab
         0. Back to Super Admin Menu --> (4. Super Admin Menu)
 
     15. Manage Rooms
         1. Create room
         2. Update room
-        3. Deactivate room
+        3. Activate/deactivate room
         0. Back to Super Admin Menu --> (4. Super Admin Menu)
 
     16. Manage Sensors
         1. Add sensor
         2. Update sensor
         3. Set safe value range
-        4. Deactivate sensor
+        4. Activate/deactivate sensor
         0. Back to Super Admin Menu --> (4. Super Admin Menu)
 
     17. Manage Cameras

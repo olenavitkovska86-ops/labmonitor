@@ -38,7 +38,7 @@ Content-Type: application/json
 ### Not found error
 GET {{baseUrl}}/api/sensors/999999/readings
 
-### Conflict error when the sensor is inactive
+### Conflict error when the sensor, its room, or its lab is inactive
 POST {{baseUrl}}/api/sensor-readings
 Content-Type: application/json
 

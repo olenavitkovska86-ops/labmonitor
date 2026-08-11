@@ -63,6 +63,7 @@ async function initializePage() {
         organizationsById = new Map(organizations.map(organization => [organization.id, organization]));
         renderLabOptions(labs);
         applyLabFromUrl();
+        renderRoomBreadcrumbs();
         await loadRooms();
     } catch (error) {
         loadingState.classList.add("hidden");
@@ -92,9 +93,27 @@ function applyLabFromUrl() {
     if (labId && labsById.has(Number(labId))) {
         labFilter.value = labId;
         labInput.value = labId;
-        const lab = labsById.get(Number(labId));
-        document.querySelector("#back-to-labs").href = `/labs.html?organizationId=${lab.organizationId}`;
     }
+}
+
+function renderRoomBreadcrumbs() {
+    const lab = labsById.get(Number(labFilter.value));
+    const organization = lab && organizationsById.get(lab.organizationId);
+    const items = [
+        {label: "Home", href: "/"},
+        {label: "Organizations", href: "/organizations.html"}
+    ];
+
+    if (organization) {
+        items.push({label: organization.name, href: `/labs.html?organizationId=${organization.id}`});
+    }
+    if (lab) {
+        items.push({label: lab.name, href: `/rooms.html?labId=${lab.id}`});
+    } else {
+        items.push({label: "Labs", href: "/labs.html"});
+    }
+    items.push({label: "Rooms"});
+    renderBreadcrumbs(items);
 }
 
 async function loadRooms() {
@@ -185,11 +204,13 @@ function createActionsCell(room) {
     const editButton = createButton("Edit", "button button-secondary button-small");
     editButton.addEventListener("click", () => openEditForm(room));
 
-    const deactivateButton = createButton("Deactivate", "button button-danger button-small");
-    deactivateButton.disabled = !room.active;
-    deactivateButton.addEventListener("click", () => deactivateRoom(room));
+    const lifecycleButton = createButton(
+        room.active ? "Deactivate" : "Activate",
+        `button ${room.active ? "button-danger" : "button-primary"} button-small`
+    );
+    lifecycleButton.addEventListener("click", () => changeRoomActivity(room));
 
-    actions.append(editButton, deactivateButton);
+    actions.append(editButton, lifecycleButton);
     cell.append(actions);
     return cell;
 }
@@ -265,16 +286,17 @@ async function saveRoom(event) {
     }
 }
 
-async function deactivateRoom(room) {
-    const confirmed = window.confirm(`Deactivate room "${room.name}"?`);
+async function changeRoomActivity(room) {
+    const action = room.active ? "deactivate" : "activate";
+    const confirmed = window.confirm(`${room.active ? "Deactivate" : "Activate"} room "${room.name}"?`);
     if (!confirmed) {
         return;
     }
 
     try {
-        await request(`${roomsApiUrl}/${room.id}/deactivate`, {method: "POST"});
+        await request(`${roomsApiUrl}/${room.id}/${action}`, {method: "POST"});
         await loadRooms();
-        showMessage(pageMessage, "Room deactivated.");
+        showMessage(pageMessage, room.active ? "Room deactivated." : "Room activated.");
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     }
@@ -301,13 +323,17 @@ searchForm.addEventListener("submit", event => {
 document.querySelector("#clear-search").addEventListener("click", () => {
     searchInput.value = "";
     labFilter.value = "";
+    renderRoomBreadcrumbs();
     loadRooms();
 });
 searchInput.addEventListener("input", () => {
     window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(loadRooms, 300);
 });
-labFilter.addEventListener("change", loadRooms);
+labFilter.addEventListener("change", () => {
+    renderRoomBreadcrumbs();
+    loadRooms();
+});
 form.addEventListener("submit", saveRoom);
 
 initializePage();

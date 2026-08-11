@@ -35,3 +35,6 @@ Content-Type: application/json
 
 ### Deactivate room
 POST http://localhost:8080/api/rooms/1/deactivate
+
+### Activate room (the parent lab must be active)
+POST http://localhost:8080/api/rooms/1/activate

@@ -109,6 +109,16 @@ Acceptance criteria:
 3. LIMITED_EMPLOYEE cannot view labs from another organization.
 4. Empty result returns empty list, not error.
 
+User story:
+As a SUPER_ADMIN,
+I want to deactivate and reactivate a lab,
+so that monitoring can be suspended without deleting its structure.
+
+Acceptance criteria:
+1. Deactivating a lab preserves the active state of its rooms and sensors.
+2. Rooms and sensors in an inactive lab cannot be activated or accept new data.
+3. Reactivating the lab restores access for children that are individually active.
+
 ### 4. Rooms
 
 User story:
@@ -124,6 +134,17 @@ Acceptance criteria:
 5. Area must be greater than 0 if provided.
 6. Room is active after creation.
 7. If lab does not exist, system returns 404.
+8. A room cannot be created in an inactive lab.
+
+User story:
+As a SUPER_ADMIN,
+I want to deactivate and reactivate a room,
+so that monitoring can be suspended without deleting its sensors.
+
+Acceptance criteria:
+1. Deactivating a room preserves the active state of its sensors.
+2. Sensors in an inactive room cannot be created, activated, or accept readings.
+3. A room can be reactivated only when its lab is active.
 
 User story:
 As a LIMITED_EMPLOYEE,
@@ -154,6 +175,7 @@ Acceptance criteria:
 5. Sensor status is OFFLINE by default.
 6. Sensor is active after creation.
 7. If room does not exist, system returns 404.
+8. A sensor cannot be added to an inactive room or lab.
 
 User story:
 As a LAB_ADMIN,

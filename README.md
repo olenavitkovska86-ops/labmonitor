@@ -53,9 +53,16 @@ laboratory structure:
 Organizations -> Labs -> Rooms -> Sensors
 ```
 
-The pages provide viewing, searching, creating, editing, and deactivation where
-supported. The sensor page also provides safe value range configuration. Select a
-sensor name to view its current reading and measurement history.
+The pages provide viewing, searching, creating, editing, activation, and
+deactivation where supported. The sensor page also provides safe value range
+configuration. Select a sensor name to view its current reading and measurement
+history.
+
+Activity follows the laboratory hierarchy. A sensor can accept readings only
+when the sensor, its room, and its lab are all active. Deactivating a lab or room
+does not change the saved active state of its child rooms or sensors. This allows
+previously active children to become operational again when their parent is
+reactivated, while individually deactivated sensors remain inactive.
 
 The implemented REST API endpoints are also available directly:
 

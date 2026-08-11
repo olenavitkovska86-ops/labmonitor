@@ -34,6 +34,7 @@ public class SensorReadingService {
                     "Inactive sensor with id " + sensor.getId() + " cannot accept readings"
             );
         }
+        sensorService.requireOperationalParents(sensor, "accept a reading for sensor with id " + sensor.getId());
 
         LocalDateTime measuredAt = request.measuredAt() == null
                 ? LocalDateTime.now()

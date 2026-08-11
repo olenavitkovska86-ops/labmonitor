@@ -1,5 +1,8 @@
 const sensorsApiUrl = "/api/sensors";
 const readingsApiUrl = "/api/sensor-readings";
+const roomsApiUrl = "/api/rooms";
+const labsApiUrl = "/api/labs";
+const organizationsApiUrl = "/api/organizations";
 const sensorId = new URLSearchParams(window.location.search).get("sensorId");
 
 const sensorTitle = document.querySelector("#sensor-title");
@@ -19,6 +22,9 @@ const valueInput = document.querySelector("#reading-value");
 const measuredAtInput = document.querySelector("#measured-at");
 
 let sensor;
+let room;
+let lab;
+let organization;
 
 async function request(url, options = {}) {
     const response = await fetch(url, options);
@@ -40,6 +46,14 @@ async function request(url, options = {}) {
 
 async function initializePage() {
     if (!sensorId) {
+        renderBreadcrumbs([
+            {label: "Home", href: "/"},
+            {label: "Organizations", href: "/organizations.html"},
+            {label: "Labs", href: "/labs.html"},
+            {label: "Rooms", href: "/rooms.html"},
+            {label: "Sensors", href: "/sensors.html"},
+            {label: "Sensor readings"}
+        ]);
         loadingState.classList.add("hidden");
         document.querySelector("#show-reading-form").disabled = true;
         showMessage(pageMessage, "Select a sensor from the Sensors page.", true);
@@ -48,6 +62,11 @@ async function initializePage() {
 
     try {
         sensor = await request(`${sensorsApiUrl}/${sensorId}`);
+        [room, lab, organization] = await Promise.all([
+            request(`${roomsApiUrl}/${sensor.roomId}`),
+            request(`${labsApiUrl}/${sensor.labId}`),
+            request(`${organizationsApiUrl}/${sensor.organizationId}`)
+        ]);
         renderSensorDetails();
         await loadReadings();
     } catch (error) {
@@ -60,7 +79,14 @@ function renderSensorDetails() {
     sensorTitle.textContent = sensor.name;
     sensorDescription.textContent = `${sensor.type} sensor · ${sensor.status}`;
     safeRange.textContent = formatSafeRange();
-    document.querySelector("#back-to-sensors").href = `/sensors.html?roomId=${sensor.roomId}`;
+    renderBreadcrumbs([
+        {label: "Home", href: "/"},
+        {label: "Organizations", href: "/organizations.html"},
+        {label: organization.name, href: `/labs.html?organizationId=${organization.id}`},
+        {label: lab.name, href: `/rooms.html?labId=${lab.id}`},
+        {label: room.name, href: `/sensors.html?roomId=${room.id}`},
+        {label: sensor.name}
+    ]);
 }
 
 async function loadReadings() {
