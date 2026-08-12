@@ -28,7 +28,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth // Specifik non-saftety sensitive endpoints
                         .requestMatchers("/auth/change-password").authenticated() // Requires login
                         .requestMatchers("/auth/**").permitAll() // Terminates authorization-konfiguration
-                        .requestMatchers("/admin/**").hasRole("ROLE_SUPER_ADMIN")
+                        .requestMatchers("/admin/**").hasRole("SUPER_ADMIN")
                         .anyRequest().authenticated() // everything else
         )
                 .formLogin(Customizer.withDefaults())
