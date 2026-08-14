@@ -18,6 +18,12 @@ public record CreateUserRequest(
         String lastName,
 
         @NotNull(message = "Password is required")
-        String password
+        String password,
+
+        @NotNull(message = "Role is required")
+        String role,
+
+        @NotNull(message = "Organization ID is required for LAB_ADMIN and LIMITED_EMPLOYEE")
+        Long organization
 ) {
 }
