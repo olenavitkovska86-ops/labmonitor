@@ -1,0 +1,18 @@
+### Login
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "email": "test.admin@labmonitor.local",
+  "password": "Test123!"
+}
+
+### Change password (kör login ovan först, kopiera token hit)
+POST http://localhost:8080/auth/change-password
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0LmFkbWluQGxhYm1vbml0b3IubG9jYWwiLCJyb2xlcyI6WyJST0xFX1NVUEVSX0FETUlOIl0sImlhdCI6MTc4NjcwNjMzOSwiZXhwIjoxNzg2NzA5OTM5fQ.3TLx0uaV5aImpglp91LqKULdV9dTc8_6rMBMGpsZ8x4
+
+{
+  "oldPassword": "Test123!",
+  "newPassword": "NyttLosen456!"
+}

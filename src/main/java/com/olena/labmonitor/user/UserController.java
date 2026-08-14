@@ -4,8 +4,7 @@ import com.olena.labmonitor.user.dto.CreateUserRequest;
 import com.olena.labmonitor.user.dto.UpdateUserRequest;
 import com.olena.labmonitor.user.dto.UserResponce;
 import jakarta.validation.Valid;
-import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,13 +14,14 @@ public class UserController {
     public UserController(UserService userService){this.userService = userService;}
 
     @GetMapping("/{id}")
-    public UserResponce findById(@PathVariable Long profile){return userService.findById(profile);}
+    public UserResponce findById(@PathVariable("id") Long profile){return userService.findById(profile);}
 
-    @GetMapping("/{profile")
+    @GetMapping("/me")
     public UserResponce getMyProfile(Authentication authentication){
-        String email = authentication.getDeclaringClass().getName();
+        String email = authentication.getName();
         return userService.findMe(email);
     }
+
 
     @PutMapping("/{id}")
     public UserResponce update(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request){

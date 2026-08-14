@@ -22,6 +22,13 @@ public class UserService {
 
 
     @Transactional(readOnly = true)
+    public UserResponce findMe(String email){
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        return userMapper.toResponse(user);
+    }
+
+    @Transactional(readOnly = true)
     public UserResponce findById(Long id){
         User user = getUser(id);
 
