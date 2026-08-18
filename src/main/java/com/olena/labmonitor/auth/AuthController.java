@@ -33,7 +33,6 @@ public class AuthController {
     public ResponseEntity<String> login(@Valid @RequestBody LoginDto login){
         String token = authService.login(login);
         return ResponseEntity.ok(token);
-
     }
 
     @PostMapping("/change-password")

@@ -31,12 +31,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         List<GrantedAuthority> authorities = new ArrayList<>();
 
-        // Bcz the database doesn't have the prefic "ROLE_"
+        // Bcz the database doesn't have the prefix "ROLE_"
         if (user.getGlobalRole() != null && !user.getGlobalRole().equals("NONE")){
             authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getGlobalRole()));
         }
 
-        // TODO: Do the same thing for membership role "ROLE_"
         user.getMemberships().forEach(m ->
                 authorities.add(new SimpleGrantedAuthority("ROLE_" + m.getRole())));
 

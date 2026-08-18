@@ -19,9 +19,14 @@ public class UserValidator {
         this.organizationRepository = organizationRepository;
     }
 
+    //
     public void validateEmail(String email){
         if (userRepository.findByEmail(email).isPresent()){
             throw new InvalidOperationException("Email is already registered.");
+        }
+
+        if(!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")){
+            throw new InvalidOperationException("Email format is invalid.");
         }
     }
 

@@ -35,7 +35,7 @@ public record UserResponse(
         );
     }
 
-    // TODO: Fix the organization id thingi with claud
+    // TODO: Fix the organization id thingy with claud
     public record MembershipInfo(
             Long organizationId,
             String organizationName,
