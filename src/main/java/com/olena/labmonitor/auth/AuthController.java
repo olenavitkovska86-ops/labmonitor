@@ -2,6 +2,7 @@ package com.olena.labmonitor.auth;
 
 import com.olena.labmonitor.auth.dto.ChangePassRequest;
 import com.olena.labmonitor.auth.dto.LoginDto;
+import com.olena.labmonitor.auth.dto.LoginResponse;
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.user.User;
 import com.olena.labmonitor.user.UserRepository;
@@ -30,9 +31,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@Valid @RequestBody LoginDto login){
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginDto login){
         String token = authService.login(login);
-        return ResponseEntity.ok(token);
+        return ResponseEntity.ok(new LoginResponse(token));
     }
 
     @PostMapping("/change-password")
