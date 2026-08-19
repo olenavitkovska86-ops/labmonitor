@@ -18,8 +18,10 @@ public record AlertResponse(
         LocalDateTime createdAt,
         LocalDateTime acknowledgedAt,
         Long acknowledgedByUserId,
+        String acknowledgedByName,
         LocalDateTime resolvedAt,
-        Long resolvedByUserId
+        Long resolvedByUserId,
+        String resolvedByName
 ) {
     public static AlertResponse from(Alert alert) {
         return new AlertResponse(
@@ -35,9 +37,19 @@ public record AlertResponse(
                 alert.getMessage(),
                 alert.getCreatedAt(),
                 alert.getAcknowledgedAt(),
-                alert.getAcknowledgedByUserId(),
+                alert.getAcknowledgedByUser() == null ? null : alert.getAcknowledgedByUser().getId(),
+                displayName(alert.getAcknowledgedByUser()),
                 alert.getResolvedAt(),
-                alert.getResolvedByUserId()
+                alert.getResolvedByUser() == null ? null : alert.getResolvedByUser().getId(),
+                displayName(alert.getResolvedByUser())
         );
+    }
+
+    private static String displayName(com.olena.labmonitor.user.User user) {
+        if (user == null) {
+            return null;
+        }
+        String name = (user.getFirstName() + " " + user.getLastName()).trim();
+        return name.isEmpty() ? user.getEmail() : name;
     }
 }

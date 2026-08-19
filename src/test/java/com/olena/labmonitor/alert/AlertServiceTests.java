@@ -6,12 +6,15 @@ import com.olena.labmonitor.room.Room;
 import com.olena.labmonitor.room.RoomType;
 import com.olena.labmonitor.sensor.Sensor;
 import com.olena.labmonitor.sensor.SensorType;
+import com.olena.labmonitor.user.User;
+import com.olena.labmonitor.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -32,12 +35,15 @@ class AlertServiceTests {
     @Mock
     private AlertRepository alertRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     private AlertService alertService;
     private Sensor sensor;
 
     @BeforeEach
     void setUp() {
-        alertService = new AlertService(alertRepository);
+        alertService = new AlertService(alertRepository, userRepository);
         Organization organization = new Organization("Test organization", null);
         Lab lab = new Lab(organization, "Test lab", null, null);
         Room room = new Room(lab, "Test room", RoomType.EXPERIMENT_ROOM, null, null);
@@ -112,35 +118,41 @@ class AlertServiceTests {
     @Test
     void acknowledgesActiveAlert() {
         Alert alert = thresholdAlert();
+        User user = authenticatedUser();
         when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
         when(alertRepository.saveAndFlush(alert)).thenReturn(alert);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
-        alertService.acknowledge(1L);
+        alertService.acknowledge(1L, user.getEmail());
 
         assertEquals(AlertStatus.ACKNOWLEDGED, alert.getStatus());
         assertNotNull(alert.getAcknowledgedAt());
+        assertEquals(42L, alert.getAcknowledgedByUser().getId());
     }
 
     @Test
     void resolvesAcknowledgedAlert() {
         Alert alert = thresholdAlert();
-        alert.acknowledge();
+        User user = authenticatedUser();
+        alert.acknowledge(user);
         when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
         when(alertRepository.saveAndFlush(alert)).thenReturn(alert);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
-        alertService.resolve(1L);
+        alertService.resolve(1L, user.getEmail());
 
         assertEquals(AlertStatus.RESOLVED, alert.getStatus());
         assertNotNull(alert.getResolvedAt());
+        assertEquals(42L, alert.getResolvedByUser().getId());
     }
 
     @Test
     void rejectsAcknowledgingResolvedAlert() {
         Alert alert = thresholdAlert();
-        alert.resolve();
+        alert.resolve(authenticatedUser());
         when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
 
-        assertThrows(RuntimeException.class, () -> alertService.acknowledge(1L));
+        assertThrows(RuntimeException.class, () -> alertService.acknowledge(1L, "user@example.com"));
     }
 
     private void assertSeverity(String value, AlertSeverity expectedSeverity) {
@@ -163,5 +175,11 @@ class AlertServiceTests {
                 "Threshold exceeded",
                 "Test alert"
         );
+    }
+
+    private User authenticatedUser() {
+        User user = new User("user@example.com", "password-hash", "Test", "User", null);
+        ReflectionTestUtils.setField(user, "id", 42L);
+        return user;
     }
 }

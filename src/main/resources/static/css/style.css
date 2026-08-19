@@ -301,6 +301,7 @@ td {
     border-bottom: 1px solid #e5eaed;
     text-align: left;
     vertical-align: top;
+    white-space: pre-line;
 }
 
 th {

@@ -13,11 +13,11 @@ import java.util.Optional;
 public interface AlertRepository extends JpaRepository<Alert, Long>, JpaSpecificationExecutor<Alert> {
 
     @Override
-    @EntityGraph(attributePaths = {"room.lab.organization", "sensor"})
+    @EntityGraph(attributePaths = {"room.lab.organization", "sensor", "acknowledgedByUser", "resolvedByUser"})
     List<Alert> findAll(Specification<Alert> specification, Sort sort);
 
     @Override
-    @EntityGraph(attributePaths = {"room.lab.organization", "sensor"})
+    @EntityGraph(attributePaths = {"room.lab.organization", "sensor", "acknowledgedByUser", "resolvedByUser"})
     Optional<Alert> findById(Long id);
 
     boolean existsBySensorIdAndTypeAndStatusIn(

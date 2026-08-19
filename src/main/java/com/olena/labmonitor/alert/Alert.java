@@ -2,6 +2,7 @@ package com.olena.labmonitor.alert;
 
 import com.olena.labmonitor.room.Room;
 import com.olena.labmonitor.sensor.Sensor;
+import com.olena.labmonitor.user.User;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -48,14 +49,16 @@ public class Alert {
     @Column(name = "acknowledged_at")
     private LocalDateTime acknowledgedAt;
 
-    @Column(name = "acknowledged_by_user_id")
-    private Long acknowledgedByUserId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "acknowledged_by_user_id")
+    private User acknowledgedByUser;
 
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
-    @Column(name = "resolved_by_user_id")
-    private Long resolvedByUserId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resolved_by_user_id")
+    private User resolvedByUser;
 
     protected Alert() {
     }
@@ -69,14 +72,16 @@ public class Alert {
         this.message = message;
     }
 
-    public void acknowledge() {
+    public void acknowledge(User user) {
         status = AlertStatus.ACKNOWLEDGED;
         acknowledgedAt = LocalDateTime.now();
+        acknowledgedByUser = user;
     }
 
-    public void resolve() {
+    public void resolve(User user) {
         status = AlertStatus.RESOLVED;
         resolvedAt = LocalDateTime.now();
+        resolvedByUser = user;
     }
 
     public Long getId() { return id; }
@@ -89,7 +94,7 @@ public class Alert {
     public String getMessage() { return message; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getAcknowledgedAt() { return acknowledgedAt; }
-    public Long getAcknowledgedByUserId() { return acknowledgedByUserId; }
+    public User getAcknowledgedByUser() { return acknowledgedByUser; }
     public LocalDateTime getResolvedAt() { return resolvedAt; }
-    public Long getResolvedByUserId() { return resolvedByUserId; }
+    public User getResolvedByUser() { return resolvedByUser; }
 }
