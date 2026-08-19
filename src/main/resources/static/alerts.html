@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">LabMonitor</a>
+    <span class="subtitle">Laboratory monitoring</span>
+</header>
+
+<main class="page">
+    <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
+
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Incident monitoring</p>
+            <h1>Alerts</h1>
+            <p class="intro">Review, acknowledge and resolve laboratory alerts.</p>
+        </div>
+    </section>
+
+    <section class="panel">
+        <form id="filter-form" class="toolbar">
+            <label class="search">
+                <span>Status</span>
+                <select id="status-filter">
+                    <option value="">All statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="ACKNOWLEDGED">Acknowledged</option>
+                    <option value="RESOLVED">Resolved</option>
+                </select>
+            </label>
+            <label class="search">
+                <span>Severity</span>
+                <select id="severity-filter">
+                    <option value="">All severities</option>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="CRITICAL">Critical</option>
+                </select>
+            </label>
+            <button class="button button-secondary" type="submit">Apply</button>
+            <button id="clear-filters" class="button button-link" type="button">Clear</button>
+        </form>
+
+        <div id="page-message" class="message hidden" role="status"></div>
+        <p id="loading-state" class="state">Loading alerts...</p>
+        <p id="empty-state" class="state hidden">No alerts found.</p>
+
+        <div id="table-wrapper" class="table-wrapper hidden">
+            <table>
+                <thead>
+                <tr>
+                    <th>Created</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Alert</th>
+                    <th>Sensor</th>
+                    <th class="actions-column">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="alert-rows"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="/js/breadcrumbs.js"></script>
+<script src="/js/csrf.js"></script>
+<script src="/js/alerts.js"></script>
+</body>
+</html>
