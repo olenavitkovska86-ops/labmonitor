@@ -4,6 +4,8 @@ import com.olena.labmonitor.alert.dto.AlertResponse;
 import com.olena.labmonitor.common.exception.InvalidOperationException;
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.sensor.Sensor;
+import com.olena.labmonitor.user.User;
+import com.olena.labmonitor.user.UserRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -25,9 +27,11 @@ public class AlertService {
             List.of(AlertStatus.ACTIVE, AlertStatus.ACKNOWLEDGED);
 
     private final AlertRepository alertRepository;
+    private final UserRepository userRepository;
 
-    public AlertService(AlertRepository alertRepository) {
+    public AlertService(AlertRepository alertRepository, UserRepository userRepository) {
         this.alertRepository = alertRepository;
+        this.userRepository = userRepository;
     }
 
     public void createThresholdAlertIfRequired(Sensor sensor, BigDecimal value) {
@@ -140,21 +144,21 @@ public class AlertService {
         return AlertResponse.from(getAlert(id));
     }
 
-    public AlertResponse acknowledge(Long id) {
+    public AlertResponse acknowledge(Long id, String userEmail) {
         Alert alert = getAlert(id);
         if (alert.getStatus() != AlertStatus.ACTIVE) {
             throw new InvalidOperationException("Only an active alert can be acknowledged");
         }
-        alert.acknowledge();
+        alert.acknowledge(getUser(userEmail));
         return AlertResponse.from(alertRepository.saveAndFlush(alert));
     }
 
-    public AlertResponse resolve(Long id) {
+    public AlertResponse resolve(Long id, String userEmail) {
         Alert alert = getAlert(id);
         if (alert.getStatus() == AlertStatus.RESOLVED) {
             throw new InvalidOperationException("Alert is already resolved");
         }
-        alert.resolve();
+        alert.resolve(getUser(userEmail));
         return AlertResponse.from(alertRepository.saveAndFlush(alert));
     }
 
@@ -169,6 +173,11 @@ public class AlertService {
     private Alert getAlert(Long id) {
         return alertRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Alert with id " + id + " was not found"));
+    }
+
+    private User getUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User with email " + email + " was not found"));
     }
 
 }

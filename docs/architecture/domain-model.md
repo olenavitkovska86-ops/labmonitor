@@ -95,8 +95,8 @@ Status values:
   above 30%.
 - Alerts follow the lifecycle `ACTIVE` -> `ACKNOWLEDGED` -> `RESOLVED`.
 - Alert listing supports hierarchy, status, and severity filters.
-- User attribution for acknowledgement and resolution will be connected after
-  the user and membership module is complete.
+- Alert acknowledgement and resolution store the ID of the authenticated user
+  obtained from the JWT security context.
 
 ## Planned Relationships
 
@@ -121,13 +121,12 @@ Status values:
 ## Recommended Implementation Order
 
 1. Complete `User`, `Membership`, authentication, and role-based access.
-2. Connect alert acknowledgement and resolution to the authenticated user.
-3. Implement `Camera` and `CameraEvent`.
-4. Implement `AuditLog`.
-5. Implement configurable per-sensor alert rules.
-6. Implement `EnergyReading` and `SecurityState` if they remain in the final
+2. Implement `Camera` and `CameraEvent`.
+3. Implement `AuditLog`.
+4. Implement configurable per-sensor alert rules.
+5. Implement `EnergyReading` and `SecurityState` if they remain in the final
    project scope.
-7. Add analytics and Power BI after enough historical data is available.
+6. Add analytics and Power BI after enough historical data is available.
 
 ## Important Backlog: Alert Rules Configuration
 

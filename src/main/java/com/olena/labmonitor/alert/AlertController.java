@@ -1,6 +1,8 @@
 package com.olena.labmonitor.alert;
 
 import com.olena.labmonitor.alert.dto.AlertResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,12 +35,12 @@ public class AlertController {
     }
 
     @PostMapping("/{id}/acknowledge")
-    public AlertResponse acknowledge(@PathVariable Long id) {
-        return alertService.acknowledge(id);
+    public AlertResponse acknowledge(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        return alertService.acknowledge(id, userDetails.getUsername());
     }
 
     @PostMapping("/{id}/resolve")
-    public AlertResponse resolve(@PathVariable Long id) {
-        return alertService.resolve(id);
+    public AlertResponse resolve(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        return alertService.resolve(id, userDetails.getUsername());
     }
 }

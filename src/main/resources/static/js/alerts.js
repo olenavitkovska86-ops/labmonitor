@@ -75,6 +75,7 @@ function renderAlerts(alerts) {
             createBadgeCell(alert.status, statusClass(alert.status)),
             createAlertCell(alert),
             createSensorCell(alert),
+            createHandlingCell(alert),
             createActionsCell(alert)
         );
         rows.append(row);
@@ -121,6 +122,16 @@ function createSensorCell(alert) {
     link.textContent = `Sensor ${alert.sensorId}`;
     cell.append(link);
     return cell;
+}
+
+function createHandlingCell(alert) {
+    if (alert.status === "RESOLVED" && alert.resolvedByUserId != null) {
+        return createCell(`Resolved by ${alert.resolvedByName || alert.resolvedByUserId}\n${formatDate(alert.resolvedAt)}`);
+    }
+    if (alert.status === "ACKNOWLEDGED" && alert.acknowledgedByUserId != null) {
+        return createCell(`Acknowledged by ${alert.acknowledgedByName || alert.acknowledgedByUserId}\n${formatDate(alert.acknowledgedAt)}`);
+    }
+    return createCell("—");
 }
 
 function createActionsCell(alert) {
