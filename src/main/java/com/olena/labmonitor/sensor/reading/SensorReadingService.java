@@ -1,5 +1,6 @@
 package com.olena.labmonitor.sensor.reading;
 
+import com.olena.labmonitor.alert.AlertService;
 import com.olena.labmonitor.common.exception.InvalidOperationException;
 import com.olena.labmonitor.sensor.Sensor;
 import com.olena.labmonitor.sensor.SensorService;
@@ -18,13 +19,16 @@ public class SensorReadingService {
 
     private final SensorReadingRepository sensorReadingRepository;
     private final SensorService sensorService;
+    private final AlertService alertService;
 
     public SensorReadingService(
             SensorReadingRepository sensorReadingRepository,
-            SensorService sensorService
+            SensorService sensorService,
+            AlertService alertService
     ) {
         this.sensorReadingRepository = sensorReadingRepository;
         this.sensorService = sensorService;
+        this.alertService = alertService;
     }
 
     public SensorReadingResponse create(CreateSensorReadingRequest request) {
@@ -43,6 +47,7 @@ public class SensorReadingService {
         SensorReading reading = new SensorReading(sensor, request.value(), measuredAt);
         SensorReading savedReading = sensorReadingRepository.saveAndFlush(reading);
         sensor.recordReading(measuredAt);
+        alertService.createThresholdAlertIfRequired(sensor, request.value());
 
         return SensorReadingResponse.from(savedReading);
     }

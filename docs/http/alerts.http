@@ -1,0 +1,23 @@
+### Variables
+@baseUrl = http://localhost:8080
+@alertId = 1
+
+### Get all alerts
+GET {{baseUrl}}/api/alerts
+
+### Filter active high-severity alerts
+GET {{baseUrl}}/api/alerts?status=ACTIVE&severity=HIGH
+
+### Filter by hierarchy
+GET {{baseUrl}}/api/alerts?organizationId=1&labId=1&roomId=1&sensorId=1
+
+### Get one alert
+GET {{baseUrl}}/api/alerts/{{alertId}}
+
+### Acknowledge alert
+# Requires an authenticated session and CSRF token.
+POST {{baseUrl}}/api/alerts/{{alertId}}/acknowledge
+
+### Resolve alert
+# Requires an authenticated session and CSRF token.
+POST {{baseUrl}}/api/alerts/{{alertId}}/resolve
