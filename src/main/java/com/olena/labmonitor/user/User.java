@@ -2,10 +2,13 @@ package com.olena.labmonitor.user;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
+import com.olena.labmonitor.membership.Membership;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -48,6 +51,10 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Membership> memberships = new ArrayList<>();
+
+
     protected User(){}
 
     public User(String email, String passwordHash, String firstName, String lastName, String phone) {
@@ -56,6 +63,10 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.phone = phone;
+    }
+
+    public List<Membership> getMemberships() {
+        return memberships;
     }
 
     public Long getId() {

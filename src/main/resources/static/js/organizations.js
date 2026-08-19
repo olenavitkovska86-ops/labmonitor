@@ -17,7 +17,16 @@ const searchInput = document.querySelector("#search-input");
 let searchTimer;
 
 async function request(url, options = {}) {
-    const response = await csrfFetch(url, options);
+    const token = localStorage.getItem("token");
+    const headers = {"Content-Type": "application/json"};
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+        ...options,
+        headers
+    });
 
     if (response.ok) {
         return response.status === 204 ? null : response.json();
