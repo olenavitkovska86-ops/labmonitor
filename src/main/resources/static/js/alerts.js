@@ -10,7 +10,19 @@ const statusFilter = document.querySelector("#status-filter");
 const severityFilter = document.querySelector("#severity-filter");
 
 async function request(url, options = {}) {
-    const response = await csrfFetch(url, options);
+    const token = localStorage.getItem("token");
+    const headers = new Headers(options.headers || {});
+    if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, {...options, headers});
+
+    if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("token");
+        window.location.href = "/login.html";
+        throw new Error("Authentication is required");
+    }
 
     if (response.ok) {
         return response.status === 204 ? null : response.json();
