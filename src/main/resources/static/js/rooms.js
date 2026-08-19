@@ -36,7 +36,7 @@ let organizationsById = new Map();
 let searchTimer;
 
 async function request(url, options = {}) {
-    const response = await fetch(url, options);
+    const response = await csrfFetch(url, options);
 
     if (response.ok) {
         return response.status === 204 ? null : response.json();

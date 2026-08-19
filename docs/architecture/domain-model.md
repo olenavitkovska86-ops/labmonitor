@@ -47,7 +47,7 @@ Status values:
 | `CameraEvent` | Stores events reported by a camera | `Camera`, `Room` | PLANNED |
 | `EnergyReading` | Stores room-level power and energy measurements | `Room` | PLANNED |
 | `SecurityState` | Stores the current security state of a room | `Room` | PLANNED |
-| `Alert` | Represents sensor, camera, security, energy, or system incidents | `Room`, optionally `Sensor`, `Camera`, `User` | PLANNED |
+| `Alert` | Represents sensor, camera, security, energy, or system incidents | `Room`, optionally `Sensor`, `Camera`, `User` | IMPLEMENTED |
 | `AuditLog` | Records administrative and security actions | optionally `Organization`, `User`, `Lab`, `Room` | PLANNED |
 
 ## Implemented Relationships
@@ -86,6 +86,18 @@ Status values:
 - A new reading changes an active sensor status to `ONLINE` and updates
   `lastSeenAt`.
 
+### SensorReading to Alert
+
+- A reading outside the sensor safe range creates a `SENSOR_THRESHOLD` alert.
+- An unresolved threshold alert prevents duplicate alerts for the same sensor.
+- Severity is calculated from the deviation relative to the safe-range width:
+  `LOW` up to 5%, `MEDIUM` up to 15%, `HIGH` up to 30%, and `CRITICAL`
+  above 30%.
+- Alerts follow the lifecycle `ACTIVE` -> `ACKNOWLEDGED` -> `RESOLVED`.
+- Alert listing supports hierarchy, status, and severity filters.
+- User attribution for acknowledgement and resolution will be connected after
+  the user and membership module is complete.
+
 ## Planned Relationships
 
 ### Users and organizations
@@ -101,12 +113,6 @@ Status values:
 - A camera can produce many camera events.
 - Camera events may generate alerts.
 
-### Alerts
-
-- Every alert belongs to a room.
-- An alert may reference a sensor or camera that caused it.
-- Users may acknowledge and resolve alerts.
-
 ### Audit logs
 
 - Audit records may reference an organization, user, lab, or room.
@@ -114,14 +120,28 @@ Status values:
 
 ## Recommended Implementation Order
 
-1. Detect sensor readings outside the configured safe range.
-2. Implement `Alert` creation, listing, acknowledgement, and resolution.
-3. Implement `User`, `Membership`, authentication, and role-based access.
-4. Implement `Camera` and `CameraEvent`.
-5. Implement `AuditLog`.
+1. Complete `User`, `Membership`, authentication, and role-based access.
+2. Connect alert acknowledgement and resolution to the authenticated user.
+3. Implement `Camera` and `CameraEvent`.
+4. Implement `AuditLog`.
+5. Implement configurable per-sensor alert rules.
 6. Implement `EnergyReading` and `SecurityState` if they remain in the final
    project scope.
 7. Add analytics and Power BI after enough historical data is available.
+
+## Important Backlog: Alert Rules Configuration
+
+Per-sensor alert rules are intentionally deferred from the base Alerts feature.
+The future block should allow `LAB_ADMIN` and `SUPER_ADMIN` users to configure:
+
+- whether alert generation is enabled for a sensor;
+- individual `LOW`, `MEDIUM`, and `HIGH` deviation thresholds;
+- a cooldown period for repeated alerts;
+- restoration of system default thresholds;
+- audit logging for every rule change.
+
+Until this block is implemented, the application uses the system defaults
+5%, 15%, and 30%. Sensors with only one safe boundary use `HIGH` as a fallback.
 
 ## Related Documentation
 
@@ -129,4 +149,5 @@ Status values:
 - User stories: `docs/user-stories.md`
 - Roles and permissions: `docs/roles-and-permissions.md`
 - Data ingestion: `docs/architecture/data-ingestion.md`
+- Alert API examples: `docs/http/alerts.http`
 - Menu sketch: `docs/menu-sketch.md`

@@ -320,6 +320,14 @@ th {
     text-decoration: underline;
 }
 
+.table-description {
+    max-width: 390px;
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
 .actions-column {
     width: 170px;
 }
