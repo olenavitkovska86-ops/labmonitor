@@ -20,6 +20,9 @@ const form = document.querySelector("#reading-form");
 const formError = document.querySelector("#form-error");
 const valueInput = document.querySelector("#reading-value");
 const measuredAtInput = document.querySelector("#measured-at");
+const historyLimitNote = document.querySelector("#history-limit-note");
+let historyLimit = 1000;
+let selectedHours = 24;
 
 let sensor;
 let room;
@@ -70,6 +73,10 @@ async function initializePage() {
     }
 
     try {
+        const configuration = await request("/api/config/monitoring");
+        historyLimit = configuration.historyMaxResults;
+        selectedHours = configuration.defaultHistoryHours;
+        renderHistoryPeriods(configuration.historyPeriodsHours);
         sensor = await request(`${sensorsApiUrl}/${sensorId}`);
         [room, lab, organization] = await Promise.all([
             request(`${roomsApiUrl}/${sensor.roomId}`),
@@ -82,6 +89,30 @@ async function initializePage() {
         loadingState.classList.add("hidden");
         showMessage(pageMessage, error.message, true);
     }
+}
+
+function renderHistoryPeriods(periods) {
+    const container = document.querySelector("#history-periods");
+    container.replaceChildren();
+    for (const hours of periods) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `analytics-tab ${hours === selectedHours ? "active" : ""}`;
+        button.textContent = formatPeriod(hours);
+        button.addEventListener("click", () => {
+            container.querySelectorAll(".analytics-tab").forEach(item => item.classList.remove("active"));
+            button.classList.add("active");
+            selectedHours = hours;
+            loadReadings();
+        });
+        container.append(button);
+    }
+}
+
+function formatPeriod(hours) {
+    if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+    const days = hours / 24;
+    return `${days} ${days === 1 ? "day" : "days"}`;
 }
 
 function renderSensorDetails() {
@@ -105,7 +136,18 @@ async function loadReadings() {
     hideMessage(pageMessage);
 
     try {
-        const readings = await request(`${sensorsApiUrl}/${sensorId}/readings`);
+        const to = new Date();
+        const from = new Date(to.getTime() - selectedHours * 60 * 60 * 1000);
+        const parameters = new URLSearchParams({
+            from: formatLocalDateTime(from),
+            to: formatLocalDateTime(to),
+            limit: historyLimit
+        });
+        const [current, readings] = await Promise.all([
+            request(`${sensorsApiUrl}/${sensorId}/current-reading`),
+            request(`${sensorsApiUrl}/${sensorId}/readings?${parameters}`)
+        ]);
+        renderCurrentReading(current);
         renderReadings(readings);
     } catch (error) {
         showMessage(pageMessage, error.message, true);
@@ -118,16 +160,10 @@ function renderReadings(readings) {
     rows.replaceChildren();
 
     if (readings.length === 0) {
-        currentReading.textContent = "No readings";
-        lastMeasured.textContent = "—";
         emptyState.classList.remove("hidden");
+        historyLimitNote.textContent = "";
         return;
     }
-
-    const latest = readings[0];
-    currentReading.textContent = formatValue(latest.value);
-    currentReading.className = `summary-value ${isOutsideSafeRange(latest.value) ? "value-alert" : "value-safe"}`;
-    lastMeasured.textContent = formatDate(latest.measuredAt);
 
     for (const reading of readings) {
         const outsideRange = isOutsideSafeRange(reading.value);
@@ -143,6 +179,27 @@ function renderReadings(readings) {
     }
 
     tableWrapper.classList.remove("hidden");
+    historyLimitNote.textContent = readings.length === historyLimit
+        ? `Showing the latest ${historyLimit} readings in this period`
+        : `${readings.length} readings in this period`;
+}
+
+function renderCurrentReading(reading) {
+    if (!reading) {
+        currentReading.textContent = "No readings";
+        currentReading.className = "summary-value";
+        lastMeasured.textContent = "—";
+        return;
+    }
+    currentReading.textContent = formatValue(reading.value);
+    currentReading.className = `summary-value ${isOutsideSafeRange(reading.value) ? "value-alert" : "value-safe"}`;
+    lastMeasured.textContent = formatDate(reading.measuredAt);
+}
+
+function formatLocalDateTime(date) {
+    const pad = value => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+        + `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 function createCell(value) {
@@ -233,5 +290,4 @@ document.querySelector("#show-reading-form").addEventListener("click", openForm)
 document.querySelector("#close-reading-form").addEventListener("click", closeForm);
 document.querySelector("#cancel-reading-form").addEventListener("click", closeForm);
 form.addEventListener("submit", saveReading);
-
 initializePage();

@@ -1,0 +1,12 @@
+### Variables
+@baseUrl = http://localhost:8080
+@organizationId = 1
+
+### Organization operational overview
+GET {{baseUrl}}/api/analytics/organizations/{{organizationId}}/overview
+
+### Ranked rooms requiring attention
+GET {{baseUrl}}/api/analytics/organizations/{{organizationId}}/problem-rooms
+
+### Alert history: LAST_24_HOURS, LAST_7_DAYS or LAST_30_DAYS
+GET {{baseUrl}}/api/analytics/organizations/{{organizationId}}/history?period=LAST_7_DAYS

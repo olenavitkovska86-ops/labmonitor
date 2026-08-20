@@ -1,9 +1,16 @@
 package com.olena.labmonitor.alert;
 
 import com.olena.labmonitor.alert.dto.AlertResponse;
+import com.olena.labmonitor.alert.dto.AlertCountResponse;
+import com.olena.labmonitor.alert.dto.ResolveAlertRequest;
+import com.olena.labmonitor.alert.dto.ReopenAlertRequest;
+import com.olena.labmonitor.alert.history.AlertHistory;
+import com.olena.labmonitor.alert.history.AlertHistoryAction;
+import com.olena.labmonitor.alert.history.AlertHistoryRepository;
 import com.olena.labmonitor.common.exception.InvalidOperationException;
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.sensor.Sensor;
+import com.olena.labmonitor.config.MonitoringProperties;
 import com.olena.labmonitor.user.User;
 import com.olena.labmonitor.user.UserRepository;
 import org.springframework.data.domain.Sort;
@@ -15,32 +22,65 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Service
 @Transactional
 public class AlertService {
 
-    private static final BigDecimal LOW_LIMIT_PERCENT = new BigDecimal("5");
-    private static final BigDecimal MEDIUM_LIMIT_PERCENT = new BigDecimal("15");
-    private static final BigDecimal HIGH_LIMIT_PERCENT = new BigDecimal("30");
     private static final List<AlertStatus> UNRESOLVED_STATUSES =
             List.of(AlertStatus.ACTIVE, AlertStatus.ACKNOWLEDGED);
 
     private final AlertRepository alertRepository;
     private final UserRepository userRepository;
+    private final AlertHistoryRepository alertHistoryRepository;
+    private final MonitoringProperties monitoringProperties;
 
-    public AlertService(AlertRepository alertRepository, UserRepository userRepository) {
+    public AlertService(
+            AlertRepository alertRepository,
+            UserRepository userRepository,
+            AlertHistoryRepository alertHistoryRepository,
+            MonitoringProperties monitoringProperties
+    ) {
         this.alertRepository = alertRepository;
         this.userRepository = userRepository;
+        this.alertHistoryRepository = alertHistoryRepository;
+        this.monitoringProperties = monitoringProperties;
     }
 
-    public void createThresholdAlertIfRequired(Sensor sensor, BigDecimal value) {
+    public void processThresholdReading(Sensor sensor, BigDecimal value, LocalDateTime measuredAt) {
         boolean belowMinimum = sensor.getMinSafeValue() != null
                 && value.compareTo(sensor.getMinSafeValue()) < 0;
         boolean aboveMaximum = sensor.getMaxSafeValue() != null
                 && value.compareTo(sensor.getMaxSafeValue()) > 0;
 
-        if ((!belowMinimum && !aboveMaximum) || hasUnresolvedThresholdAlert(sensor.getId())) {
+        var existingAlert = findUnresolvedThresholdAlert(sensor.getId());
+        if (!belowMinimum && !aboveMaximum) {
+            existingAlert.ifPresent(alert -> {
+                alert.markRecovered(measuredAt);
+                boolean autoRecoverableSeverity = monitoringProperties.getAlerts()
+                        .getAutoRecoverySeverities().contains(alert.getSeverity());
+                long violationMinutes = alert.getViolationStartedAt() == null
+                        ? Long.MAX_VALUE
+                        : java.time.Duration.between(alert.getViolationStartedAt(), measuredAt).toMinutes();
+                if (alert.getRecoveredAt() != null
+                        && autoRecoverableSeverity
+                        && violationMinutes >= 0
+                        && violationMinutes <= monitoringProperties.getAlerts()
+                                .getAutoRecoveryMaxDuration().toMinutes()) {
+                    alert.resolveAutomatically(measuredAt);
+                    alertHistoryRepository.save(AlertHistory.autoRecovered(alert));
+                }
+            });
+            return;
+        }
+
+        if (existingAlert.isPresent()) {
+            Alert alert = existingAlert.get();
+            BigDecimal extreme = isMoreExtreme(sensor, value, alert.getMostExtremeValue())
+                    ? value
+                    : alert.getMostExtremeValue();
+            alert.updateThresholdViolation(value, extreme, calculateThresholdSeverity(sensor, value), measuredAt);
             return;
         }
 
@@ -58,6 +98,7 @@ public class AlertService {
                 "Sensor '" + sensor.getName() + "' reported " + value + unit
                         + ", outside safe " + boundary + unit
         );
+        alert.startThresholdViolation(value, measuredAt);
         alertRepository.save(alert);
     }
 
@@ -87,13 +128,13 @@ public class AlertService {
                 .multiply(BigDecimal.valueOf(100))
                 .divide(rangeWidth, 6, RoundingMode.HALF_UP);
 
-        if (deviationPercent.compareTo(LOW_LIMIT_PERCENT) <= 0) {
+        if (deviationPercent.compareTo(monitoringProperties.getAlerts().getLowMaxPercent()) <= 0) {
             return AlertSeverity.LOW;
         }
-        if (deviationPercent.compareTo(MEDIUM_LIMIT_PERCENT) <= 0) {
+        if (deviationPercent.compareTo(monitoringProperties.getAlerts().getMediumMaxPercent()) <= 0) {
             return AlertSeverity.MEDIUM;
         }
-        if (deviationPercent.compareTo(HIGH_LIMIT_PERCENT) <= 0) {
+        if (deviationPercent.compareTo(monitoringProperties.getAlerts().getHighMaxPercent()) <= 0) {
             return AlertSeverity.HIGH;
         }
         return AlertSeverity.CRITICAL;
@@ -144,6 +185,11 @@ public class AlertService {
         return AlertResponse.from(getAlert(id));
     }
 
+    @Transactional(readOnly = true)
+    public AlertCountResponse countUnresolved() {
+        return new AlertCountResponse(alertRepository.countByStatusIn(UNRESOLVED_STATUSES));
+    }
+
     public AlertResponse acknowledge(Long id, String userEmail) {
         Alert alert = getAlert(id);
         if (alert.getStatus() != AlertStatus.ACTIVE) {
@@ -153,21 +199,67 @@ public class AlertService {
         return AlertResponse.from(alertRepository.saveAndFlush(alert));
     }
 
-    public AlertResponse resolve(Long id, String userEmail) {
+    public AlertResponse resolve(Long id, String userEmail, ResolveAlertRequest request) {
         Alert alert = getAlert(id);
-        if (alert.getStatus() == AlertStatus.RESOLVED) {
-            throw new InvalidOperationException("Alert is already resolved");
+        if (alert.getStatus() != AlertStatus.ACKNOWLEDGED) {
+            throw new InvalidOperationException("Only an acknowledged alert can be resolved");
         }
-        alert.resolve(getUser(userEmail));
+        if (request.outcome() == AlertResolutionOutcome.AUTO_RECOVERED) {
+            throw new InvalidOperationException("AUTO_RECOVERED can only be set by the system");
+        }
+        if (request.outcome() == AlertResolutionOutcome.FIXED && alert.getRecoveredAt() == null) {
+            throw new InvalidOperationException("A fixed alert can only be resolved after sensor recovery");
+        }
+        if (request.outcome() == AlertResolutionOutcome.FALSE_ALARM
+                && (request.comment() == null || request.comment().isBlank())) {
+            throw new InvalidOperationException("A false alarm requires an explanation");
+        }
+        User user = getUser(userEmail);
+        alert.resolve(user, request.outcome(), request.comment());
+        Alert savedAlert = alertRepository.saveAndFlush(alert);
+        alertHistoryRepository.save(new AlertHistory(
+                savedAlert, user, AlertHistoryAction.RESOLVED, request.outcome(), request.comment()
+        ));
+        return AlertResponse.from(savedAlert);
+    }
+
+    public AlertResponse reopen(Long id, String userEmail, ReopenAlertRequest request) {
+        Alert alert = getAlert(id);
+        if (alert.getStatus() != AlertStatus.RESOLVED) {
+            throw new InvalidOperationException("Only a resolved alert can be reopened");
+        }
+        User user = getUser(userEmail);
+        AlertResolutionOutcome previousOutcome = alert.getResolutionOutcome();
+        alertHistoryRepository.save(new AlertHistory(
+                alert, user, AlertHistoryAction.REOPENED, previousOutcome, request.reason()
+        ));
+        alert.reopen(user);
         return AlertResponse.from(alertRepository.saveAndFlush(alert));
     }
 
-    private boolean hasUnresolvedThresholdAlert(Long sensorId) {
-        return alertRepository.existsBySensorIdAndTypeAndStatusIn(
+    private java.util.Optional<Alert> findUnresolvedThresholdAlert(Long sensorId) {
+        return alertRepository.findFirstBySensorIdAndTypeAndStatusInAndRecoveredAtIsNull(
                 sensorId,
                 AlertType.SENSOR_THRESHOLD,
                 UNRESOLVED_STATUSES
         );
+    }
+
+    private boolean isMoreExtreme(Sensor sensor, BigDecimal candidate, BigDecimal current) {
+        if (current == null) {
+            return true;
+        }
+        return deviationFromSafeRange(sensor, candidate).compareTo(deviationFromSafeRange(sensor, current)) > 0;
+    }
+
+    private BigDecimal deviationFromSafeRange(Sensor sensor, BigDecimal value) {
+        if (sensor.getMinSafeValue() != null && value.compareTo(sensor.getMinSafeValue()) < 0) {
+            return sensor.getMinSafeValue().subtract(value);
+        }
+        if (sensor.getMaxSafeValue() != null && value.compareTo(sensor.getMaxSafeValue()) > 0) {
+            return value.subtract(sensor.getMaxSafeValue());
+        }
+        return BigDecimal.ZERO;
     }
 
     private Alert getAlert(Long id) {

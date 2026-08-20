@@ -393,6 +393,16 @@ CREATE TABLE alerts (
                         acknowledged_by_user_id BIGINT,
                         resolved_at DATETIME(6),
                         resolved_by_user_id BIGINT,
+                        resolution_outcome VARCHAR(30),
+                        resolution_comment VARCHAR(1000),
+                        reopened_at DATETIME(6),
+                        reopened_by_user_id BIGINT,
+                        violation_started_at DATETIME(6),
+                        initial_value DECIMAL(12,3),
+                        latest_value DECIMAL(12,3),
+                        most_extreme_value DECIMAL(12,3),
+                        last_violation_at DATETIME(6),
+                        recovered_at DATETIME(6),
 
                         CONSTRAINT fk_alerts_room
                             FOREIGN KEY (room_id)
@@ -419,6 +429,11 @@ CREATE TABLE alerts (
                                 REFERENCES users(id)
                                 ON DELETE SET NULL,
 
+                        CONSTRAINT fk_alerts_reopened_user
+                            FOREIGN KEY (reopened_by_user_id)
+                                REFERENCES users(id)
+                                ON DELETE SET NULL,
+
                         CONSTRAINT chk_alert_type
                             CHECK (type IN (
                                             'SENSOR_THRESHOLD',
@@ -436,7 +451,12 @@ CREATE TABLE alerts (
                             CHECK (severity IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
 
                         CONSTRAINT chk_alert_status
-                            CHECK (status IN ('ACTIVE', 'ACKNOWLEDGED', 'RESOLVED'))
+                            CHECK (status IN ('ACTIVE', 'ACKNOWLEDGED', 'RESOLVED')),
+
+                        CONSTRAINT chk_alert_resolution_outcome
+                            CHECK (resolution_outcome IS NULL OR resolution_outcome IN (
+                                'FIXED', 'FALSE_ALARM', 'AUTO_RECOVERED'
+                            ))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -543,11 +563,17 @@ CREATE INDEX idx_alerts_status
 CREATE INDEX idx_alerts_severity
     ON alerts(severity);
 
+CREATE INDEX idx_alerts_sensor_active_violation
+    ON alerts(sensor_id, type, status, recovered_at);
+
 CREATE INDEX idx_alerts_ack_user
     ON alerts(acknowledged_by_user_id);
 
 CREATE INDEX idx_alerts_resolved_user
     ON alerts(resolved_by_user_id);
+
+CREATE INDEX idx_alerts_reopened_user
+    ON alerts(reopened_by_user_id);
 
 CREATE INDEX idx_audit_logs_user_created_at
     ON audit_logs(user_id, created_at DESC);

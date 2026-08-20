@@ -23,6 +23,62 @@
         </div>
     </section>
 
+    <section id="resolution-panel" class="panel form-panel hidden">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">Close alert</p>
+                <h2 id="resolution-title">Resolution result</h2>
+            </div>
+            <button id="close-resolution" class="icon-button" type="button" aria-label="Close">&times;</button>
+        </div>
+        <form id="resolution-form">
+            <input id="resolution-alert-id" type="hidden">
+
+            <label for="resolution-outcome">Result</label>
+            <select id="resolution-outcome" required>
+                <option value="">Select result</option>
+                <option id="fixed-outcome" value="FIXED">Problem fixed</option>
+                <option value="FALSE_ALARM">False alarm</option>
+            </select>
+            <p id="resolution-guidance" class="form-guidance hidden"></p>
+
+            <label for="resolution-comment">Comment</label>
+            <textarea id="resolution-comment" maxlength="1000" rows="4"
+                      placeholder="What happened and what action was taken?"></textarea>
+
+            <div id="resolution-error" class="message message-error hidden" role="alert"></div>
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Resolve alert</button>
+                <button id="cancel-resolution" class="button button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section id="reopen-panel" class="panel form-panel hidden">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">Incorrect resolution</p>
+                <h2 id="reopen-title">Reopen unresolved issue</h2>
+            </div>
+            <button id="close-reopen" class="icon-button" type="button" aria-label="Close">&times;</button>
+        </div>
+        <form id="reopen-form">
+            <input id="reopen-alert-id" type="hidden">
+            <p class="form-guidance">
+                Use this only when the previous resolution was incorrect or the issue was not actually resolved.
+                A new occurrence should create a new alert.
+            </p>
+            <label for="reopen-reason">Why was the previous resolution incorrect?</label>
+            <textarea id="reopen-reason" maxlength="1000" rows="4" required
+                      placeholder="For example: The cooling system is still offline; the issue was not resolved."></textarea>
+            <div id="reopen-error" class="message message-error hidden" role="alert"></div>
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Reopen unresolved issue</button>
+                <button id="cancel-reopen" class="button button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
     <section class="panel">
         <form id="filter-form" class="toolbar">
             <label class="search">

@@ -1,6 +1,10 @@
 package com.olena.labmonitor.alert;
 
 import com.olena.labmonitor.alert.dto.AlertResponse;
+import com.olena.labmonitor.alert.dto.AlertCountResponse;
+import com.olena.labmonitor.alert.dto.ResolveAlertRequest;
+import com.olena.labmonitor.alert.dto.ReopenAlertRequest;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -34,13 +38,31 @@ public class AlertController {
         return alertService.findById(id);
     }
 
+    @GetMapping("/unresolved-count")
+    public AlertCountResponse countUnresolved() {
+        return alertService.countUnresolved();
+    }
+
     @PostMapping("/{id}/acknowledge")
     public AlertResponse acknowledge(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
         return alertService.acknowledge(id, userDetails.getUsername());
     }
 
     @PostMapping("/{id}/resolve")
-    public AlertResponse resolve(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        return alertService.resolve(id, userDetails.getUsername());
+    public AlertResponse resolve(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody ResolveAlertRequest request
+    ) {
+        return alertService.resolve(id, userDetails.getUsername(), request);
+    }
+
+    @PostMapping("/{id}/reopen")
+    public AlertResponse reopen(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody ReopenAlertRequest request
+    ) {
+        return alertService.reopen(id, userDetails.getUsername(), request);
     }
 }

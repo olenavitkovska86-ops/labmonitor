@@ -5,6 +5,9 @@
 ### Get all alerts
 GET {{baseUrl}}/api/alerts
 
+### Count unresolved alerts for the home page
+GET {{baseUrl}}/api/alerts/unresolved-count
+
 ### Filter active high-severity alerts
 GET {{baseUrl}}/api/alerts?status=ACTIVE&severity=HIGH
 
@@ -21,3 +24,17 @@ POST {{baseUrl}}/api/alerts/{{alertId}}/acknowledge
 ### Resolve alert
 # Requires an authenticated session and CSRF token.
 POST {{baseUrl}}/api/alerts/{{alertId}}/resolve
+Content-Type: application/json
+
+{
+  "outcome": "FIXED",
+  "comment": "Cooling restored; temperature returned to the safe range."
+}
+
+### Reopen a resolved alert after an incorrect resolution
+POST {{baseUrl}}/api/alerts/{{alertId}}/reopen
+Content-Type: application/json
+
+{
+  "reason": "The cooling system is still offline; the issue was not actually resolved."
+}

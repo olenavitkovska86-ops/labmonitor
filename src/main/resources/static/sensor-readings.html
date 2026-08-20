@@ -65,9 +65,13 @@
     </section>
 
     <section class="panel">
+        <div class="history-toolbar">
+            <div id="history-periods" class="analytics-tabs" role="group" aria-label="Reading history period"></div>
+            <span id="history-limit-note" class="updated-at"></span>
+        </div>
         <div id="page-message" class="message hidden" role="status"></div>
         <p id="loading-state" class="state">Loading reading history...</p>
-        <p id="empty-state" class="state hidden">This sensor has no readings yet.</p>
+        <p id="empty-state" class="state hidden">This sensor has no readings in the selected period.</p>
 
         <div id="table-wrapper" class="table-wrapper hidden">
             <table>

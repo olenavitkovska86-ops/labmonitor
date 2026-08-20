@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operational overview | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">LabMonitor</a>
+    <span class="subtitle">Laboratory monitoring</span>
+</header>
+
+<main class="page">
+    <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
+
+    <section class="hero analytics-hero">
+        <div>
+            <p class="eyebrow">Operational analytics</p>
+            <h1>What needs attention?</h1>
+            <p class="intro">Find the most urgent laboratory problems and see how long they have been open.</p>
+        </div>
+        <label class="organization-picker" for="organization-select">
+            <span>Organization</span>
+            <select id="organization-select" disabled>
+                <option value="">Loading organizations...</option>
+            </select>
+        </label>
+    </section>
+
+    <div id="page-message" class="message hidden" role="alert"></div>
+    <p id="loading-state" class="state">Loading operational overview...</p>
+
+    <div id="analytics-content" class="hidden">
+        <div class="analytics-tabs" role="tablist" aria-label="Analytics view">
+            <button class="analytics-tab active" type="button" data-view="current">Now</button>
+            <button class="analytics-tab" type="button" data-view="history" data-period="LAST_24_HOURS">24 hours</button>
+            <button class="analytics-tab" type="button" data-view="history" data-period="LAST_7_DAYS">7 days</button>
+            <button class="analytics-tab" type="button" data-view="history" data-period="LAST_30_DAYS">30 days</button>
+        </div>
+
+        <div id="current-view">
+        <section class="metric-grid" aria-label="Current operational summary">
+            <article class="metric-card metric-card-attention">
+                <span class="metric-label">Rooms requiring attention</span>
+                <strong id="rooms-attention" class="metric-value">0</strong>
+                <span id="rooms-context" class="metric-context">of 0 rooms</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-label">Unacknowledged alerts</span>
+                <strong id="unacknowledged-alerts" class="metric-value">0</strong>
+                <span class="metric-context">need a response</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-label">Critical alerts</span>
+                <strong id="critical-alerts" class="metric-value">0</strong>
+                <span class="metric-context">currently unresolved</span>
+            </article>
+            <article class="metric-card">
+                <span class="metric-label">Offline sensors</span>
+                <strong id="offline-sensors" class="metric-value">0</strong>
+                <span class="metric-context">active devices only</span>
+            </article>
+        </section>
+
+        <section class="panel attention-panel">
+            <div class="panel-heading attention-heading">
+                <div>
+                    <h2>Rooms requiring attention</h2>
+                    <p class="section-description">Ordered by severity, unanswered alerts and problem age.</p>
+                </div>
+                <span id="updated-at" class="updated-at"></span>
+            </div>
+
+            <div id="healthy-state" class="healthy-state hidden">
+                <strong>No unresolved room alerts</strong>
+                <span>There is nothing requiring action right now.</span>
+            </div>
+
+            <div id="problem-list" class="problem-list"></div>
+        </section>
+        </div>
+
+        <div id="history-view" class="hidden">
+            <section class="metric-grid" aria-label="Historical alert summary">
+                <article class="metric-card">
+                    <span class="metric-label">Alerts created</span>
+                    <strong id="history-created" class="metric-value">0</strong>
+                    <span class="metric-context">during this period</span>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Critical alerts</span>
+                    <strong id="history-critical" class="metric-value">0</strong>
+                    <span class="metric-context">during this period</span>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Average response</span>
+                    <strong id="average-response" class="metric-value metric-time">—</strong>
+                    <span class="metric-context">until acknowledgement</span>
+                </article>
+                <article class="metric-card">
+                    <span class="metric-label">Average resolution</span>
+                    <strong id="average-resolution" class="metric-value metric-time">—</strong>
+                    <span class="metric-context">until resolved</span>
+                </article>
+            </section>
+
+            <div class="history-grid">
+                <section class="panel">
+                    <div class="panel-heading"><h2>Alerts over time</h2></div>
+                    <div id="history-chart" class="history-chart"></div>
+                </section>
+                <section class="panel">
+                    <div class="panel-heading"><h2>Most problematic rooms</h2></div>
+                    <p id="history-empty" class="state hidden">No alerts were created during this period.</p>
+                    <div id="history-room-list" class="history-room-list"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="/js/breadcrumbs.js"></script>
+<script src="/js/analytics.js"></script>
+</body>
+</html>

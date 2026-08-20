@@ -25,6 +25,9 @@ Content-Type: application/json
 GET {{baseUrl}}/api/sensors/{{sensorId}}/current-reading
 
 ### Get reading history
+GET {{baseUrl}}/api/sensors/{{sensorId}}/readings?from=2026-08-19T20:00:00&to=2026-08-20T20:00:00&limit=1000
+
+### Get reading history with the default period (last 24 hours) and limit (1000)
 GET {{baseUrl}}/api/sensors/{{sensorId}}/readings
 
 ### Validation error: missing value
