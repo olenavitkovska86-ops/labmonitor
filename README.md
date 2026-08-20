@@ -35,6 +35,27 @@ Monitoring rules have documented defaults in `application.properties` and can
 be changed with environment variables such as `ALERT_AUTO_RECOVERY_MAX_DURATION`
 or `READING_HISTORY_MAX_RESULTS`, without rebuilding the application.
 
+## Sensor simulator
+
+The local demo simulator is disabled by default. Enable its normal one-minute
+cycle with:
+
+```text
+SENSOR_SIMULATOR_ENABLED=true
+```
+
+For an accelerated demonstration, also set:
+
+```text
+SENSOR_SIMULATOR_INTERVAL=5s
+```
+
+Only active sensors with at least one configured safe boundary are simulated.
+Even-numbered sensors produce short mild deviations that can auto-recover;
+odd-numbered sensors produce escalating violations for the manual alert flow.
+The simulator uses the regular reading service and is limited to 20 sensors by
+default. It should remain disabled outside local demonstrations.
+
 Configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` in your IDE run configuration or terminal environment if your local settings are different from the defaults.
 
 4. The application runs on port `8080`.

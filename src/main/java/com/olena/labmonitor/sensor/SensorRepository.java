@@ -5,10 +5,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 public interface SensorRepository extends JpaRepository<Sensor, Long> {
 
     long countByRoomLabOrganizationIdAndActiveTrueAndStatus(Long organizationId, SensorStatus status);
+
+    List<Sensor> findByActiveTrueOrderByIdAsc(Pageable pageable);
 
     @Query("""
             select sensor
