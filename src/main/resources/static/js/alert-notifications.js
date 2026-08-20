@@ -6,16 +6,20 @@ document.body.append(alertNotificationContainer);
 
 function readDismissedAlertIds() {
     try {
-        return new Set(JSON.parse(sessionStorage.getItem(alertNotificationStorageKey) || "[]"));
+        return new Set(JSON.parse(localStorage.getItem(alertNotificationStorageKey) || "[]"));
     } catch {
         return new Set();
     }
 }
 
+function saveDismissedAlertIds(ids) {
+    localStorage.setItem(alertNotificationStorageKey, JSON.stringify([...ids].slice(-500)));
+}
+
 function rememberDismissedAlertId(id) {
     const dismissed = readDismissedAlertIds();
     dismissed.add(id);
-    sessionStorage.setItem(alertNotificationStorageKey, JSON.stringify([...dismissed].slice(-500)));
+    saveDismissedAlertIds(dismissed);
 }
 
 async function checkHighPriorityAlerts() {
@@ -43,12 +47,15 @@ async function checkHighPriorityAlerts() {
             if (existing) renderAlertNotification(existing, alert);
         });
         const dismissed = readDismissedAlertIds();
+        const activeAlertIds = new Set(alerts.map(alert => alert.id));
+        const activeDismissals = new Set([...dismissed].filter(id => activeAlertIds.has(id)));
+        if (activeDismissals.size !== dismissed.size) saveDismissedAlertIds(activeDismissals);
         const visibleIds = new Set(
             [...alertNotificationContainer.querySelectorAll("[data-alert-id]")]
                 .map(toast => toast.dataset.alertId)
         );
         const alertsToShow = alerts.filter(alert =>
-            !dismissed.has(alert.id) && !visibleIds.has(String(alert.id))
+            !activeDismissals.has(alert.id) && !visibleIds.has(String(alert.id))
         );
         alertsToShow.slice(-3).forEach(showAlertNotification);
     } catch {
@@ -114,3 +121,10 @@ document.addEventListener("labmonitor:refresh", checkHighPriorityAlerts);
 checkHighPriorityAlerts();
 setInterval(dispatchMonitoringRefresh, 5000);
 document.addEventListener("visibilitychange", dispatchMonitoringRefresh);
+window.addEventListener("storage", event => {
+    if (event.key !== alertNotificationStorageKey) return;
+    const dismissed = readDismissedAlertIds();
+    alertNotificationContainer.querySelectorAll("[data-alert-id]").forEach(toast => {
+        if (dismissed.has(Number(toast.dataset.alertId))) toast.remove();
+    });
+});
