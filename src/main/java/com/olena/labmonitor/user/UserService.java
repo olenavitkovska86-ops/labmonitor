@@ -7,9 +7,14 @@ import com.olena.labmonitor.organization.Organization;
 import com.olena.labmonitor.user.dto.CreateUserRequest;
 import com.olena.labmonitor.user.dto.UpdateUserRequest;
 import com.olena.labmonitor.user.dto.UserResponse;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+import static org.springframework.util.StringUtils.hasText;
 
 @Service
 @Transactional
@@ -45,7 +50,7 @@ public class UserService {
         return userMapper.toResponse(user);
     }
 
-    // Need authorization check
+    // Need authorization check in Controller
     public UserResponse update(Long id, UpdateUserRequest request){
         User user = getUser(id);
         user.update(request.firstName(), request.lastName(), request.phone());
@@ -56,6 +61,12 @@ public class UserService {
 
 
     // Super Admin
+    @Transactional(readOnly = true)
+    public List<UserResponse> getAll(Long organizationId, String search){
+        List<User> users = findUsers(organizationId, search);
+        return userMapper.toResponses(users);
+    }
+
     public UserResponse createUser(CreateUserRequest request) {
         userValidator.validateEmail(request.email());
         userValidator.validateRole(request.role());
@@ -70,6 +81,7 @@ public class UserService {
                 null
         );
 
+        // Not tied to any organization
         if (role.equals("SUPER_ADMIN")) {
             user.setGlobalRole("SUPER_ADMIN");
             User savedUser = userRepository.save(user);
@@ -88,17 +100,35 @@ public class UserService {
             return userMapper.toResponse(savedUser);
         }
 
-        User savedUser = userRepository.save(user);
-        return userMapper.toResponse(savedUser);
-
-
+        // In case of unhandled fourth role
+        throw new IllegalStateException("Unhandled role: " + role);
     }
 
 
 
-    //
+
+    // Helpers
     private User getUser(Long id){
         return userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private List<User> findUsers(Long organizationId, String search){
+        boolean hasSearch = hasText(search);
+
+        if (organizationId != null && hasSearch){
+            return userRepository.searchByOrganizationIdAndName(organizationId, search.trim());
+        }
+        if (organizationId != null){
+            return userRepository.findByOrganizationId(organizationId);
+        }
+        if (hasSearch){
+            return userRepository.searchUserByName(search.trim());
+        }
+        return userRepository.findAll(Sort.by(Sort.Direction.ASC,"id"));
+    }
+
+    private boolean hasText(String value){
+        return value != null && !value.trim().isBlank();
     }
 }

@@ -10,6 +10,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -19,18 +21,23 @@ public class UserController {
     @GetMapping("/{id}")
     public UserResponse findById(@PathVariable("id") Long profile){return userService.findById(profile);}
 
+    @PreAuthorize("hasRole('LAB_ADMIN') or hasRole('LIMITED_EMPLOYEE')") // might have to change
     @GetMapping("/me")
     public UserResponse getMyProfile(Authentication authentication){
         String email = authentication.getName();
         return userService.findMe(email);
     }
 
+    @PreAuthorize("hasRole('LAB_ADMIN') or hasRole('LIMITED_EMPLOYEE')")
     @PutMapping("/{id}")
     public UserResponse update(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request){
         return userService.update(id, request);
     }
 
-    // Super Admin ONLY
+    // ========================
+    // SUPER_ADMIN ONLY
+    // ========================
+
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request){
@@ -38,5 +45,12 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    // Get all users
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @GetMapping
+    public List<UserResponse> getAll(@RequestParam(required = false) Long organizationId,
+                                     @RequestParam(required = false) String search){
+        return userService.getAll(organizationId, search);
+    }
 
 }
