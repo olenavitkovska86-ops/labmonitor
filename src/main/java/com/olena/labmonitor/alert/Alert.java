@@ -163,11 +163,15 @@ public class Alert {
     }
 
     public void resolveAutomatically(LocalDateTime measuredAt) {
+        resolveAutomatically(measuredAt, "Sensor value returned to the safe range");
+    }
+
+    public void resolveAutomatically(LocalDateTime measuredAt, String comment) {
         status = AlertStatus.RESOLVED;
         resolvedAt = measuredAt;
         resolvedByUser = null;
         resolutionOutcome = AlertResolutionOutcome.AUTO_RECOVERED;
-        resolutionComment = "Sensor value returned to the safe range";
+        resolutionComment = comment;
     }
 
     public Long getId() { return id; }

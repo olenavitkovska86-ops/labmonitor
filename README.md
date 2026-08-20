@@ -47,6 +47,12 @@ odd-numbered sensors produce escalating violations for the manual alert flow.
 The simulator uses the regular reading service and is limited to 20 sensors by
 default. It should remain disabled outside local demonstrations.
 
+Active sensors are checked for missing readings every 10 seconds. A sensor that
+has not reported for two minutes is marked offline and creates one
+`SENSOR_OFFLINE` alert. A new reading restores the sensor and closes that alert
+automatically. The durations can be changed with `SENSOR_OFFLINE_AFTER` and
+`SENSOR_OFFLINE_CHECK_INTERVAL`.
+
 Configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` in your IDE run configuration or terminal environment if your local settings are different from the defaults.
 
 4. The application runs on port `8080`.

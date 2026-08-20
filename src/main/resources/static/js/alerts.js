@@ -99,6 +99,8 @@ function renderAlerts(alerts) {
     emptyState.classList.add("hidden");
     for (const alert of alerts) {
         const row = document.createElement("tr");
+        row.className = `alert-row alert-row-status-${alert.status.toLowerCase()} `
+            + `alert-row-severity-${alert.severity.toLowerCase()}`;
         row.append(
             createCell(formatDate(alert.createdAt)),
             createBadgeCell(alert.severity, severityClass(alert.severity)),
@@ -156,7 +158,10 @@ function createSensorCell(alert) {
 
 function createHandlingCell(alert) {
     if (alert.status === "RESOLVED" && alert.resolutionOutcome === "AUTO_RECOVERED") {
-        return createCell(`Resolved automatically\n${formatDate(alert.resolvedAt)}\nSensor returned to the safe range`);
+        const recovery = alert.type === "SENSOR_OFFLINE"
+            ? "Sensor resumed reporting"
+            : "Sensor returned to the safe range";
+        return createCell(`Resolved automatically\n${formatDate(alert.resolvedAt)}\n${recovery}`);
     }
     if (alert.status === "RESOLVED" && alert.resolvedByUserId != null) {
         const outcome = alert.resolutionOutcome ? `\n${formatOutcome(alert.resolutionOutcome)}` : "";
@@ -235,6 +240,19 @@ async function refreshOpenAlertDetails() {
 }
 
 function renderAlertDetails(alert, history) {
+    detailsDialog.classList.remove(
+        "alert-details-status-active",
+        "alert-details-status-acknowledged",
+        "alert-details-status-resolved",
+        "alert-details-severity-low",
+        "alert-details-severity-medium",
+        "alert-details-severity-high",
+        "alert-details-severity-critical"
+    );
+    detailsDialog.classList.add(
+        `alert-details-status-${alert.status.toLowerCase()}`,
+        `alert-details-severity-${alert.severity.toLowerCase()}`
+    );
     document.querySelector("#details-title").textContent = alert.title;
     detailsSummary.replaceChildren(
         createDetailItem("Status", alert.status),
@@ -284,7 +302,12 @@ function renderTimeline(alert, history) {
         });
     }
     if (alert.recoveredAt) {
-        events.push({time: alert.recoveredAt, title: "Sensor returned to the safe range"});
+        events.push({
+            time: alert.recoveredAt,
+            title: alert.type === "SENSOR_OFFLINE"
+                ? "Sensor resumed reporting"
+                : "Sensor returned to the safe range"
+        });
     }
     events.sort((left, right) => new Date(left.time) - new Date(right.time));
 

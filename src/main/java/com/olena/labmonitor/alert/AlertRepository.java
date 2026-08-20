@@ -35,6 +35,12 @@ public interface AlertRepository extends JpaRepository<Alert, Long>, JpaSpecific
             Collection<AlertStatus> statuses
     );
 
+    Optional<Alert> findFirstBySensorIdAndTypeAndStatusIn(
+            Long sensorId,
+            AlertType type,
+            Collection<AlertStatus> statuses
+    );
+
     long countByStatusIn(Collection<AlertStatus> statuses);
 
     @EntityGraph(attributePaths = {"room.lab.organization", "sensor"})

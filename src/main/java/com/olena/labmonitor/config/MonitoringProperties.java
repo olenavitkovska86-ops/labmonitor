@@ -14,9 +14,11 @@ public class MonitoringProperties {
 
     private final Alerts alerts = new Alerts();
     private final Readings readings = new Readings();
+    private final Sensors sensors = new Sensors();
 
     public Alerts getAlerts() { return alerts; }
     public Readings getReadings() { return readings; }
+    public Sensors getSensors() { return sensors; }
 
     public static class Alerts {
         private BigDecimal lowMaxPercent = new BigDecimal("5");
@@ -52,5 +54,12 @@ public class MonitoringProperties {
         public void setHistoryMaxResults(int value) { historyMaxResults = value; }
         public List<Duration> getHistoryPeriods() { return historyPeriods; }
         public void setHistoryPeriods(List<Duration> value) { historyPeriods = value; }
+    }
+
+    public static class Sensors {
+        private Duration offlineAfter = Duration.ofMinutes(2);
+
+        public Duration getOfflineAfter() { return offlineAfter; }
+        public void setOfflineAfter(Duration value) { offlineAfter = value; }
     }
 }

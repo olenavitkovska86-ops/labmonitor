@@ -66,6 +66,16 @@ public class AlertHistory {
         );
     }
 
+    public static AlertHistory sensorOnline(Alert alert) {
+        return new AlertHistory(
+                alert,
+                null,
+                AlertHistoryAction.AUTO_RECOVERED,
+                AlertResolutionOutcome.AUTO_RECOVERED,
+                "Sensor resumed reporting"
+        );
+    }
+
     public AlertHistoryAction getAction() { return action; }
     public AlertResolutionOutcome getResolutionOutcome() { return resolutionOutcome; }
     public String getComment() { return comment; }

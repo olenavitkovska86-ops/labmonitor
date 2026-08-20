@@ -4,9 +4,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.Query;
 
 public interface SensorRepository extends JpaRepository<Sensor, Long> {
 
@@ -23,6 +23,20 @@ public interface SensorRepository extends JpaRepository<Sensor, Long> {
               and (sensor.minSafeValue is not null or sensor.maxSafeValue is not null)
             """)
     long countSimulatorEligibleSensors();
+
+    @Query("""
+            select sensor
+            from Sensor sensor
+            where sensor.active = true
+              and sensor.room.active = true
+              and sensor.room.lab.active = true
+              and sensor.status in (com.olena.labmonitor.sensor.SensorStatus.ONLINE,
+                                    com.olena.labmonitor.sensor.SensorStatus.OFFLINE)
+              and ((sensor.lastSeenAt is not null and sensor.lastSeenAt < :cutoff)
+                   or (sensor.lastSeenAt is null and sensor.createdAt < :cutoff))
+            order by sensor.id asc
+            """)
+    List<Sensor> findSensorsMissingSince(@Param("cutoff") LocalDateTime cutoff);
 
     @Query("""
             select sensor

@@ -51,7 +51,9 @@ public class SensorReadingService {
 
         SensorReading reading = new SensorReading(sensor, request.value(), measuredAt);
         SensorReading savedReading = sensorReadingRepository.saveAndFlush(reading);
-        sensor.recordReading(measuredAt);
+        LocalDateTime receivedAt = savedReading.getCreatedAt();
+        sensor.recordReading(receivedAt);
+        alertService.processSensorOnline(sensor, receivedAt);
         alertService.processThresholdReading(sensor, request.value(), measuredAt);
 
         return SensorReadingResponse.from(savedReading);

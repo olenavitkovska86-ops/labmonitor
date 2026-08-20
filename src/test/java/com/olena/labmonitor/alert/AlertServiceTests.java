@@ -174,6 +174,52 @@ class AlertServiceTests {
     }
 
     @Test
+    void createsOneHighAlertWhenSensorStopsReporting() {
+        when(alertRepository.findFirstBySensorIdAndTypeAndStatusIn(
+                nullable(Long.class), any(), anyCollection()
+        )).thenReturn(Optional.empty());
+
+        alertService.processSensorOffline(sensor, MEASURED_AT);
+
+        ArgumentCaptor<Alert> alertCaptor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository).save(alertCaptor.capture());
+        assertEquals(AlertType.SENSOR_OFFLINE, alertCaptor.getValue().getType());
+        assertEquals(AlertSeverity.HIGH, alertCaptor.getValue().getSeverity());
+    }
+
+    @Test
+    void doesNotDuplicateUnresolvedSensorOfflineAlert() {
+        Alert existing = new Alert(
+                sensor.getRoom(), sensor, AlertType.SENSOR_OFFLINE, AlertSeverity.HIGH, "Offline", "Test"
+        );
+        when(alertRepository.findFirstBySensorIdAndTypeAndStatusIn(
+                nullable(Long.class), any(), anyCollection()
+        )).thenReturn(Optional.of(existing));
+
+        alertService.processSensorOffline(sensor, MEASURED_AT);
+
+        verify(alertRepository, never()).save(any(Alert.class));
+    }
+
+    @Test
+    void automaticallyResolvesOfflineAlertWhenSensorReportsAgain() {
+        Alert existing = new Alert(
+                sensor.getRoom(), sensor, AlertType.SENSOR_OFFLINE, AlertSeverity.HIGH, "Offline", "Test"
+        );
+        when(alertRepository.findFirstBySensorIdAndTypeAndStatusIn(
+                nullable(Long.class), any(), anyCollection()
+        )).thenReturn(Optional.of(existing));
+
+        alertService.processSensorOnline(sensor, MEASURED_AT);
+
+        assertEquals(AlertStatus.RESOLVED, existing.getStatus());
+        assertEquals(AlertResolutionOutcome.AUTO_RECOVERED, existing.getResolutionOutcome());
+        assertEquals("Sensor resumed reporting", existing.getResolutionComment());
+        assertEquals(MEASURED_AT, existing.getRecoveredAt());
+        verify(alertHistoryRepository).save(any(AlertHistory.class));
+    }
+
+    @Test
     void acknowledgesActiveAlert() {
         Alert alert = thresholdAlert();
         User user = authenticatedUser();
