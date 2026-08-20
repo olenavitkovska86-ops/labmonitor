@@ -491,7 +491,10 @@ detailsDialog.addEventListener("click", event => {
 });
 
 renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Alerts"}]);
-loadAlerts();
+loadAlerts().then(() => {
+    const requestedAlertId = new URLSearchParams(window.location.search).get("alertId");
+    if (requestedAlertId) openAlertDetails(requestedAlertId);
+});
 
 setInterval(() => {
     if (document.visibilityState === "visible") {
