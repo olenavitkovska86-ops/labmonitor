@@ -4,6 +4,7 @@ import com.olena.labmonitor.alert.dto.AlertResponse;
 import com.olena.labmonitor.alert.dto.AlertCountResponse;
 import com.olena.labmonitor.alert.dto.ResolveAlertRequest;
 import com.olena.labmonitor.alert.dto.ReopenAlertRequest;
+import com.olena.labmonitor.alert.dto.AlertHistoryResponse;
 import com.olena.labmonitor.alert.history.AlertHistory;
 import com.olena.labmonitor.alert.history.AlertHistoryAction;
 import com.olena.labmonitor.alert.history.AlertHistoryRepository;
@@ -195,8 +196,21 @@ public class AlertService {
         if (alert.getStatus() != AlertStatus.ACTIVE) {
             throw new InvalidOperationException("Only an active alert can be acknowledged");
         }
-        alert.acknowledge(getUser(userEmail));
-        return AlertResponse.from(alertRepository.saveAndFlush(alert));
+        User user = getUser(userEmail);
+        alert.acknowledge(user);
+        Alert savedAlert = alertRepository.saveAndFlush(alert);
+        alertHistoryRepository.save(new AlertHistory(
+                savedAlert, user, AlertHistoryAction.ACKNOWLEDGED, null, null
+        ));
+        return AlertResponse.from(savedAlert);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AlertHistoryResponse> findHistory(Long id) {
+        getAlert(id);
+        return alertHistoryRepository.findByAlertIdOrderByCreatedAtAsc(id).stream()
+                .map(AlertHistoryResponse::from)
+                .toList();
     }
 
     public AlertResponse resolve(Long id, String userEmail, ResolveAlertRequest request) {

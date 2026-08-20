@@ -186,6 +186,30 @@ class AlertServiceTests {
         assertEquals(AlertStatus.ACKNOWLEDGED, alert.getStatus());
         assertNotNull(alert.getAcknowledgedAt());
         assertEquals(42L, alert.getAcknowledgedByUser().getId());
+        ArgumentCaptor<AlertHistory> historyCaptor = ArgumentCaptor.forClass(AlertHistory.class);
+        verify(alertHistoryRepository).save(historyCaptor.capture());
+        assertEquals(AlertHistoryAction.ACKNOWLEDGED, historyCaptor.getValue().getAction());
+    }
+
+    @Test
+    void returnsAlertHistoryInRepositoryOrder() {
+        Alert alert = thresholdAlert();
+        User user = authenticatedUser();
+        AlertHistory event = new AlertHistory(
+                alert, user, AlertHistoryAction.RESOLVED, AlertResolutionOutcome.FALSE_ALARM, "Calibration issue"
+        );
+        ReflectionTestUtils.setField(event, "createdAt", MEASURED_AT);
+        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertHistoryRepository.findByAlertIdOrderByCreatedAtAsc(1L)).thenReturn(List.of(event));
+
+        var history = alertService.findHistory(1L);
+
+        assertEquals(1, history.size());
+        assertEquals(AlertHistoryAction.RESOLVED, history.getFirst().action());
+        assertEquals(AlertResolutionOutcome.FALSE_ALARM, history.getFirst().resolutionOutcome());
+        assertEquals("Calibration issue", history.getFirst().comment());
+        assertEquals("Test User", history.getFirst().performedByName());
+        assertEquals(MEASURED_AT, history.getFirst().createdAt());
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.olena.labmonitor.alert.dto.AlertResponse;
 import com.olena.labmonitor.alert.dto.AlertCountResponse;
 import com.olena.labmonitor.alert.dto.ResolveAlertRequest;
 import com.olena.labmonitor.alert.dto.ReopenAlertRequest;
+import com.olena.labmonitor.alert.dto.AlertHistoryResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -36,6 +37,11 @@ public class AlertController {
     @GetMapping("/{id}")
     public AlertResponse findById(@PathVariable Long id) {
         return alertService.findById(id);
+    }
+
+    @GetMapping("/{id}/history")
+    public List<AlertHistoryResponse> findHistory(@PathVariable Long id) {
+        return alertService.findHistory(id);
     }
 
     @GetMapping("/unresolved-count")

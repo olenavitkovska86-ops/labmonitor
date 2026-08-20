@@ -22,6 +22,13 @@ const reopenForm = document.querySelector("#reopen-form");
 const reopenAlertId = document.querySelector("#reopen-alert-id");
 const reopenReason = document.querySelector("#reopen-reason");
 const reopenError = document.querySelector("#reopen-error");
+const detailsDialog = document.querySelector("#alert-details-dialog");
+const detailsLoading = document.querySelector("#details-loading");
+const detailsContent = document.querySelector("#details-content");
+const detailsSummary = document.querySelector("#details-summary");
+const detailsTimeline = document.querySelector("#alert-timeline");
+const detailsActions = document.querySelector("#details-actions");
+const detailsError = document.querySelector("#details-error");
 
 async function request(url, options = {}) {
     const token = localStorage.getItem("token");
@@ -179,11 +186,135 @@ function createActionsCell(alert) {
     if (alert.status === "RESOLVED") {
         actions.append(createActionButton("Reopen issue", () => openReopenForm(alert), true));
     }
-    if (!actions.hasChildNodes()) {
-        actions.textContent = "—";
-    }
+    actions.append(createActionButton("View details", () => openAlertDetails(alert.id), true));
     cell.append(actions);
     return cell;
+}
+
+async function openAlertDetails(alertId) {
+    detailsLoading.classList.remove("hidden");
+    detailsContent.classList.add("hidden");
+    detailsError.classList.add("hidden");
+    detailsDialog.showModal();
+
+    try {
+        const [alert, history] = await Promise.all([
+            request(`${alertsApiUrl}/${alertId}`),
+            request(`${alertsApiUrl}/${alertId}/history`)
+        ]);
+        renderAlertDetails(alert, history);
+        detailsLoading.classList.add("hidden");
+        detailsContent.classList.remove("hidden");
+    } catch (error) {
+        detailsLoading.classList.add("hidden");
+        detailsError.textContent = error.message;
+        detailsError.classList.remove("hidden");
+    }
+}
+
+function renderAlertDetails(alert, history) {
+    document.querySelector("#details-title").textContent = alert.title;
+    detailsSummary.replaceChildren(
+        createDetailItem("Status", alert.status),
+        createDetailItem("Severity", alert.severity),
+        createDetailItem("Location", `Lab ${alert.labId} · Room ${alert.roomId}`),
+        createDetailItem("Sensor", alert.sensorId == null ? "—" : `Sensor ${alert.sensorId}`),
+        createDetailItem("Initial value", alert.initialValue ?? "—"),
+        createDetailItem("Latest / most extreme", `${alert.latestValue ?? "—"} / ${alert.mostExtremeValue ?? "—"}`)
+    );
+    renderTimeline(alert, history);
+    renderDetailsActions(alert);
+}
+
+function createDetailItem(label, value) {
+    const item = document.createElement("div");
+    item.className = "detail-item";
+    const heading = document.createElement("span");
+    const content = document.createElement("strong");
+    heading.textContent = label;
+    content.textContent = value;
+    item.append(heading, content);
+    return item;
+}
+
+function renderTimeline(alert, history) {
+    const events = [{
+        time: alert.createdAt,
+        title: "Alert created",
+        comment: alert.message
+    }];
+
+    if (alert.violationStartedAt && alert.violationStartedAt !== alert.createdAt) {
+        events.push({time: alert.violationStartedAt, title: "Threshold violation started"});
+    }
+    for (const entry of history) {
+        events.push({
+            time: entry.createdAt,
+            title: historyTitle(entry),
+            comment: [entry.performedByName, entry.comment].filter(Boolean).join(" · ")
+        });
+    }
+    if (alert.acknowledgedAt && !history.some(entry => entry.action === "ACKNOWLEDGED")) {
+        events.push({
+            time: alert.acknowledgedAt,
+            title: "Alert acknowledged",
+            comment: alert.acknowledgedByName
+        });
+    }
+    if (alert.recoveredAt) {
+        events.push({time: alert.recoveredAt, title: "Sensor returned to the safe range"});
+    }
+    events.sort((left, right) => new Date(left.time) - new Date(right.time));
+
+    detailsTimeline.replaceChildren(...events.map(createTimelineEvent));
+}
+
+function historyTitle(entry) {
+    const labels = {
+        ACKNOWLEDGED: "Alert acknowledged",
+        RESOLVED: `Alert resolved${entry.resolutionOutcome ? ` · ${formatOutcome(entry.resolutionOutcome)}` : ""}`,
+        REOPENED: "Alert reopened",
+        AUTO_RECOVERED: "Alert resolved automatically"
+    };
+    return labels[entry.action] || entry.action;
+}
+
+function createTimelineEvent(event) {
+    const item = document.createElement("li");
+    item.className = "timeline-event";
+    const title = document.createElement("strong");
+    const time = document.createElement("span");
+    title.textContent = event.title;
+    time.className = "timeline-time";
+    time.textContent = formatDate(event.time);
+    item.append(title, time);
+    if (event.comment) {
+        const comment = document.createElement("span");
+        comment.className = "timeline-comment";
+        comment.textContent = event.comment;
+        item.append(comment);
+    }
+    return item;
+}
+
+function renderDetailsActions(alert) {
+    detailsActions.replaceChildren();
+    if (alert.status === "ACTIVE") {
+        detailsActions.append(createActionButton("Acknowledge", async () => {
+            detailsDialog.close();
+            await changeStatus(alert.id, "acknowledge");
+        }));
+    } else if (alert.status === "ACKNOWLEDGED") {
+        detailsActions.append(createActionButton("Resolve", () => {
+            detailsDialog.close();
+            openResolutionForm(alert);
+        }));
+    } else if (alert.status === "RESOLVED") {
+        detailsActions.append(createActionButton("Reopen issue", () => {
+            detailsDialog.close();
+            openReopenForm(alert);
+        }));
+    }
 }
 
 function thresholdDetails(alert) {
@@ -354,6 +485,10 @@ document.querySelector("#cancel-resolution").addEventListener("click", closeReso
 reopenForm.addEventListener("submit", reopenAlert);
 document.querySelector("#close-reopen").addEventListener("click", closeReopenForm);
 document.querySelector("#cancel-reopen").addEventListener("click", closeReopenForm);
+document.querySelector("#close-alert-details").addEventListener("click", () => detailsDialog.close());
+detailsDialog.addEventListener("click", event => {
+    if (event.target === detailsDialog) detailsDialog.close();
+});
 
 renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Alerts"}]);
 loadAlerts();

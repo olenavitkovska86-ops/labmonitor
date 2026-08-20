@@ -69,4 +69,6 @@ public class AlertHistory {
     public AlertHistoryAction getAction() { return action; }
     public AlertResolutionOutcome getResolutionOutcome() { return resolutionOutcome; }
     public String getComment() { return comment; }
+    public User getPerformedByUser() { return performedByUser; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }
