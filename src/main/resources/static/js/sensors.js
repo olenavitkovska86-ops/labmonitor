@@ -47,6 +47,7 @@ let roomsById = new Map();
 let labsById = new Map();
 let organizationsById = new Map();
 let visibleSensors = [];
+let sensorRefreshInProgress = false;
 let searchTimer;
 
 async function request(url, options = {}) {
@@ -188,13 +189,14 @@ function renderSensors(sensors) {
         const room = roomsById.get(sensor.roomId);
         const row = document.createElement("tr");
         const currentReadingCell = createCurrentReadingCell(sensor);
+        const deviceStatusCell = createDeviceStatusCell(sensor.id, sensor.status);
         row.append(
             createCell(sensor.id),
             createSensorLinkCell(sensor),
             createCell(room?.name || `Room ${sensor.roomId}`),
             createCell(sensorTypeLabels[sensor.type] || sensor.type),
             createCell(sensor.unit || "—"),
-            createDeviceStatusCell(sensor.status),
+            deviceStatusCell,
             currentReadingCell,
             createCell(formatSafeRange(sensor)),
             createStatusCell(sensor.active),
@@ -239,11 +241,25 @@ async function loadCurrentReading(sensor, cell) {
     }
 }
 
-function refreshVisibleSensorReadings() {
-    for (const sensor of visibleSensors) {
-        const cell = rows.querySelector(`[data-sensor-id="${sensor.id}"]`);
-        if (cell) loadCurrentReading(sensor, cell);
+async function refreshVisibleSensors() {
+    if (sensorRefreshInProgress) return;
+    sensorRefreshInProgress = true;
+    try {
+        await Promise.allSettled(visibleSensors.map(refreshVisibleSensor));
+    } finally {
+        sensorRefreshInProgress = false;
     }
+}
+
+async function refreshVisibleSensor(sensor) {
+    const currentReadingCell = rows.querySelector(`[data-sensor-id="${sensor.id}"]`);
+    const deviceStatusCell = rows.querySelector(`[data-device-status-sensor-id="${sensor.id}"]`);
+    if (!currentReadingCell || !deviceStatusCell) return;
+
+    const currentSensor = await request(`${sensorsApiUrl}/${sensor.id}`);
+    Object.assign(sensor, currentSensor);
+    renderDeviceStatus(deviceStatusCell, currentSensor.status);
+    await loadCurrentReading(sensor, currentReadingCell);
 }
 
 function isOutsideSafeRange(sensor, value) {
@@ -257,19 +273,25 @@ function createCell(value) {
     return cell;
 }
 
-function createDeviceStatusCell(statusValue) {
+function createDeviceStatusCell(sensorId, statusValue) {
+    const cell = document.createElement("td");
+    cell.dataset.deviceStatusSensorId = sensorId;
+    renderDeviceStatus(cell, statusValue);
+    return cell;
+}
+
+function renderDeviceStatus(cell, statusValue) {
     const classNames = {
         ONLINE: "status-active",
         OFFLINE: "status-inactive",
         MAINTENANCE: "status-warning",
         ERROR: "status-error"
     };
-    const cell = document.createElement("td");
+    cell.replaceChildren();
     const status = document.createElement("span");
     status.className = `status ${classNames[statusValue] || "status-inactive"}`;
     status.textContent = statusValue;
     cell.append(status);
-    return cell;
 }
 
 function createStatusCell(active) {
@@ -479,4 +501,4 @@ form.addEventListener("submit", saveSensor);
 safeRangeForm.addEventListener("submit", saveSafeRange);
 
 initializePage();
-document.addEventListener("labmonitor:refresh", refreshVisibleSensorReadings);
+document.addEventListener("labmonitor:refresh", refreshVisibleSensors);
