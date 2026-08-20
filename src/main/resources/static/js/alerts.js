@@ -99,6 +99,8 @@ function renderAlerts(alerts) {
     emptyState.classList.add("hidden");
     for (const alert of alerts) {
         const row = document.createElement("tr");
+        row.className = `alert-row alert-row-status-${alert.status.toLowerCase()} `
+            + `alert-row-severity-${alert.severity.toLowerCase()}`;
         row.append(
             createCell(formatDate(alert.createdAt)),
             createBadgeCell(alert.severity, severityClass(alert.severity)),
@@ -238,6 +240,19 @@ async function refreshOpenAlertDetails() {
 }
 
 function renderAlertDetails(alert, history) {
+    detailsDialog.classList.remove(
+        "alert-details-status-active",
+        "alert-details-status-acknowledged",
+        "alert-details-status-resolved",
+        "alert-details-severity-low",
+        "alert-details-severity-medium",
+        "alert-details-severity-high",
+        "alert-details-severity-critical"
+    );
+    detailsDialog.classList.add(
+        `alert-details-status-${alert.status.toLowerCase()}`,
+        `alert-details-severity-${alert.severity.toLowerCase()}`
+    );
     document.querySelector("#details-title").textContent = alert.title;
     detailsSummary.replaceChildren(
         createDetailItem("Status", alert.status),
