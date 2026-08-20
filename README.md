@@ -37,18 +37,9 @@ or `READING_HISTORY_MAX_RESULTS`, without rebuilding the application.
 
 ## Sensor simulator
 
-The local demo simulator is disabled by default. Enable its normal one-minute
-cycle with:
-
-```text
-SENSOR_SIMULATOR_ENABLED=true
-```
-
-For an accelerated demonstration, also set:
-
-```text
-SENSOR_SIMULATOR_INTERVAL=5s
-```
+The local demo simulator is disabled whenever the application starts. A
+`SUPER_ADMIN` or `LAB_ADMIN` can start and stop it from the home page and choose
+an interval of five seconds or one minute.
 
 Only active sensors with at least one configured safe boundary are simulated.
 Even-numbered sensors produce short mild deviations that can auto-recover;
