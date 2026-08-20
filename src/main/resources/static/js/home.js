@@ -100,3 +100,15 @@ stopSimulatorButton.addEventListener("click", stopSimulator);
 
 loadAlertCount();
 loadSimulatorStatus();
+
+setInterval(() => {
+    if (document.visibilityState === "visible") {
+        loadAlertCount();
+    }
+}, 5000);
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        loadAlertCount();
+    }
+});

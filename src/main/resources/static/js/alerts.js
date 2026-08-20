@@ -51,11 +51,13 @@ async function request(url, options = {}) {
     throw new Error(`${error.message || error.error}${details}`);
 }
 
-async function loadAlerts() {
-    loadingState.classList.remove("hidden");
-    emptyState.classList.add("hidden");
-    tableWrapper.classList.add("hidden");
-    hideMessage();
+async function loadAlerts({silent = false} = {}) {
+    if (!silent) {
+        loadingState.classList.remove("hidden");
+        emptyState.classList.add("hidden");
+        tableWrapper.classList.add("hidden");
+        hideMessage();
+    }
 
     const parameters = new URLSearchParams();
     const pageParameters = new URLSearchParams(window.location.search);
@@ -78,10 +80,12 @@ function renderAlerts(alerts) {
     rows.replaceChildren();
 
     if (alerts.length === 0) {
+        tableWrapper.classList.add("hidden");
         emptyState.classList.remove("hidden");
         return;
     }
 
+    emptyState.classList.add("hidden");
     for (const alert of alerts) {
         const row = document.createElement("tr");
         row.append(
@@ -347,3 +351,15 @@ document.querySelector("#cancel-reopen").addEventListener("click", closeReopenFo
 
 renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Alerts"}]);
 loadAlerts();
+
+setInterval(() => {
+    if (document.visibilityState === "visible") {
+        loadAlerts({silent: true});
+    }
+}, 5000);
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        loadAlerts({silent: true});
+    }
+});

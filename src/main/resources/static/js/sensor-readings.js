@@ -129,11 +129,13 @@ function renderSensorDetails() {
     ]);
 }
 
-async function loadReadings() {
-    loadingState.classList.remove("hidden");
-    emptyState.classList.add("hidden");
-    tableWrapper.classList.add("hidden");
-    hideMessage(pageMessage);
+async function loadReadings({silent = false} = {}) {
+    if (!silent) {
+        loadingState.classList.remove("hidden");
+        emptyState.classList.add("hidden");
+        tableWrapper.classList.add("hidden");
+        hideMessage(pageMessage);
+    }
 
     try {
         const to = new Date();
@@ -160,11 +162,13 @@ function renderReadings(readings) {
     rows.replaceChildren();
 
     if (readings.length === 0) {
+        tableWrapper.classList.add("hidden");
         emptyState.classList.remove("hidden");
         historyLimitNote.textContent = "";
         return;
     }
 
+    emptyState.classList.add("hidden");
     for (const reading of readings) {
         const outsideRange = isOutsideSafeRange(reading.value);
         const row = document.createElement("tr");
@@ -291,3 +295,15 @@ document.querySelector("#close-reading-form").addEventListener("click", closeFor
 document.querySelector("#cancel-reading-form").addEventListener("click", closeForm);
 form.addEventListener("submit", saveReading);
 initializePage();
+
+setInterval(() => {
+    if (sensor && document.visibilityState === "visible") {
+        loadReadings({silent: true});
+    }
+}, 5000);
+
+document.addEventListener("visibilitychange", () => {
+    if (sensor && document.visibilityState === "visible") {
+        loadReadings({silent: true});
+    }
+});
