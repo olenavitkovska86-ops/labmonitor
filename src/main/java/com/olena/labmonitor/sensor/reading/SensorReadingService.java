@@ -6,12 +6,14 @@ import com.olena.labmonitor.sensor.Sensor;
 import com.olena.labmonitor.sensor.SensorService;
 import com.olena.labmonitor.sensor.reading.dto.CreateSensorReadingRequest;
 import com.olena.labmonitor.sensor.reading.dto.SensorReadingResponse;
+import com.olena.labmonitor.config.MonitoringProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 @Transactional
@@ -20,15 +22,18 @@ public class SensorReadingService {
     private final SensorReadingRepository sensorReadingRepository;
     private final SensorService sensorService;
     private final AlertService alertService;
+    private final MonitoringProperties monitoringProperties;
 
     public SensorReadingService(
             SensorReadingRepository sensorReadingRepository,
             SensorService sensorService,
-            AlertService alertService
+            AlertService alertService,
+            MonitoringProperties monitoringProperties
     ) {
         this.sensorReadingRepository = sensorReadingRepository;
         this.sensorService = sensorService;
         this.alertService = alertService;
+        this.monitoringProperties = monitoringProperties;
     }
 
     public SensorReadingResponse create(CreateSensorReadingRequest request) {
@@ -47,7 +52,7 @@ public class SensorReadingService {
         SensorReading reading = new SensorReading(sensor, request.value(), measuredAt);
         SensorReading savedReading = sensorReadingRepository.saveAndFlush(reading);
         sensor.recordReading(measuredAt);
-        alertService.createThresholdAlertIfRequired(sensor, request.value());
+        alertService.processThresholdReading(sensor, request.value(), measuredAt);
 
         return SensorReadingResponse.from(savedReading);
     }
@@ -61,10 +66,36 @@ public class SensorReadingService {
     }
 
     @Transactional(readOnly = true)
-    public List<SensorReadingResponse> findHistory(Long sensorId) {
+    public List<SensorReadingResponse> findHistory(
+            Long sensorId,
+            LocalDateTime from,
+            LocalDateTime to,
+            Integer limit
+    ) {
         sensorService.getExistingSensor(sensorId);
 
-        return sensorReadingRepository.findHistoryBySensorId(sensorId).stream()
+        int maximumLimit = monitoringProperties.getReadings().getHistoryMaxResults();
+        int effectiveLimit = limit == null ? maximumLimit : limit;
+        if (effectiveLimit < 1 || effectiveLimit > maximumLimit) {
+            throw new IllegalArgumentException("History limit must be between 1 and " + maximumLimit);
+        }
+
+        LocalDateTime effectiveTo = to == null ? LocalDateTime.now() : to;
+        LocalDateTime effectiveFrom = from == null
+                ? effectiveTo.minus(monitoringProperties.getReadings().getHistoryDefaultPeriod())
+                : from;
+        if (!effectiveFrom.isBefore(effectiveTo)) {
+            throw new IllegalArgumentException("History start time must be before end time");
+        }
+
+        return sensorReadingRepository
+                .findBySensorIdAndMeasuredAtBetweenOrderByMeasuredAtDescIdDesc(
+                        sensorId,
+                        effectiveFrom,
+                        effectiveTo,
+                        PageRequest.of(0, effectiveLimit)
+                )
+                .stream()
                 .map(SensorReadingResponse::from)
                 .toList();
     }

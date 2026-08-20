@@ -108,10 +108,15 @@ function createActionsCell(organization) {
     const editButton = createButton("Edit", "button button-secondary button-small");
     editButton.addEventListener("click", () => openEditForm(organization));
 
+    const analyticsLink = document.createElement("a");
+    analyticsLink.className = "button button-secondary button-small";
+    analyticsLink.href = `/analytics.html?organizationId=${organization.id}`;
+    analyticsLink.textContent = "Overview";
+
     const deleteButton = createButton("Delete", "button button-danger button-small");
     deleteButton.addEventListener("click", () => deleteOrganization(organization));
 
-    actions.append(editButton, deleteButton);
+    actions.append(analyticsLink, editButton, deleteButton);
     cell.append(actions);
     return cell;
 }

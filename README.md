@@ -31,6 +31,10 @@ DB_USERNAME=root
 DB_PASSWORD=your_local_password
 ```
 
+Monitoring rules have documented defaults in `application.properties` and can
+be changed with environment variables such as `ALERT_AUTO_RECOVERY_MAX_DURATION`
+or `READING_HISTORY_MAX_RESULTS`, without rebuilding the application.
+
 Configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` in your IDE run configuration or terminal environment if your local settings are different from the defaults.
 
 4. The application runs on port `8080`.
@@ -44,6 +48,7 @@ http://localhost:8080/labs.html
 http://localhost:8080/rooms.html
 http://localhost:8080/sensors.html
 http://localhost:8080/sensor-readings.html?sensorId=1
+http://localhost:8080/analytics.html
 ```
 
 The root URL opens the LabMonitor home page. The web interface follows the
@@ -73,6 +78,8 @@ http://localhost:8080/api/rooms
 http://localhost:8080/api/sensors
 http://localhost:8080/api/sensors/1/current-reading
 http://localhost:8080/api/sensors/1/readings
+http://localhost:8080/api/analytics/organizations/1/overview
+http://localhost:8080/api/analytics/organizations/1/problem-rooms
 ```
 
 If the corresponding database table is empty, an API endpoint returns an empty
@@ -102,11 +109,18 @@ Password: root_password
 Port: 3306
 ```
 
-The current SQL schema is stored in:
+Database migrations are applied automatically by Flyway when the application
+starts. Migration files are stored in:
 
 ```text
-src/main/resources/db/manual/V1__manual_labmonitor_schema.sql
+src/main/resources/db/migration
 ```
+
+For an existing database created with the former manual schema, Flyway records
+version 1 as the baseline and applies migrations starting with version 2. Team
+members therefore only need to pull the code and start the application. The
+files under `src/main/resources/db/manual` are retained for reference and should
+not normally be run by hand.
 
 ## Documentation
 

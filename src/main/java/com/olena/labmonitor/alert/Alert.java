@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "alerts")
@@ -60,6 +61,38 @@ public class Alert {
     @JoinColumn(name = "resolved_by_user_id")
     private User resolvedByUser;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resolution_outcome", length = 30)
+    private AlertResolutionOutcome resolutionOutcome;
+
+    @Column(name = "resolution_comment", length = 1000)
+    private String resolutionComment;
+
+    @Column(name = "reopened_at")
+    private LocalDateTime reopenedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reopened_by_user_id")
+    private User reopenedByUser;
+
+    @Column(name = "violation_started_at")
+    private LocalDateTime violationStartedAt;
+
+    @Column(name = "initial_value", precision = 12, scale = 3)
+    private BigDecimal initialValue;
+
+    @Column(name = "latest_value", precision = 12, scale = 3)
+    private BigDecimal latestValue;
+
+    @Column(name = "most_extreme_value", precision = 12, scale = 3)
+    private BigDecimal mostExtremeValue;
+
+    @Column(name = "last_violation_at")
+    private LocalDateTime lastViolationAt;
+
+    @Column(name = "recovered_at")
+    private LocalDateTime recoveredAt;
+
     protected Alert() {
     }
 
@@ -78,10 +111,63 @@ public class Alert {
         acknowledgedByUser = user;
     }
 
-    public void resolve(User user) {
+    public void resolve(User user, AlertResolutionOutcome outcome, String comment) {
         status = AlertStatus.RESOLVED;
         resolvedAt = LocalDateTime.now();
         resolvedByUser = user;
+        resolutionOutcome = outcome;
+        resolutionComment = comment == null || comment.isBlank() ? null : comment.trim();
+    }
+
+    public void reopen(User user) {
+        status = AlertStatus.ACTIVE;
+        acknowledgedAt = null;
+        acknowledgedByUser = null;
+        resolvedAt = null;
+        resolvedByUser = null;
+        resolutionOutcome = null;
+        resolutionComment = null;
+        reopenedAt = LocalDateTime.now();
+        reopenedByUser = user;
+    }
+
+    public void startThresholdViolation(BigDecimal value, LocalDateTime measuredAt) {
+        violationStartedAt = measuredAt;
+        initialValue = value;
+        latestValue = value;
+        mostExtremeValue = value;
+        lastViolationAt = measuredAt;
+    }
+
+    public void updateThresholdViolation(
+            BigDecimal value,
+            BigDecimal extremeValue,
+            AlertSeverity newSeverity,
+            LocalDateTime measuredAt
+    ) {
+        if (lastViolationAt == null || !measuredAt.isBefore(lastViolationAt)) {
+            latestValue = value;
+            lastViolationAt = measuredAt;
+            recoveredAt = null;
+        }
+        mostExtremeValue = extremeValue;
+        if (newSeverity.ordinal() > severity.ordinal()) {
+            severity = newSeverity;
+        }
+    }
+
+    public void markRecovered(LocalDateTime measuredAt) {
+        if (lastViolationAt == null || !measuredAt.isBefore(lastViolationAt)) {
+            recoveredAt = measuredAt;
+        }
+    }
+
+    public void resolveAutomatically(LocalDateTime measuredAt) {
+        status = AlertStatus.RESOLVED;
+        resolvedAt = measuredAt;
+        resolvedByUser = null;
+        resolutionOutcome = AlertResolutionOutcome.AUTO_RECOVERED;
+        resolutionComment = "Sensor value returned to the safe range";
     }
 
     public Long getId() { return id; }
@@ -97,4 +183,14 @@ public class Alert {
     public User getAcknowledgedByUser() { return acknowledgedByUser; }
     public LocalDateTime getResolvedAt() { return resolvedAt; }
     public User getResolvedByUser() { return resolvedByUser; }
+    public AlertResolutionOutcome getResolutionOutcome() { return resolutionOutcome; }
+    public String getResolutionComment() { return resolutionComment; }
+    public LocalDateTime getReopenedAt() { return reopenedAt; }
+    public User getReopenedByUser() { return reopenedByUser; }
+    public LocalDateTime getViolationStartedAt() { return violationStartedAt; }
+    public BigDecimal getInitialValue() { return initialValue; }
+    public BigDecimal getLatestValue() { return latestValue; }
+    public BigDecimal getMostExtremeValue() { return mostExtremeValue; }
+    public LocalDateTime getLastViolationAt() { return lastViolationAt; }
+    public LocalDateTime getRecoveredAt() { return recoveredAt; }
 }

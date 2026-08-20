@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface SensorRepository extends JpaRepository<Sensor, Long> {
 
+    long countByRoomLabOrganizationIdAndActiveTrueAndStatus(Long organizationId, SensorStatus status);
+
     @Query("""
             select sensor
             from Sensor sensor

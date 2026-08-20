@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface RoomRepository extends JpaRepository<Room, Long> {
 
+    long countByLabOrganizationId(Long organizationId);
+
     @Query("""
             select room
             from Room room

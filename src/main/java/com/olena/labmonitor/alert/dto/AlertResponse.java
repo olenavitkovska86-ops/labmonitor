@@ -3,6 +3,7 @@ package com.olena.labmonitor.alert.dto;
 import com.olena.labmonitor.alert.*;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 public record AlertResponse(
         Long id,
@@ -21,7 +22,18 @@ public record AlertResponse(
         String acknowledgedByName,
         LocalDateTime resolvedAt,
         Long resolvedByUserId,
-        String resolvedByName
+        String resolvedByName,
+        AlertResolutionOutcome resolutionOutcome,
+        String resolutionComment,
+        LocalDateTime reopenedAt,
+        Long reopenedByUserId,
+        String reopenedByName,
+        LocalDateTime violationStartedAt,
+        BigDecimal initialValue,
+        BigDecimal latestValue,
+        BigDecimal mostExtremeValue,
+        LocalDateTime lastViolationAt,
+        LocalDateTime recoveredAt
 ) {
     public static AlertResponse from(Alert alert) {
         return new AlertResponse(
@@ -41,7 +53,18 @@ public record AlertResponse(
                 displayName(alert.getAcknowledgedByUser()),
                 alert.getResolvedAt(),
                 alert.getResolvedByUser() == null ? null : alert.getResolvedByUser().getId(),
-                displayName(alert.getResolvedByUser())
+                displayName(alert.getResolvedByUser()),
+                alert.getResolutionOutcome(),
+                alert.getResolutionComment(),
+                alert.getReopenedAt(),
+                alert.getReopenedByUser() == null ? null : alert.getReopenedByUser().getId(),
+                displayName(alert.getReopenedByUser()),
+                alert.getViolationStartedAt(),
+                alert.getInitialValue(),
+                alert.getLatestValue(),
+                alert.getMostExtremeValue(),
+                alert.getLastViolationAt(),
+                alert.getRecoveredAt()
         );
     }
 

@@ -51,10 +51,20 @@
         </a>
 
         <a class="module-card" href="/alerts.html">
-            <span class="module-number">05</span>
+            <div class="module-card-topline">
+                <span class="module-number">05</span>
+                <span id="alert-count" class="alert-count hidden" aria-label="Unresolved alerts"></span>
+            </div>
             <h2>Alerts</h2>
             <p>Review and manage sensor threshold alerts.</p>
             <span class="module-link">Open alerts &rarr;</span>
+        </a>
+
+        <a class="module-card" href="/analytics.html">
+            <span class="module-number">06</span>
+            <h2>Operational overview</h2>
+            <p>See which rooms require attention and why.</p>
+            <span class="module-link">Open overview &rarr;</span>
         </a>
     </section>
 
@@ -62,5 +72,6 @@
         Authentication and role-based navigation will be added in a later stage.
     </p>
 </main>
+<script src="/js/home.js"></script>
 </body>
 </html>
