@@ -220,6 +220,11 @@ a.module-card:hover {
     margin-bottom: 22px;
 }
 
+.auto-refresh-status {
+    margin-left: auto;
+    white-space: nowrap;
+}
+
 .search {
     display: flex;
     flex: 1;
@@ -714,6 +719,13 @@ th {
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 18px;
+}
+
+.reading-update-status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: right;
 }
 
 .simulator-panel {

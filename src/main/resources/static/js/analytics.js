@@ -110,7 +110,7 @@ function renderOverview(overview) {
     setText("#unacknowledged-alerts", overview.unacknowledgedAlerts);
     setText("#critical-alerts", overview.criticalAlerts);
     setText("#offline-sensors", overview.offlineSensors);
-    setText("#updated-at", `Updated ${formatDate(overview.generatedAt)}`);
+    setText("#updated-at", `Updated ${formatUpdatedDate(overview.generatedAt)}`);
 }
 
 function renderProblemRooms(rooms) {
@@ -244,6 +244,11 @@ function formatDay(value, totalDays) {
 
 function formatDate(value) {
     return new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "short"})
+        .format(new Date(value));
+}
+
+function formatUpdatedDate(value) {
+    return new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "medium"})
         .format(new Date(value));
 }
 

@@ -8,6 +8,7 @@ const pageMessage = document.querySelector("#page-message");
 const filterForm = document.querySelector("#filter-form");
 const statusFilter = document.querySelector("#status-filter");
 const severityFilter = document.querySelector("#severity-filter");
+const alertsUpdatedAt = document.querySelector("#alerts-updated-at");
 const resolutionPanel = document.querySelector("#resolution-panel");
 const resolutionForm = document.querySelector("#resolution-form");
 const resolutionAlertId = document.querySelector("#resolution-alert-id");
@@ -69,6 +70,7 @@ async function loadAlerts({silent = false} = {}) {
         const queryString = parameters.toString();
         const url = queryString ? `${alertsApiUrl}?${queryString}` : alertsApiUrl;
         renderAlerts(await request(url));
+        alertsUpdatedAt.textContent = `Auto-refresh on · Updated ${formatUpdateTime(new Date())}`;
     } catch (error) {
         showMessage(error.message, true);
     } finally {
@@ -317,6 +319,10 @@ function statusClass(status) {
 function formatDate(value) {
     return new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "short"})
         .format(new Date(value));
+}
+
+function formatUpdateTime(value) {
+    return new Intl.DateTimeFormat(undefined, {timeStyle: "medium"}).format(value);
 }
 
 function showMessage(text, isError = false) {

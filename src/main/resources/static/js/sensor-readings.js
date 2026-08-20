@@ -21,6 +21,7 @@ const formError = document.querySelector("#form-error");
 const valueInput = document.querySelector("#reading-value");
 const measuredAtInput = document.querySelector("#measured-at");
 const historyLimitNote = document.querySelector("#history-limit-note");
+const readingsUpdatedAt = document.querySelector("#readings-updated-at");
 let historyLimit = 1000;
 let selectedHours = 24;
 
@@ -151,6 +152,7 @@ async function loadReadings({silent = false} = {}) {
         ]);
         renderCurrentReading(current);
         renderReadings(readings);
+        readingsUpdatedAt.textContent = `Auto-refresh on · Updated ${formatUpdateTime(new Date())}`;
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     } finally {
@@ -234,6 +236,10 @@ function formatDate(value) {
         dateStyle: "medium",
         timeStyle: "medium"
     }).format(new Date(value));
+}
+
+function formatUpdateTime(value) {
+    return new Intl.DateTimeFormat(undefined, {timeStyle: "medium"}).format(value);
 }
 
 function isOutsideSafeRange(value) {
