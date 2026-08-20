@@ -67,7 +67,10 @@
     <section class="panel">
         <div class="history-toolbar">
             <div id="history-periods" class="analytics-tabs" role="group" aria-label="Reading history period"></div>
-            <span id="history-limit-note" class="updated-at"></span>
+            <div class="reading-update-status">
+                <span id="history-limit-note" class="updated-at"></span>
+                <span id="readings-updated-at" class="updated-at" aria-live="polite">Auto-refresh on</span>
+            </div>
         </div>
         <div id="page-message" class="message hidden" role="status"></div>
         <p id="loading-state" class="state">Loading reading history...</p>

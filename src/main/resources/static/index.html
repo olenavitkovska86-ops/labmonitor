@@ -68,6 +68,26 @@
         </a>
     </section>
 
+    <section id="simulator-panel" class="panel simulator-panel hidden" aria-labelledby="simulator-title">
+        <div>
+            <p class="eyebrow">Local demonstration</p>
+            <h2 id="simulator-title">Sensor simulator</h2>
+            <p id="simulator-description" class="section-description">Checking simulator status...</p>
+        </div>
+        <div class="simulator-controls">
+            <label for="simulator-interval">
+                Interval
+                <select id="simulator-interval">
+                    <option value="5">Every 5 seconds</option>
+                    <option value="60">Every minute</option>
+                </select>
+            </label>
+            <button id="start-simulator" class="button button-primary" type="button">Start simulator</button>
+            <button id="stop-simulator" class="button button-secondary hidden" type="button">Stop simulator</button>
+        </div>
+        <div id="simulator-message" class="message message-error hidden" role="alert"></div>
+    </section>
+
     <p class="login-note">
         Authentication and role-based navigation will be added in a later stage.
     </p>

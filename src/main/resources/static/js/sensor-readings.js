@@ -21,6 +21,7 @@ const formError = document.querySelector("#form-error");
 const valueInput = document.querySelector("#reading-value");
 const measuredAtInput = document.querySelector("#measured-at");
 const historyLimitNote = document.querySelector("#history-limit-note");
+const readingsUpdatedAt = document.querySelector("#readings-updated-at");
 let historyLimit = 1000;
 let selectedHours = 24;
 
@@ -129,11 +130,13 @@ function renderSensorDetails() {
     ]);
 }
 
-async function loadReadings() {
-    loadingState.classList.remove("hidden");
-    emptyState.classList.add("hidden");
-    tableWrapper.classList.add("hidden");
-    hideMessage(pageMessage);
+async function loadReadings({silent = false} = {}) {
+    if (!silent) {
+        loadingState.classList.remove("hidden");
+        emptyState.classList.add("hidden");
+        tableWrapper.classList.add("hidden");
+        hideMessage(pageMessage);
+    }
 
     try {
         const to = new Date();
@@ -149,6 +152,7 @@ async function loadReadings() {
         ]);
         renderCurrentReading(current);
         renderReadings(readings);
+        readingsUpdatedAt.textContent = `Auto-refresh on · Updated ${formatUpdateTime(new Date())}`;
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     } finally {
@@ -160,11 +164,13 @@ function renderReadings(readings) {
     rows.replaceChildren();
 
     if (readings.length === 0) {
+        tableWrapper.classList.add("hidden");
         emptyState.classList.remove("hidden");
         historyLimitNote.textContent = "";
         return;
     }
 
+    emptyState.classList.add("hidden");
     for (const reading of readings) {
         const outsideRange = isOutsideSafeRange(reading.value);
         const row = document.createElement("tr");
@@ -232,6 +238,10 @@ function formatDate(value) {
     }).format(new Date(value));
 }
 
+function formatUpdateTime(value) {
+    return new Intl.DateTimeFormat(undefined, {timeStyle: "medium"}).format(value);
+}
+
 function isOutsideSafeRange(value) {
     return (sensor.minSafeValue != null && value < sensor.minSafeValue)
         || (sensor.maxSafeValue != null && value > sensor.maxSafeValue);
@@ -291,3 +301,15 @@ document.querySelector("#close-reading-form").addEventListener("click", closeFor
 document.querySelector("#cancel-reading-form").addEventListener("click", closeForm);
 form.addEventListener("submit", saveReading);
 initializePage();
+
+setInterval(() => {
+    if (sensor && document.visibilityState === "visible") {
+        loadReadings({silent: true});
+    }
+}, 5000);
+
+document.addEventListener("visibilitychange", () => {
+    if (sensor && document.visibilityState === "visible") {
+        loadReadings({silent: true});
+    }
+});

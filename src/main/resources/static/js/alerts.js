@@ -8,6 +8,7 @@ const pageMessage = document.querySelector("#page-message");
 const filterForm = document.querySelector("#filter-form");
 const statusFilter = document.querySelector("#status-filter");
 const severityFilter = document.querySelector("#severity-filter");
+const alertsUpdatedAt = document.querySelector("#alerts-updated-at");
 const resolutionPanel = document.querySelector("#resolution-panel");
 const resolutionForm = document.querySelector("#resolution-form");
 const resolutionAlertId = document.querySelector("#resolution-alert-id");
@@ -51,11 +52,13 @@ async function request(url, options = {}) {
     throw new Error(`${error.message || error.error}${details}`);
 }
 
-async function loadAlerts() {
-    loadingState.classList.remove("hidden");
-    emptyState.classList.add("hidden");
-    tableWrapper.classList.add("hidden");
-    hideMessage();
+async function loadAlerts({silent = false} = {}) {
+    if (!silent) {
+        loadingState.classList.remove("hidden");
+        emptyState.classList.add("hidden");
+        tableWrapper.classList.add("hidden");
+        hideMessage();
+    }
 
     const parameters = new URLSearchParams();
     const pageParameters = new URLSearchParams(window.location.search);
@@ -67,6 +70,7 @@ async function loadAlerts() {
         const queryString = parameters.toString();
         const url = queryString ? `${alertsApiUrl}?${queryString}` : alertsApiUrl;
         renderAlerts(await request(url));
+        alertsUpdatedAt.textContent = `Auto-refresh on · Updated ${formatUpdateTime(new Date())}`;
     } catch (error) {
         showMessage(error.message, true);
     } finally {
@@ -78,10 +82,12 @@ function renderAlerts(alerts) {
     rows.replaceChildren();
 
     if (alerts.length === 0) {
+        tableWrapper.classList.add("hidden");
         emptyState.classList.remove("hidden");
         return;
     }
 
+    emptyState.classList.add("hidden");
     for (const alert of alerts) {
         const row = document.createElement("tr");
         row.append(
@@ -315,6 +321,10 @@ function formatDate(value) {
         .format(new Date(value));
 }
 
+function formatUpdateTime(value) {
+    return new Intl.DateTimeFormat(undefined, {timeStyle: "medium"}).format(value);
+}
+
 function showMessage(text, isError = false) {
     pageMessage.textContent = text;
     pageMessage.classList.toggle("message-error", isError);
@@ -347,3 +357,15 @@ document.querySelector("#cancel-reopen").addEventListener("click", closeReopenFo
 
 renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Alerts"}]);
 loadAlerts();
+
+setInterval(() => {
+    if (document.visibilityState === "visible") {
+        loadAlerts({silent: true});
+    }
+}, 5000);
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        loadAlerts({silent: true});
+    }
+});
