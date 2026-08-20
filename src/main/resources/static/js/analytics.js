@@ -7,6 +7,8 @@ const healthyState = document.querySelector("#healthy-state");
 const currentView = document.querySelector("#current-view");
 const historyView = document.querySelector("#history-view");
 let selectedOrganizationId;
+let selectedHistoryPeriod = null;
+let analyticsRefreshInProgress = false;
 
 async function request(url) {
     const token = localStorage.getItem("token");
@@ -62,12 +64,14 @@ function renderOrganizations(organizations) {
     }
 }
 
-async function loadAnalytics(organizationId) {
+async function loadAnalytics(organizationId, {silent = false} = {}) {
     selectedOrganizationId = organizationId;
-    loadingState.textContent = "Loading operational overview...";
-    loadingState.classList.remove("hidden");
-    analyticsContent.classList.add("hidden");
-    hideMessage();
+    if (!silent) {
+        loadingState.textContent = "Loading operational overview...";
+        loadingState.classList.remove("hidden");
+        analyticsContent.classList.add("hidden");
+        hideMessage();
+    }
 
     try {
         const baseUrl = `/api/analytics/organizations/${organizationId}`;
@@ -75,22 +79,42 @@ async function loadAnalytics(organizationId) {
             request(`${baseUrl}/overview`),
             request(`${baseUrl}/problem-rooms`)
         ]);
+        if (String(selectedOrganizationId) !== String(organizationId)) return;
         renderOverview(overview);
         renderProblemRooms(problemRooms);
         analyticsContent.classList.remove("hidden");
         updateUrl(organizationId);
     } catch (error) {
-        showMessage(error.message);
+        if (!silent) showMessage(error.message);
     } finally {
-        loadingState.classList.add("hidden");
+        if (!silent) loadingState.classList.add("hidden");
     }
 }
 
-async function loadHistory(period) {
-    loadingState.textContent = "Loading alert history...";
-    loadingState.classList.remove("hidden");
-    historyView.classList.add("hidden");
-    hideMessage();
+async function refreshAnalytics() {
+    if (!selectedOrganizationId
+            || analyticsRefreshInProgress
+            || document.visibilityState !== "visible") return;
+    analyticsRefreshInProgress = true;
+    try {
+        const refreshes = [loadAnalytics(selectedOrganizationId, {silent: true})];
+        if (selectedHistoryPeriod && !historyView.classList.contains("hidden")) {
+            refreshes.push(loadHistory(selectedHistoryPeriod, {silent: true}));
+        }
+        await Promise.all(refreshes);
+    } finally {
+        analyticsRefreshInProgress = false;
+    }
+}
+
+async function loadHistory(period, {silent = false} = {}) {
+    selectedHistoryPeriod = period;
+    if (!silent) {
+        loadingState.textContent = "Loading alert history...";
+        loadingState.classList.remove("hidden");
+        historyView.classList.add("hidden");
+        hideMessage();
+    }
     try {
         const history = await request(
             `/api/analytics/organizations/${selectedOrganizationId}/history?period=${period}`
@@ -98,9 +122,9 @@ async function loadHistory(period) {
         renderHistory(history);
         historyView.classList.remove("hidden");
     } catch (error) {
-        showMessage(error.message);
+        if (!silent) showMessage(error.message);
     } finally {
-        loadingState.classList.add("hidden");
+        if (!silent) loadingState.classList.add("hidden");
     }
 }
 
@@ -283,9 +307,11 @@ document.querySelectorAll(".analytics-tab").forEach(tab => {
         if (isHistory) {
             await loadHistory(tab.dataset.period);
         } else {
+            selectedHistoryPeriod = null;
             currentView.classList.remove("hidden");
         }
     });
 });
 renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Operational overview"}]);
 initialize();
+document.addEventListener("labmonitor:refresh", refreshAnalytics);
