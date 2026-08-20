@@ -29,6 +29,8 @@ const detailsSummary = document.querySelector("#details-summary");
 const detailsTimeline = document.querySelector("#alert-timeline");
 const detailsActions = document.querySelector("#details-actions");
 const detailsError = document.querySelector("#details-error");
+let openDetailsAlertId = null;
+let detailsRefreshInProgress = false;
 
 async function request(url, options = {}) {
     const token = localStorage.getItem("token");
@@ -192,6 +194,7 @@ function createActionsCell(alert) {
 }
 
 async function openAlertDetails(alertId) {
+    openDetailsAlertId = alertId;
     detailsLoading.classList.remove("hidden");
     detailsContent.classList.add("hidden");
     detailsError.classList.add("hidden");
@@ -209,6 +212,25 @@ async function openAlertDetails(alertId) {
         detailsLoading.classList.add("hidden");
         detailsError.textContent = error.message;
         detailsError.classList.remove("hidden");
+    }
+}
+
+async function refreshOpenAlertDetails() {
+    if (!detailsDialog.open
+            || !openDetailsAlertId
+            || detailsRefreshInProgress
+            || document.visibilityState !== "visible") return;
+    detailsRefreshInProgress = true;
+    try {
+        const [alert, history] = await Promise.all([
+            request(`${alertsApiUrl}/${openDetailsAlertId}`),
+            request(`${alertsApiUrl}/${openDetailsAlertId}/history`)
+        ]);
+        renderAlertDetails(alert, history);
+    } catch {
+        // Keep the last successfully loaded details visible during a temporary refresh failure.
+    } finally {
+        detailsRefreshInProgress = false;
     }
 }
 
@@ -383,14 +405,34 @@ function openResolutionForm(alert) {
     resolutionAlertId.value = alert.id;
     document.querySelector("#resolution-title").textContent = `Resolve: ${alert.title}`;
     resolutionError.classList.add("hidden");
-    fixedOutcome.disabled = !alert.recoveredAt;
-    resolutionGuidance.textContent = alert.recoveredAt
-        ? "The sensor has returned to its safe range."
-        : "Problem fixed is unavailable until the sensor returns to its safe range. A false alarm requires an explanation.";
+    updateResolutionAvailability(alert);
     resolutionGuidance.classList.remove("hidden");
     resolutionPanel.classList.remove("hidden");
     resolutionPanel.scrollIntoView({behavior: "smooth", block: "start"});
     resolutionOutcome.focus();
+}
+
+function updateResolutionAvailability(alert) {
+    fixedOutcome.disabled = !alert.recoveredAt;
+    resolutionGuidance.textContent = alert.recoveredAt
+        ? "The sensor has returned to its safe range."
+        : "Problem fixed is unavailable until the sensor returns to its safe range. A false alarm requires an explanation.";
+}
+
+async function refreshOpenActionForm() {
+    if (!resolutionPanel.classList.contains("hidden") && resolutionAlertId.value) {
+        try {
+            const alert = await request(`${alertsApiUrl}/${resolutionAlertId.value}`);
+            if (alert.status !== "ACKNOWLEDGED") {
+                closeResolutionForm();
+                showMessage("Alert status changed. The resolution form was closed.");
+            } else {
+                updateResolutionAvailability(alert);
+            }
+        } catch {
+            // Keep the form usable during a temporary refresh failure.
+        }
+    }
 }
 
 function closeResolutionForm() {
@@ -489,18 +531,18 @@ document.querySelector("#close-alert-details").addEventListener("click", () => d
 detailsDialog.addEventListener("click", event => {
     if (event.target === detailsDialog) detailsDialog.close();
 });
+detailsDialog.addEventListener("close", () => {
+    openDetailsAlertId = null;
+});
 
 renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Alerts"}]);
-loadAlerts();
+loadAlerts().then(() => {
+    const requestedAlertId = new URLSearchParams(window.location.search).get("alertId");
+    if (requestedAlertId) openAlertDetails(requestedAlertId);
+});
 
-setInterval(() => {
-    if (document.visibilityState === "visible") {
-        loadAlerts({silent: true});
-    }
-}, 5000);
-
-document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-        loadAlerts({silent: true});
-    }
+document.addEventListener("labmonitor:refresh", () => {
+    loadAlerts({silent: true});
+    refreshOpenAlertDetails();
+    refreshOpenActionForm();
 });

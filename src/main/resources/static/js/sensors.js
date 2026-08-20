@@ -46,6 +46,7 @@ const sensorTypeLabels = {
 let roomsById = new Map();
 let labsById = new Map();
 let organizationsById = new Map();
+let visibleSensors = [];
 let searchTimer;
 
 async function request(url, options = {}) {
@@ -175,6 +176,7 @@ async function loadSensors() {
 }
 
 function renderSensors(sensors) {
+    visibleSensors = sensors;
     rows.replaceChildren();
 
     if (sensors.length === 0) {
@@ -224,23 +226,23 @@ function createCurrentReadingCell(sensor) {
 
 async function loadCurrentReading(sensor, cell) {
     try {
-        const response = await fetch(`${sensorsApiUrl}/${sensor.id}/current-reading`);
-
-        if (response.status === 204) {
+        const reading = await request(`${sensorsApiUrl}/${sensor.id}/current-reading`);
+        if (!reading) {
             cell.textContent = "No readings";
+            cell.className = "";
             return;
         }
-
-        if (!response.ok) {
-            cell.textContent = "Unavailable";
-            return;
-        }
-
-        const reading = await response.json();
         cell.textContent = `${reading.value}${reading.unit ? ` ${reading.unit}` : ""}`;
         cell.className = isOutsideSafeRange(sensor, reading.value) ? "value-alert" : "value-safe";
     } catch {
         cell.textContent = "Unavailable";
+    }
+}
+
+function refreshVisibleSensorReadings() {
+    for (const sensor of visibleSensors) {
+        const cell = rows.querySelector(`[data-sensor-id="${sensor.id}"]`);
+        if (cell) loadCurrentReading(sensor, cell);
     }
 }
 
@@ -477,3 +479,4 @@ form.addEventListener("submit", saveSensor);
 safeRangeForm.addEventListener("submit", saveSafeRange);
 
 initializePage();
+document.addEventListener("labmonitor:refresh", refreshVisibleSensorReadings);

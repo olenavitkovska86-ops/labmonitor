@@ -301,15 +301,6 @@ document.querySelector("#close-reading-form").addEventListener("click", closeFor
 document.querySelector("#cancel-reading-form").addEventListener("click", closeForm);
 form.addEventListener("submit", saveReading);
 initializePage();
-
-setInterval(() => {
-    if (sensor && document.visibilityState === "visible") {
-        loadReadings({silent: true});
-    }
-}, 5000);
-
-document.addEventListener("visibilitychange", () => {
-    if (sensor && document.visibilityState === "visible") {
-        loadReadings({silent: true});
-    }
+document.addEventListener("labmonitor:refresh", () => {
+    if (sensor) loadReadings({silent: true});
 });
