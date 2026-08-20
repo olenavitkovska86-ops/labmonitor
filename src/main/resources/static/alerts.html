@@ -130,6 +130,24 @@
     </section>
 </main>
 
+<dialog id="alert-details-dialog" class="details-dialog" aria-labelledby="details-title">
+    <div class="dialog-heading">
+        <div>
+            <p class="eyebrow">Alert details</p>
+            <h2 id="details-title">Alert</h2>
+        </div>
+        <button id="close-alert-details" class="icon-button" type="button" aria-label="Close">&times;</button>
+    </div>
+    <div id="details-loading" class="state">Loading alert history...</div>
+    <div id="details-content" class="hidden">
+        <div id="details-summary" class="details-summary"></div>
+        <h3>Timeline</h3>
+        <ol id="alert-timeline" class="alert-timeline"></ol>
+        <div id="details-actions" class="form-actions"></div>
+    </div>
+    <div id="details-error" class="message message-error hidden" role="alert"></div>
+</dialog>
+
 <script src="/js/breadcrumbs.js"></script>
 <script src="/js/alerts.js"></script>
 </body>

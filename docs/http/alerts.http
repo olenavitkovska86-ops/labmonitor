@@ -17,6 +17,9 @@ GET {{baseUrl}}/api/alerts?organizationId=1&labId=1&roomId=1&sensorId=1
 ### Get one alert
 GET {{baseUrl}}/api/alerts/{{alertId}}
 
+### Get the alert action history
+GET {{baseUrl}}/api/alerts/{{alertId}}/history
+
 ### Acknowledge alert
 # Requires an authenticated session and CSRF token.
 POST {{baseUrl}}/api/alerts/{{alertId}}/acknowledge
