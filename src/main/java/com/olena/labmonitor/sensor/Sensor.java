@@ -139,6 +139,12 @@ public class Sensor {
         }
     }
 
+    public void markOffline() {
+        if (status == SensorStatus.ONLINE || status == SensorStatus.OFFLINE) {
+            status = SensorStatus.OFFLINE;
+        }
+    }
+
     public void deactivate() {
         this.active = false;
         this.status = SensorStatus.OFFLINE;

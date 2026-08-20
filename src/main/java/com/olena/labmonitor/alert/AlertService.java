@@ -103,6 +103,34 @@ public class AlertService {
         alertRepository.save(alert);
     }
 
+    public void processSensorOffline(Sensor sensor, LocalDateTime detectedAt) {
+        var existingAlert = alertRepository.findFirstBySensorIdAndTypeAndStatusIn(
+                sensor.getId(), AlertType.SENSOR_OFFLINE, UNRESOLVED_STATUSES
+        );
+        if (existingAlert.isPresent()) return;
+
+        Alert alert = new Alert(
+                sensor.getRoom(),
+                sensor,
+                AlertType.SENSOR_OFFLINE,
+                AlertSeverity.HIGH,
+                "Sensor stopped reporting",
+                "Sensor '" + sensor.getName() + "' has not sent readings since "
+                        + (sensor.getLastSeenAt() == null ? "activation" : sensor.getLastSeenAt())
+        );
+        alertRepository.save(alert);
+    }
+
+    public void processSensorOnline(Sensor sensor, LocalDateTime measuredAt) {
+        alertRepository.findFirstBySensorIdAndTypeAndStatusIn(
+                sensor.getId(), AlertType.SENSOR_OFFLINE, UNRESOLVED_STATUSES
+        ).ifPresent(alert -> {
+            alert.markRecovered(measuredAt);
+            alert.resolveAutomatically(measuredAt, "Sensor resumed reporting");
+            alertHistoryRepository.save(AlertHistory.sensorOnline(alert));
+        });
+    }
+
     AlertSeverity calculateThresholdSeverity(Sensor sensor, BigDecimal value) {
         BigDecimal minimum = sensor.getMinSafeValue();
         BigDecimal maximum = sensor.getMaxSafeValue();

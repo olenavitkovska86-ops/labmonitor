@@ -21,14 +21,16 @@ public class MonitoringConfigController {
         return new MonitoringConfigResponse(
                 properties.getReadings().getHistoryDefaultPeriod().toHours(),
                 properties.getReadings().getHistoryMaxResults(),
-                properties.getReadings().getHistoryPeriods().stream().map(java.time.Duration::toHours).toList()
+                properties.getReadings().getHistoryPeriods().stream().map(java.time.Duration::toHours).toList(),
+                properties.getSensors().getOfflineAfter().toSeconds()
         );
     }
 
     public record MonitoringConfigResponse(
             long defaultHistoryHours,
             int historyMaxResults,
-            List<Long> historyPeriodsHours
+            List<Long> historyPeriodsHours,
+            long sensorOfflineAfterSeconds
     ) {
     }
 }

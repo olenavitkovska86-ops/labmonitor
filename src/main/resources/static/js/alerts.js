@@ -156,7 +156,10 @@ function createSensorCell(alert) {
 
 function createHandlingCell(alert) {
     if (alert.status === "RESOLVED" && alert.resolutionOutcome === "AUTO_RECOVERED") {
-        return createCell(`Resolved automatically\n${formatDate(alert.resolvedAt)}\nSensor returned to the safe range`);
+        const recovery = alert.type === "SENSOR_OFFLINE"
+            ? "Sensor resumed reporting"
+            : "Sensor returned to the safe range";
+        return createCell(`Resolved automatically\n${formatDate(alert.resolvedAt)}\n${recovery}`);
     }
     if (alert.status === "RESOLVED" && alert.resolvedByUserId != null) {
         const outcome = alert.resolutionOutcome ? `\n${formatOutcome(alert.resolutionOutcome)}` : "";
@@ -284,7 +287,12 @@ function renderTimeline(alert, history) {
         });
     }
     if (alert.recoveredAt) {
-        events.push({time: alert.recoveredAt, title: "Sensor returned to the safe range"});
+        events.push({
+            time: alert.recoveredAt,
+            title: alert.type === "SENSOR_OFFLINE"
+                ? "Sensor resumed reporting"
+                : "Sensor returned to the safe range"
+        });
     }
     events.sort((left, right) => new Date(left.time) - new Date(right.time));
 
