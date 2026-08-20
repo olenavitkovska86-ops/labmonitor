@@ -1,10 +1,10 @@
-const alertNotificationStorageKey = "seenHighPriorityAlertIds";
+const alertNotificationStorageKey = "dismissedHighPriorityAlertIds";
 const alertNotificationContainer = document.createElement("div");
 alertNotificationContainer.className = "alert-notifications";
 alertNotificationContainer.setAttribute("aria-live", "assertive");
 document.body.append(alertNotificationContainer);
 
-function readSeenAlertIds() {
+function readDismissedAlertIds() {
     try {
         return new Set(JSON.parse(sessionStorage.getItem(alertNotificationStorageKey) || "[]"));
     } catch {
@@ -12,10 +12,10 @@ function readSeenAlertIds() {
     }
 }
 
-function rememberAlertIds(ids) {
-    const seen = readSeenAlertIds();
-    ids.forEach(id => seen.add(id));
-    sessionStorage.setItem(alertNotificationStorageKey, JSON.stringify([...seen].slice(-500)));
+function rememberDismissedAlertId(id) {
+    const dismissed = readDismissedAlertIds();
+    dismissed.add(id);
+    sessionStorage.setItem(alertNotificationStorageKey, JSON.stringify([...dismissed].slice(-500)));
 }
 
 async function checkHighPriorityAlerts() {
@@ -42,10 +42,15 @@ async function checkHighPriorityAlerts() {
             const existing = alertNotificationContainer.querySelector(`[data-alert-id="${alert.id}"]`);
             if (existing) renderAlertNotification(existing, alert);
         });
-        const seen = readSeenAlertIds();
-        const unseen = alerts.filter(alert => !seen.has(alert.id));
-        rememberAlertIds(alerts.map(alert => alert.id));
-        unseen.slice(-3).forEach(showAlertNotification);
+        const dismissed = readDismissedAlertIds();
+        const visibleIds = new Set(
+            [...alertNotificationContainer.querySelectorAll("[data-alert-id]")]
+                .map(toast => toast.dataset.alertId)
+        );
+        const alertsToShow = alerts.filter(alert =>
+            !dismissed.has(alert.id) && !visibleIds.has(String(alert.id))
+        );
+        alertsToShow.slice(-3).forEach(showAlertNotification);
     } catch {
         // Notifications are optional; the current page remains usable if polling fails.
     }
@@ -73,7 +78,10 @@ function showAlertNotification(alert) {
     dismiss.className = "button button-link button-small";
     dismiss.type = "button";
     dismiss.textContent = "Dismiss";
-    dismiss.addEventListener("click", () => toast.remove());
+    dismiss.addEventListener("click", () => {
+        rememberDismissedAlertId(alert.id);
+        toast.remove();
+    });
     actions.append(view, dismiss);
     toast.append(heading, message, context, actions);
     renderAlertNotification(toast, alert);
