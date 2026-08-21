@@ -5,6 +5,8 @@ import com.olena.labmonitor.sensor.reading.dto.SensorReadingResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,9 +23,14 @@ import java.util.List;
 public class SensorReadingController {
 
     private final SensorReadingService sensorReadingService;
+    private final SensorReadingExportService exportService;
 
-    public SensorReadingController(SensorReadingService sensorReadingService) {
+    public SensorReadingController(
+            SensorReadingService sensorReadingService,
+            SensorReadingExportService exportService
+    ) {
         this.sensorReadingService = sensorReadingService;
+        this.exportService = exportService;
     }
 
     @PostMapping("/api/sensor-readings")
@@ -49,5 +56,19 @@ public class SensorReadingController {
             @RequestParam(required = false) Integer limit
     ) {
         return sensorReadingService.findHistory(sensorId, from, to, limit);
+    }
+
+    @GetMapping(value = "/api/sensor-readings/export", produces = "text/csv")
+    public ResponseEntity<byte[]> export(
+            @RequestParam Long roomId,
+            @RequestParam(required = false) Long sensorId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        var export = exportService.export(roomId, sensorId, from, to);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + export.filename() + "\"")
+                .body(export.content());
     }
 }

@@ -10,6 +10,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -38,6 +40,16 @@ public class SensorReading {
     @Column(name = "measured_at", nullable = false)
     private LocalDateTime measuredAt;
 
+    @Column(name = "safe_min", precision = 12, scale = 3)
+    private BigDecimal safeMin;
+
+    @Column(name = "safe_max", precision = 12, scale = 3)
+    private BigDecimal safeMax;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private SensorReadingStatus status;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -50,6 +62,11 @@ public class SensorReading {
         this.room = sensor.getRoom();
         this.value = value;
         this.measuredAt = measuredAt;
+        this.safeMin = sensor.getMinSafeValue();
+        this.safeMax = sensor.getMaxSafeValue();
+        this.status = isOutsideRange(value, safeMin, safeMax)
+                ? SensorReadingStatus.OUTSIDE_RANGE
+                : SensorReadingStatus.SAFE;
     }
 
     public Long getId() {
@@ -74,5 +91,22 @@ public class SensorReading {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public BigDecimal getSafeMin() {
+        return safeMin;
+    }
+
+    public BigDecimal getSafeMax() {
+        return safeMax;
+    }
+
+    public SensorReadingStatus getStatus() {
+        return status;
+    }
+
+    private static boolean isOutsideRange(BigDecimal value, BigDecimal minimum, BigDecimal maximum) {
+        return (minimum != null && value.compareTo(minimum) < 0)
+                || (maximum != null && value.compareTo(maximum) > 0);
     }
 }

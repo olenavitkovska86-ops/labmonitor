@@ -40,16 +40,30 @@ class SensorValueScenarioTests {
         );
     }
 
+    @Test
+    void humidityRisesGraduallyAndCrossesBoundaryLater() {
+        Sensor sensor = sensor(2L, SensorType.HUMIDITY, "40", "60");
+
+        assertEquals(new BigDecimal("59.000"), scenario.valueFor(sensor, stepForPosition(sensor, 6)));
+        assertEquals(new BigDecimal("60.600"), scenario.valueFor(sensor, stepForPosition(sensor, 7)));
+        assertEquals(new BigDecimal("65.600"), scenario.valueFor(sensor, stepForPosition(sensor, 9)));
+        assertEquals(new BigDecimal("55.000"), scenario.valueFor(sensor, stepForPosition(sensor, 11)));
+    }
+
     private long stepForPosition(Sensor sensor, int position) {
         return Math.floorMod(position - sensor.getId().intValue(), 12);
     }
 
     private Sensor sensor(Long id) {
+        return sensor(id, SensorType.TEMPERATURE, "18", "25");
+    }
+
+    private Sensor sensor(Long id, SensorType type, String minimum, String maximum) {
         Organization organization = new Organization("Test", null);
         Lab lab = new Lab(organization, "Lab", null, null);
         Room room = new Room(lab, "Room", RoomType.EXPERIMENT_ROOM, null, null);
-        Sensor sensor = new Sensor(room, "Temperature", SensorType.TEMPERATURE, "C");
-        sensor.updateSafeRange(new BigDecimal("18"), new BigDecimal("25"));
+        Sensor sensor = new Sensor(room, type.name(), type, "unit");
+        sensor.updateSafeRange(new BigDecimal(minimum), new BigDecimal(maximum));
         ReflectionTestUtils.setField(sensor, "id", id);
         return sensor;
     }

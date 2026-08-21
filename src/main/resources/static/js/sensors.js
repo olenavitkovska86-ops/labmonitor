@@ -27,6 +27,8 @@ const maxSafeValueInput = document.querySelector("#max-safe-value");
 const searchForm = document.querySelector("#search-form");
 const searchInput = document.querySelector("#search-input");
 const roomFilter = document.querySelector("#room-filter");
+const roomExportPeriod = document.querySelector("#room-export-period");
+const exportRoomReadingsButton = document.querySelector("#export-room-readings");
 
 const sensorTypeLabels = {
     TEMPERATURE: "Temperature",
@@ -89,6 +91,7 @@ async function initializePage() {
         organizationsById = new Map(organizations.map(organization => [organization.id, organization]));
         renderRoomOptions(rooms);
         applyRoomFromUrl();
+        updateRoomExportButton();
         renderSensorBreadcrumbs();
         await loadSensors();
     } catch (error) {
@@ -474,6 +477,65 @@ function hideMessage(element) {
     element.classList.remove("message-error");
 }
 
+function formatLocalDateTime(date) {
+    const pad = value => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+        + `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function updateRoomExportButton() {
+    const hasRoom = Boolean(roomFilter.value);
+    exportRoomReadingsButton.disabled = !hasRoom;
+    exportRoomReadingsButton.title = hasRoom
+        ? "Export readings from all sensors in this room"
+        : "Select a room to export its readings";
+}
+
+async function exportRoomReadings() {
+    const roomId = roomFilter.value;
+    if (!roomId) {
+        return;
+    }
+
+    const originalLabel = exportRoomReadingsButton.textContent;
+    exportRoomReadingsButton.disabled = true;
+    exportRoomReadingsButton.textContent = "Preparing...";
+    hideMessage(pageMessage);
+
+    try {
+        const hours = Number(roomExportPeriod.value);
+        const to = new Date();
+        const from = new Date(to.getTime() - hours * 60 * 60 * 1000);
+        const parameters = new URLSearchParams({
+            roomId,
+            from: formatLocalDateTime(from),
+            to: formatLocalDateTime(to)
+        });
+        const token = localStorage.getItem("token");
+        const response = await fetch(`/api/sensor-readings/export?${parameters}`, {
+            headers: token ? {Authorization: `Bearer ${token}`} : {}
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.message || `Export failed with status ${response.status}`);
+        }
+
+        const blobUrl = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        const disposition = response.headers.get("Content-Disposition") || "";
+        link.download = disposition.match(/filename="([^"]+)"/)?.[1] || `room-${roomId}-readings.csv`;
+        link.click();
+        URL.revokeObjectURL(blobUrl);
+        showMessage(pageMessage, "Room CSV exported.");
+    } catch (error) {
+        showMessage(pageMessage, error.message, true);
+    } finally {
+        updateRoomExportButton();
+        exportRoomReadingsButton.textContent = originalLabel;
+    }
+}
+
 document.querySelector("#show-create-form").addEventListener("click", openCreateForm);
 document.querySelector("#close-form").addEventListener("click", closeForm);
 document.querySelector("#cancel-form").addEventListener("click", closeForm);
@@ -486,6 +548,7 @@ searchForm.addEventListener("submit", event => {
 document.querySelector("#clear-search").addEventListener("click", () => {
     searchInput.value = "";
     roomFilter.value = "";
+    updateRoomExportButton();
     renderSensorBreadcrumbs();
     loadSensors();
 });
@@ -494,9 +557,11 @@ searchInput.addEventListener("input", () => {
     searchTimer = window.setTimeout(loadSensors, 300);
 });
 roomFilter.addEventListener("change", () => {
+    updateRoomExportButton();
     renderSensorBreadcrumbs();
     loadSensors();
 });
+exportRoomReadingsButton.addEventListener("click", exportRoomReadings);
 form.addEventListener("submit", saveSensor);
 safeRangeForm.addEventListener("submit", saveSafeRange);
 

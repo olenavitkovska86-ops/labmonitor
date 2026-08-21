@@ -15,10 +15,12 @@ public class MonitoringProperties {
     private final Alerts alerts = new Alerts();
     private final Readings readings = new Readings();
     private final Sensors sensors = new Sensors();
+    private final Exports exports = new Exports();
 
     public Alerts getAlerts() { return alerts; }
     public Readings getReadings() { return readings; }
     public Sensors getSensors() { return sensors; }
+    public Exports getExports() { return exports; }
 
     public static class Alerts {
         private BigDecimal lowMaxPercent = new BigDecimal("5");
@@ -61,5 +63,15 @@ public class MonitoringProperties {
 
         public Duration getOfflineAfter() { return offlineAfter; }
         public void setOfflineAfter(Duration value) { offlineAfter = value; }
+    }
+
+    public static class Exports {
+        private Duration maxPeriod = Duration.ofDays(30);
+        private int maxRows = 250_000;
+
+        public Duration getMaxPeriod() { return maxPeriod; }
+        public void setMaxPeriod(Duration value) { maxPeriod = value; }
+        public int getMaxRows() { return maxRows; }
+        public void setMaxRows(int value) { maxRows = value; }
     }
 }

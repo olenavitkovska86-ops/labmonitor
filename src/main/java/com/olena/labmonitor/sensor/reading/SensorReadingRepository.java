@@ -27,4 +27,22 @@ public interface SensorReadingRepository extends JpaRepository<SensorReading, Lo
             LocalDateTime to,
             Pageable pageable
     );
+
+    @Query("""
+            select reading
+            from SensorReading reading
+            join fetch reading.sensor sensor
+            join fetch reading.room room
+            where room.id = :roomId
+              and (:sensorId is null or sensor.id = :sensorId)
+              and reading.measuredAt between :from and :to
+            order by reading.measuredAt asc, reading.id asc
+            """)
+    List<SensorReading> findForExport(
+            @Param("roomId") Long roomId,
+            @Param("sensorId") Long sensorId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            Pageable pageable
+    );
 }

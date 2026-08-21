@@ -21,9 +21,14 @@
             <h1 id="sensor-title">Sensor readings</h1>
             <p id="sensor-description" class="intro">Loading sensor information...</p>
         </div>
-        <button id="show-reading-form" class="button button-primary" type="button">
-            Add test reading
-        </button>
+        <div class="form-actions">
+            <button id="export-readings" class="button button-secondary" type="button" disabled>
+                Export CSV
+            </button>
+            <button id="show-reading-form" class="button button-primary" type="button">
+                Add test reading
+            </button>
+        </div>
     </section>
 
     <section id="reading-form-panel" class="panel form-panel hidden">
