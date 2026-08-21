@@ -8,27 +8,42 @@ import java.math.RoundingMode;
 
 final class SensorValueScenario {
 
-    private static final int CYCLE_LENGTH = 12;
+    private static final int CYCLE_LENGTH = 24;
+    private static final String[] TEMPERATURE_CURVE = {
+            "0.50", "0.51", "0.53", "0.56", "0.60", "0.65",
+            "0.71", "0.78", "0.86", "0.94", "1.00", "1.04",
+            "1.10", "1.18", "1.28", "1.38", "1.40", "1.36",
+            "1.28", "1.18", "1.08", "0.98", "0.82", "0.65"
+    };
+    private static final String[] HUMIDITY_CURVE = {
+            "0.45", "0.46", "0.48", "0.50", "0.53", "0.57",
+            "0.62", "0.68", "0.75", "0.83", "0.91", "0.97",
+            "1.01", "1.05", "1.10", "1.16", "1.22", "1.28",
+            "1.25", "1.18", "1.10", "1.02", "0.90", "0.68"
+    };
 
     BigDecimal valueFor(Sensor sensor, long step) {
         int position = Math.floorMod(step + sensorOffset(sensor), CYCLE_LENGTH);
         BigDecimal width = rangeWidth(sensor);
-        BigDecimal normal = normalValue(sensor, width);
-
-        if (sensor.getType() == SensorType.HUMIDITY
-                && sensor.getMinSafeValue() != null
-                && sensor.getMaxSafeValue() != null) {
-            return humidityValue(sensor, width, position);
+        if (sensor.getMinSafeValue() != null && sensor.getMaxSafeValue() != null) {
+            if (sensor.getType() == SensorType.TEMPERATURE) {
+                return curveValue(sensor, width, TEMPERATURE_CURVE[position]);
+            }
+            if (sensor.getType() == SensorType.HUMIDITY) {
+                return curveValue(sensor, width, HUMIDITY_CURVE[position]);
+            }
         }
 
+        BigDecimal normal = normalValue(sensor, width);
+        int fallbackPosition = position % 12;
         if (sensor.getId() != null && sensor.getId() % 2 == 0) {
-            return switch (position) {
+            return switch (fallbackPosition) {
                 case 6, 7 -> unsafeValue(sensor, width, new BigDecimal("0.03"));
                 default -> normal;
             };
         }
 
-        return switch (position) {
+        return switch (fallbackPosition) {
             case 6 -> unsafeValue(sensor, width, new BigDecimal("0.03"));
             case 7 -> unsafeValue(sensor, width, new BigDecimal("0.10"));
             case 8 -> unsafeValue(sensor, width, new BigDecimal("0.22"));
@@ -38,22 +53,8 @@ final class SensorValueScenario {
         };
     }
 
-    private BigDecimal humidityValue(Sensor sensor, BigDecimal width, int position) {
-        BigDecimal fraction = switch (position) {
-            case 0 -> new BigDecimal("0.40");
-            case 1 -> new BigDecimal("0.45");
-            case 2 -> new BigDecimal("0.50");
-            case 3 -> new BigDecimal("0.55");
-            case 4 -> new BigDecimal("0.65");
-            case 5 -> new BigDecimal("0.80");
-            case 6 -> new BigDecimal("0.95");
-            case 7 -> new BigDecimal("1.03");
-            case 8 -> new BigDecimal("1.12");
-            case 9 -> new BigDecimal("1.28");
-            case 10 -> new BigDecimal("1.08");
-            default -> new BigDecimal("0.75");
-        };
-        return sensor.getMinSafeValue().add(width.multiply(fraction))
+    private BigDecimal curveValue(Sensor sensor, BigDecimal width, String fraction) {
+        return sensor.getMinSafeValue().add(width.multiply(new BigDecimal(fraction)))
                 .setScale(3, RoundingMode.HALF_UP);
     }
 

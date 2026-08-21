@@ -12,46 +12,33 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SensorValueScenarioTests {
 
     private final SensorValueScenario scenario = new SensorValueScenario();
 
     @Test
-    void evenSensorProducesShortMildViolationAndRecovery() {
+    void temperatureRisesSmoothlyAndRecovers() {
         Sensor sensor = sensor(2L);
 
-        BigDecimal unsafe = scenario.valueFor(sensor, stepForPosition(sensor, 6));
-        BigDecimal recovered = scenario.valueFor(sensor, stepForPosition(sensor, 8));
-
-        assertEquals(new BigDecimal("25.210"), unsafe);
-        assertTrue(recovered.compareTo(sensor.getMinSafeValue()) >= 0);
-        assertTrue(recovered.compareTo(sensor.getMaxSafeValue()) <= 0);
-    }
-
-    @Test
-    void oddSensorEscalatesToCriticalViolation() {
-        Sensor sensor = sensor(1L);
-
-        assertEquals(
-                new BigDecimal("27.800"),
-                scenario.valueFor(sensor, stepForPosition(sensor, 9))
-        );
+        assertEquals(new BigDecimal("25.000"), scenario.valueFor(sensor, stepForPosition(sensor, 10)));
+        assertEquals(new BigDecimal("25.280"), scenario.valueFor(sensor, stepForPosition(sensor, 11)));
+        assertEquals(new BigDecimal("27.800"), scenario.valueFor(sensor, stepForPosition(sensor, 16)));
+        assertEquals(new BigDecimal("23.740"), scenario.valueFor(sensor, stepForPosition(sensor, 22)));
     }
 
     @Test
     void humidityRisesGraduallyAndCrossesBoundaryLater() {
         Sensor sensor = sensor(2L, SensorType.HUMIDITY, "40", "60");
 
-        assertEquals(new BigDecimal("59.000"), scenario.valueFor(sensor, stepForPosition(sensor, 6)));
-        assertEquals(new BigDecimal("60.600"), scenario.valueFor(sensor, stepForPosition(sensor, 7)));
-        assertEquals(new BigDecimal("65.600"), scenario.valueFor(sensor, stepForPosition(sensor, 9)));
-        assertEquals(new BigDecimal("55.000"), scenario.valueFor(sensor, stepForPosition(sensor, 11)));
+        assertEquals(new BigDecimal("59.400"), scenario.valueFor(sensor, stepForPosition(sensor, 11)));
+        assertEquals(new BigDecimal("60.200"), scenario.valueFor(sensor, stepForPosition(sensor, 12)));
+        assertEquals(new BigDecimal("65.600"), scenario.valueFor(sensor, stepForPosition(sensor, 17)));
+        assertEquals(new BigDecimal("53.600"), scenario.valueFor(sensor, stepForPosition(sensor, 23)));
     }
 
     private long stepForPosition(Sensor sensor, int position) {
-        return Math.floorMod(position - sensor.getId().intValue(), 12);
+        return Math.floorMod(position - sensor.getId().intValue(), 24);
     }
 
     private Sensor sensor(Long id) {
