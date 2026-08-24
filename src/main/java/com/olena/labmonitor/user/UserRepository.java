@@ -42,4 +42,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 """)
     List<User> searchByOrganizationIdAndName(@Param("organizationId") Long organizationId,
                                              @Param("name") String name);
+
+
 }
