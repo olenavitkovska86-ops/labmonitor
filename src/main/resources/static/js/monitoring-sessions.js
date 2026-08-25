@@ -272,7 +272,7 @@ function renderDetails(session, events) {
         detailsActions.append(actionButton("Complete session", () => changeSessionStatus(session.id, "complete")));
         detailsActions.append(actionButton("Cancel", () => changeSessionStatus(session.id, "cancel"), true, true));
     }
-    if (session.status !== "PLANNED") {
+    if (session.startedAt) {
         detailsActions.append(actionButton("Export ZIP", () => downloadSessionExport(session.id), true));
     }
     eventFormSection.classList.toggle("hidden", session.status !== "ACTIVE");
@@ -282,8 +282,8 @@ function renderDetails(session, events) {
         if (!eventTime.value) eventTime.value = toDateTimeLocal(new Date().toISOString());
     }
     renderEvents(events);
-    timelineSection.classList.toggle("hidden", session.status === "PLANNED");
-    if (session.status !== "PLANNED") loadTimeline();
+    timelineSection.classList.toggle("hidden", !session.startedAt);
+    if (session.startedAt) loadTimeline();
     scheduleTimelineRefresh(session.status === "ACTIVE");
 }
 

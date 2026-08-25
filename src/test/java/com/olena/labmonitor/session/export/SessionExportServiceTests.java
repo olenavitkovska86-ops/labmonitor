@@ -1,5 +1,6 @@
 package com.olena.labmonitor.session.export;
 
+import com.olena.labmonitor.alert.Alert;
 import com.olena.labmonitor.alert.AlertRepository;
 import com.olena.labmonitor.config.MonitoringProperties;
 import com.olena.labmonitor.room.Room;
@@ -10,6 +11,7 @@ import com.olena.labmonitor.sensor.reading.SensorReadingStatus;
 import com.olena.labmonitor.session.MonitoringSession;
 import com.olena.labmonitor.session.MonitoringSessionService;
 import com.olena.labmonitor.session.MonitoringSessionStatus;
+import com.olena.labmonitor.session.event.SessionEvent;
 import com.olena.labmonitor.session.event.SessionEventRepository;
 import com.olena.labmonitor.user.User;
 import org.junit.jupiter.api.Test;
@@ -71,6 +73,90 @@ class SessionExportServiceTests {
 
         assertTrue(error.getMessage().contains("must be started"));
         verifyNoInteractions(readingRepository, eventRepository, alertRepository);
+    }
+
+    @Test
+    void keepsNegativeReadingAndAlertValuesNumeric() throws Exception {
+        var start = LocalDateTime.of(2026, 8, 25, 10, 0);
+        var end = start.plusHours(1);
+        MonitoringSession session = session(start, end, MonitoringSessionStatus.COMPLETED);
+        SensorReading reading = reading(start.plusMinutes(5));
+        when(reading.getValue()).thenReturn(new BigDecimal("-12.5"));
+        when(reading.getSafeMin()).thenReturn(new BigDecimal("-20"));
+        when(reading.getSafeMax()).thenReturn(new BigDecimal("-5"));
+        Alert alert = mock(Alert.class);
+        when(alert.getInitialValue()).thenReturn(new BigDecimal("-12.5"));
+        when(alert.getLatestValue()).thenReturn(new BigDecimal("-13"));
+        when(alert.getMostExtremeValue()).thenReturn(new BigDecimal("-18.25"));
+        stubExport(session, List.of(reading), List.of(), List.of(alert));
+
+        Map<String, String> entries = unzip(service.export(10L).content());
+
+        assertTrue(entries.get("readings.csv").contains("\"-12.5\",\"C\",\"-20\",\"-5\""));
+        assertTrue(entries.get("alerts.csv").contains("\"-12.5\",\"-13\",\"-18.25\""));
+        assertFalse(entries.get("readings.csv").contains("\"'-"));
+        assertFalse(entries.get("alerts.csv").contains("\"'-"));
+    }
+
+    @Test
+    void activeSessionHasEmptyEndedAtAndUsesCurrentTimeOnlyForQueryBoundary() throws Exception {
+        var start = LocalDateTime.now().minusHours(1);
+        MonitoringSession session = session(start, null, MonitoringSessionStatus.ACTIVE);
+        when(sessionService.getSession(10L)).thenReturn(session);
+        when(readingRepository.findForExport(eq(2L), isNull(), eq(start.minusMinutes(15)),
+                any(LocalDateTime.class), any(Pageable.class))).thenReturn(List.of());
+        when(eventRepository.findBySessionIdOrderByOccurredAtAscIdAsc(10L)).thenReturn(List.of());
+        when(alertRepository.findOverlappingRoomPeriod(eq(2L), eq(start.minusMinutes(15)),
+                any(LocalDateTime.class))).thenReturn(List.of());
+
+        String sessionCsv = unzip(service.export(10L).content()).get("session.csv");
+        String dataRow = sessionCsv.lines().skip(1).findFirst().orElseThrow();
+
+        assertTrue(dataRow.contains("\"ACTIVE\""));
+        assertTrue(dataRow.contains("\"" + start + "\",\"\",\"" + start.minusMinutes(15) + "\",\""));
+    }
+
+    @Test
+    void rejectsCancelledSessionThatNeverStarted() {
+        MonitoringSession session = session(null, LocalDateTime.of(2026, 8, 25, 10, 0),
+                MonitoringSessionStatus.CANCELLED);
+        when(sessionService.getSession(10L)).thenReturn(session);
+
+        var error = assertThrows(RuntimeException.class, () -> service.export(10L));
+
+        assertTrue(error.getMessage().contains("must be started"));
+        verifyNoInteractions(readingRepository, eventRepository, alertRepository);
+    }
+
+    @Test
+    void protectsUserTextFromCsvFormulas() throws Exception {
+        var start = LocalDateTime.of(2026, 8, 25, 10, 0);
+        var end = start.plusHours(1);
+        MonitoringSession session = session(start, end, MonitoringSessionStatus.COMPLETED);
+        when(session.getName()).thenReturn("=HYPERLINK(\"https://example.invalid\")");
+        when(session.getDescription()).thenReturn("+malicious formula");
+        when(session.getRoom().getName()).thenReturn("@external data");
+        SessionEvent event = mock(SessionEvent.class);
+        when(event.getTitle()).thenReturn("-dangerous text");
+        stubExport(session, List.of(), List.of(event), List.of());
+
+        Map<String, String> entries = unzip(service.export(10L).content());
+
+        assertTrue(entries.get("session.csv").contains("\"'=HYPERLINK(\"\"https://example.invalid\"\")\""));
+        assertTrue(entries.get("session.csv").contains("\"'+malicious formula\""));
+        assertTrue(entries.get("session.csv").contains("\"'@external data\""));
+        assertTrue(entries.get("events.csv").contains("\"'-dangerous text\""));
+    }
+
+    private void stubExport(MonitoringSession session, List<SensorReading> readings,
+                            List<SessionEvent> events, List<Alert> alerts) {
+        LocalDateTime exportFrom = session.getStartedAt().minusMinutes(15);
+        LocalDateTime exportTo = session.getEndedAt().plusMinutes(15);
+        when(sessionService.getSession(10L)).thenReturn(session);
+        when(readingRepository.findForExport(eq(2L), isNull(), eq(exportFrom), eq(exportTo),
+                any(Pageable.class))).thenReturn(readings);
+        when(eventRepository.findBySessionIdOrderByOccurredAtAscIdAsc(10L)).thenReturn(events);
+        when(alertRepository.findOverlappingRoomPeriod(2L, exportFrom, exportTo)).thenReturn(alerts);
     }
 
     private MonitoringSession session(LocalDateTime start, LocalDateTime end, MonitoringSessionStatus status) {

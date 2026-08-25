@@ -80,7 +80,7 @@ public class SessionExportService {
                              LocalDateTime exportFrom, LocalDateTime exportTo,
                              List<SensorReading> readings, List<SessionEvent> events, List<Alert> alerts) {
         try (var output = new ByteArrayOutputStream(); var zip = new ZipOutputStream(output, StandardCharsets.UTF_8)) {
-            addEntry(zip, "session.csv", sessionCsv(session, sessionEnd, exportFrom, exportTo));
+            addEntry(zip, "session.csv", sessionCsv(session, exportFrom, exportTo));
             addEntry(zip, "readings.csv", readingsCsv(session, sessionEnd, readings));
             addEntry(zip, "events.csv", eventsCsv(events));
             addEntry(zip, "alerts.csv", alertsCsv(alerts));
@@ -91,12 +91,11 @@ public class SessionExportService {
         }
     }
 
-    private String sessionCsv(MonitoringSession session, LocalDateTime sessionEnd,
-                              LocalDateTime exportFrom, LocalDateTime exportTo) {
+    private String sessionCsv(MonitoringSession session, LocalDateTime exportFrom, LocalDateTime exportTo) {
         var csv = csv("session_id,session_name,description,status,room_id,room,started_at,ended_at,"
                 + "export_from,export_to,context_minutes,created_by\n");
         row(csv, session.getId(), session.getName(), session.getDescription(), session.getStatus(),
-                session.getRoom().getId(), session.getRoom().getName(), session.getStartedAt(), sessionEnd,
+                session.getRoom().getId(), session.getRoom().getName(), session.getStartedAt(), session.getEndedAt(),
                 exportFrom, exportTo, CONTEXT.toMinutes(), userName(session.getCreatedBy()));
         return csv.toString();
     }
@@ -153,7 +152,8 @@ public class SessionExportService {
     private void row(StringBuilder csv, Object... values) {
         for (int index = 0; index < values.length; index++) {
             String text = values[index] == null ? "" : values[index].toString();
-            if (!text.isEmpty() && "=+-@".indexOf(text.charAt(0)) >= 0) text = "'" + text;
+            if (!(values[index] instanceof Number) && !text.isEmpty()
+                    && "=+-@".indexOf(text.charAt(0)) >= 0) text = "'" + text;
             csv.append('"').append(text.replace("\"", "\"\"")).append('"');
             csv.append(index == values.length - 1 ? '\n' : ',');
         }
