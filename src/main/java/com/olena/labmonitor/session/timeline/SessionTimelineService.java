@@ -11,20 +11,15 @@ import com.olena.labmonitor.session.MonitoringSessionStatus;
 import com.olena.labmonitor.session.dto.MonitoringSessionResponse;
 import com.olena.labmonitor.session.event.SessionEventRepository;
 import com.olena.labmonitor.session.event.dto.SessionEventResponse;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
 public class SessionTimelineService {
-    private static final int QUERY_LIMIT = 5_000;
     private static final int POINTS_PER_SENSOR = 200;
 
     private final MonitoringSessionService sessionService;
@@ -50,38 +45,16 @@ public class SessionTimelineService {
         LocalDateTime from = session.getStartedAt();
         LocalDateTime to = session.getEndedAt() == null ? LocalDateTime.now() : session.getEndedAt();
 
-        List<SensorReading> newest = readingRepository.findForTimeline(
-                session.getRoom().getId(), sensorId, from, to, PageRequest.of(0, QUERY_LIMIT + 1));
-        boolean truncated = newest.size() > QUERY_LIMIT;
-        if (truncated) newest = new ArrayList<>(newest.subList(0, QUERY_LIMIT));
-        else newest = new ArrayList<>(newest);
-        Collections.reverse(newest);
-
-        var readings = downsample(newest).stream().map(SessionTimelineResponse.TimelineReading::from).toList();
+        List<SensorReading> sampled = readingRepository.findSampledForTimeline(
+                session.getRoom().getId(), sensorId, from, to, POINTS_PER_SENSOR);
+        long totalReadings = readingRepository.countForTimeline(session.getRoom().getId(), sensorId, from, to);
+        boolean truncated = totalReadings > sampled.size();
+        var readings = sampled.stream().map(SessionTimelineResponse.TimelineReading::from).toList();
         var events = eventRepository.findBySessionIdOrderByOccurredAtAscIdAsc(sessionId).stream()
                 .map(SessionEventResponse::from).toList();
         var alerts = alertRepository.findOverlappingRoomPeriod(session.getRoom().getId(), from, to).stream()
                 .map(AlertResponse::from).toList();
         return new SessionTimelineResponse(MonitoringSessionResponse.from(session), from, to,
                 readings, events, alerts, truncated);
-    }
-
-    private List<SensorReading> downsample(List<SensorReading> readings) {
-        var bySensor = new LinkedHashMap<Long, List<SensorReading>>();
-        readings.forEach(reading -> bySensor.computeIfAbsent(reading.getSensor().getId(), ignored -> new ArrayList<>())
-                .add(reading));
-        List<SensorReading> result = new ArrayList<>();
-        for (List<SensorReading> sensorReadings : bySensor.values()) {
-            if (sensorReadings.size() <= POINTS_PER_SENSOR) {
-                result.addAll(sensorReadings);
-                continue;
-            }
-            for (int index = 0; index < POINTS_PER_SENSOR; index++) {
-                int sourceIndex = (int) Math.round(index * (sensorReadings.size() - 1.0) / (POINTS_PER_SENSOR - 1));
-                result.add(sensorReadings.get(sourceIndex));
-            }
-        }
-        result.sort(java.util.Comparator.comparing(SensorReading::getMeasuredAt).thenComparing(SensorReading::getId));
-        return result;
     }
 }

@@ -16,7 +16,6 @@ import com.olena.labmonitor.session.MonitoringSessionStatus;
 import com.olena.labmonitor.session.event.SessionEventRepository;
 import com.olena.labmonitor.user.User;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -44,8 +43,9 @@ class SessionTimelineServiceTests {
                 LocalDateTime.of(2026, 8, 25, 9, 30));
         ReflectionTestUtils.setField(reading, "id", 30L);
         when(sessionService.getSession(10L)).thenReturn(session);
-        when(readingRepository.findForTimeline(eq(1L), isNull(), any(), any(), any(Pageable.class)))
+        when(readingRepository.findSampledForTimeline(eq(1L), isNull(), any(), any(), eq(200)))
                 .thenReturn(List.of(reading));
+        when(readingRepository.countForTimeline(eq(1L), isNull(), any(), any())).thenReturn(1L);
         when(eventRepository.findBySessionIdOrderByOccurredAtAscIdAsc(10L)).thenReturn(List.of());
         when(alertRepository.findOverlappingRoomPeriod(eq(1L), any(), any())).thenReturn(List.of());
 
@@ -64,6 +64,21 @@ class SessionTimelineServiceTests {
 
         assertThrows(InvalidOperationException.class, () -> service.getTimeline(10L, null));
         verifyNoInteractions(readingRepository, eventRepository, alertRepository);
+    }
+
+    @Test
+    void reportsWhenTimelineReadingsWereSampled() {
+        MonitoringSession session = session(MonitoringSessionStatus.COMPLETED);
+        when(sessionService.getSession(10L)).thenReturn(session);
+        when(readingRepository.findSampledForTimeline(eq(1L), isNull(), any(), any(), eq(200)))
+                .thenReturn(List.of());
+        when(readingRepository.countForTimeline(eq(1L), isNull(), any(), any())).thenReturn(201L);
+        when(eventRepository.findBySessionIdOrderByOccurredAtAscIdAsc(10L)).thenReturn(List.of());
+        when(alertRepository.findOverlappingRoomPeriod(eq(1L), any(), any())).thenReturn(List.of());
+
+        var timeline = service.getTimeline(10L, null);
+
+        assertTrue(timeline.readingsTruncated());
     }
 
     private MonitoringSession session(MonitoringSessionStatus status) {

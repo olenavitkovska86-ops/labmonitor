@@ -169,7 +169,9 @@ session can be planned, started, completed, or cancelled. Only one session can
 be active in a room at a time. Timestamped events can be recorded while the
 session is active using universal categories such as observation, intervention,
 maintenance, and incident. The session detail view combines sensor readings,
-event markers, and alert markers in a bounded timeline. A started session can
+event markers, and alert markers in a bounded timeline. Long timelines retain
+up to 200 readings per sensor, sampled evenly across the full session so that
+high-frequency sensors do not hide sparse sensors or earlier periods. A started session can
 also be downloaded as a ZIP containing `session.csv`, `readings.csv`,
 `events.csv`, and `alerts.csv`. Readings include 15 minutes before and after the
 session and an explicit `BEFORE`, `DURING`, or `AFTER` phase.

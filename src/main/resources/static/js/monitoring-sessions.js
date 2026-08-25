@@ -370,7 +370,7 @@ function renderTimeline(timeline, sensorId) {
         return;
     }
     if (timeline.readingsTruncated) {
-        showMessage(timelineNote, "Only the latest 5,000 readings were considered; the graph was downsampled for display.");
+        showMessage(timelineNote, "Readings were sampled evenly across the full session for display.");
     }
     drawTimelineChart(timeline, readings);
 }
