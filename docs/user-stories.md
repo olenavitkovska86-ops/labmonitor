@@ -398,3 +398,22 @@ Acceptance criteria:
 4. Event time cannot precede the session start or be in the future.
 5. The authenticated user is stored as the event creator.
 6. Session events are returned in chronological order.
+
+User story:
+As an authenticated user,
+I want to inspect and export a started monitoring session,
+so that its readings, alerts, and events can be analysed together.
+
+Acceptance criteria:
+1. The timeline combines readings, events, and physically overlapping alerts.
+2. Long timelines retain at most 200 readings per sensor, sampled across the
+   complete time range with the first and last reading retained.
+3. A started session can be exported as a ZIP containing `session.csv`,
+   `readings.csv`, `events.csv`, and `alerts.csv`.
+4. Reading context covers 15 minutes before and after the session and identifies
+   each row as `BEFORE`, `DURING`, or `AFTER`.
+5. Exported records include stable entity and contextual session IDs.
+6. Alert export distinguishes workflow status from physical condition status.
+7. An active session has an empty `ended_at`; current time is only an effective
+   query boundary.
+8. A cancelled session that never started has no timeline or export.

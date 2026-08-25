@@ -87,19 +87,27 @@ Status values:
 
 - One sensor can have many readings.
 - Each reading stores a numeric value and measurement time.
-- The newest measurement is exposed as the current reading.
-- Reading history is ordered by measurement time from newest to oldest.
+- The newest measurement is exposed as the current reading; reading ID
+  descending breaks ties between equal measurement timestamps.
+- Reading history uses the same deterministic ordering.
 - A new reading changes an active sensor status to `ONLINE` and updates
   `lastSeenAt`.
+- Late readings remain in history but update threshold-alert state only when
+  they are current in measurement order. Every received packet still proves
+  liveness and can close an offline alert.
 
 ### SensorReading to Alert
 
 - A reading outside the sensor safe range creates a `SENSOR_THRESHOLD` alert.
-- An unresolved threshold alert prevents duplicate alerts for the same sensor.
+- Unsafe readings in one continuous violation update the same threshold alert.
+  A later violation creates a new alert after recovery, even when an earlier
+  high-severity alert remains open for human review.
 - Severity is calculated from the deviation relative to the safe-range width:
   `LOW` up to 5%, `MEDIUM` up to 15%, `HIGH` up to 30%, and `CRITICAL`
   above 30%.
 - Alerts follow the lifecycle `ACTIVE` -> `ACKNOWLEDGED` -> `RESOLVED`.
+- Physical condition (`ONGOING` or recovered) is independent of that workflow
+  lifecycle; timeline and export use the physical interval for overlap.
 - Alert listing supports hierarchy, status, and severity filters.
 - Alert acknowledgement and resolution store the ID of the authenticated user
   obtained from the JWT security context.

@@ -56,7 +56,9 @@ GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/export
 # MAINTENANCE, INCIDENT, OTHER. New events are accepted only while the session
 # is ACTIVE and their occurredAt must be between startedAt and the current time.
 # Timeline readings are bounded and downsampled to at most 200 displayed points
-# per sensor. `readingsTruncated` indicates that only the latest 5,000 source
-# readings were considered.
+# per sensor across the full time range, retaining the first and last point.
+# `readingsTruncated` indicates that sampling omitted intermediate readings.
 # The ZIP export contains session.csv, readings.csv, events.csv, and alerts.csv.
-# Full readings use the configured export row limit and include a session_phase.
+# Full readings use the configured export row limit and include stable IDs plus
+# a BEFORE, DURING, or AFTER session_phase. Alerts distinguish workflow status
+# from physical condition status and describe their relation to the session.
