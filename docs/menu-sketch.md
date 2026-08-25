@@ -1,3 +1,10 @@
+# Early Menu Sketch
+
+This file is an early product-planning artifact, not a description of the
+current web interface. Camera and audit-log items are outside the current MVP.
+The implemented browser navigation is documented in `README.md`; monitoring
+sessions are the current feature under development.
+
 ## Menus:
 
 0. Main Menu

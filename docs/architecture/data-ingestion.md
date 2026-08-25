@@ -1,6 +1,7 @@
 # Data Ingestion
 
-LabMonitor can receive sensor readings and camera events from different sources.
+LabMonitor currently receives sensor readings from different sources through a
+single application service. Camera ingestion is future work.
 
 ## Sources
 
@@ -19,7 +20,7 @@ Sensor data sources should use:
 SensorReadingService
 ```
 
-Camera data sources should use:
+Future camera data sources should use:
 
 ```text
 CameraEventService
@@ -45,7 +46,7 @@ sensor_readings
 AlertService
 ```
 
-## Camera Data Flow
+## Planned Camera Data Flow
 
 ```text
 Simulator / HTTP API / MQTT
@@ -59,16 +60,17 @@ AlertService
 
 ## Current Project Version
 
-The first implementation will use:
+The current implementation uses:
 
 - HTTP API
 - simulator data
 
 Real sensors and MQTT support can be added later without changing the main domain model.
 
-## Source Type
+## Planned Source Type
 
-Sensor readings and camera events should store where the data came from.
+The current `SensorReading` entity does not store its source. A future device
+integration may add the following field to sensor readings and camera events.
 
 Recommended field:
 

@@ -402,6 +402,14 @@ th {
     text-decoration: underline;
 }
 
+.table-link-button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+}
+
 .table-description {
     max-width: 390px;
     margin-top: 6px;
@@ -490,6 +498,37 @@ th {
     font-size: 0.78rem;
     font-weight: 700;
     text-transform: uppercase;
+}
+
+.detail-item-wide {
+    grid-column: 1 / -1;
+}
+
+.session-details-dialog {
+    width: min(780px, calc(100% - 32px));
+}
+
+.session-event-form,
+.session-events-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid #e5eaed;
+}
+
+.session-event-form h3,
+.session-events-section h3 {
+    margin-top: 0;
+}
+
+.session-event-incident::before {
+    background: #b42318;
+    box-shadow: 0 0 0 1px #b42318;
+}
+
+.session-event-intervention::before,
+.session-event-configuration_change::before {
+    background: #d97706;
+    box-shadow: 0 0 0 1px #d97706;
 }
 
 .alert-timeline {

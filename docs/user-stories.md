@@ -1,5 +1,9 @@
 ## User Stories
 
+Sections for cameras and audit logs describe future scope and are not part of
+the current MVP. Monitoring sessions and session events are implemented at the
+API/domain level; their timeline UI and combined export remain planned.
+
 ### 1. Organizations
 
 User story:
@@ -282,7 +286,7 @@ I want to resolve an alert,
 so that the incident is marked as finished.
 
 Acceptance criteria:
-1. LIMITED_EMPLOYEE can resolve active or acknowledged alert.
+1. LIMITED_EMPLOYEE can resolve an acknowledged alert.
 2. Alert status changes to RESOLVED.
 3. resolvedAt is set.
 4. resolvedByUserId is set.
@@ -363,3 +367,33 @@ Acceptance criteria:
 3. New password must be stored as password hash.
 4. If current password is incorrect, system returns validation error.
 5. After password change, user can log in with new password.
+
+### 10. Monitoring Sessions and Events
+
+User story:
+As an authenticated user,
+I want to create and run a monitoring session for a room,
+so that readings, alerts, and human actions share a meaningful time period.
+
+Acceptance criteria:
+1. A session is created in `PLANNED` status for an active room and lab.
+2. A planned session can be started.
+3. Only one session can be `ACTIVE` in a room at a time.
+4. An active session can be completed.
+5. A planned or active session can be cancelled.
+6. Completed and cancelled sessions cannot be restarted.
+7. The authenticated user is stored as the session creator.
+
+User story:
+As an authenticated user,
+I want to record timestamped events during an active session,
+so that later analysis can explain changes in sensor readings and alerts.
+
+Acceptance criteria:
+1. An event belongs to one active monitoring session.
+2. Category, title, and occurrence time are required.
+3. Categories are `OBSERVATION`, `INTERVENTION`, `CONFIGURATION_CHANGE`,
+   `MAINTENANCE`, `INCIDENT`, and `OTHER`.
+4. Event time cannot precede the session start or be in the future.
+5. The authenticated user is stored as the event creator.
+6. Session events are returned in chronological order.
