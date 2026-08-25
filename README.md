@@ -161,6 +161,9 @@ to 30 days and 250,000 rows by default. Override these limits with
 
 Each row includes measurement and receipt times, room and sensor identity,
 sensor type, value, unit, the safe-range snapshot, and the calculated status.
+Numeric fields, including negative values, remain numeric in the CSV. Formula
+protection is applied only to textual fields whose first character could be
+interpreted as a spreadsheet formula.
 
 ## Monitoring sessions
 
@@ -171,10 +174,23 @@ session is active using universal categories such as observation, intervention,
 maintenance, and incident. The session detail view combines sensor readings,
 event markers, and alert markers in a bounded timeline. Long timelines retain
 up to 200 readings per sensor, sampled evenly across the full session so that
-high-frequency sensors do not hide sparse sensors or earlier periods. A started session can
-also be downloaded as a ZIP containing `session.csv`, `readings.csv`,
-`events.csv`, and `alerts.csv`. Readings include 15 minutes before and after the
-session and an explicit `BEFORE`, `DURING`, or `AFTER` phase.
+high-frequency sensors do not hide sparse sensors or earlier periods. The first
+and last reading of each sensor are retained when sampling is required.
+
+A started session can also be downloaded as a ZIP containing `session.csv`,
+`readings.csv`, `events.csv`, and `alerts.csv`. The files include stable entity
+IDs and organization, lab, room, and sensor context where applicable. Readings
+include 15 minutes before and after the session, a `context_session_id`, and an
+explicit `BEFORE`, `DURING`, or `AFTER` phase. Events use `session_id` because
+they belong to the session. Alerts use `context_session_id` because they only
+overlap its time window; they expose workflow and physical-condition status
+separately, together with start/end phases and `overlaps_session`.
+
+For an active session, `ended_at` remains empty. The current time is used only
+as the effective upper boundary for collecting timeline and export data.
+Cancelled sessions that were never started have neither a timeline nor an
+export. Numeric CSV fields remain numeric, while potentially formula-like user
+text is escaped for spreadsheet safety.
 
 ## Documentation
 

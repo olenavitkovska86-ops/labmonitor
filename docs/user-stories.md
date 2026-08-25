@@ -211,7 +211,8 @@ so that I can monitor laboratory conditions.
 
 Acceptance criteria:
 1. LIMITED_EMPLOYEE can view current reading for a sensor.
-2. Current reading is the latest reading by measuredAt.
+2. Current reading is the latest reading by measuredAt, with the reading ID as
+   the deterministic descending tie-breaker for equal timestamps.
 3. Reading includes value, unit and measuredAt.
 4. If sensor has no readings, system returns empty current reading.
 5. LIMITED_EMPLOYEE cannot view sensors from another organization.

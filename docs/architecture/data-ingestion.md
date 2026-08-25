@@ -34,6 +34,18 @@ AlertService
 
 Data sources must not write directly to the database.
 
+## Measurement Order and Late Data
+
+Every accepted reading is stored, including late or out-of-order measurements.
+The current reading is selected by `measured_at` descending and then by reading
+ID descending, which provides a deterministic tie-breaker for equal timestamps.
+
+Every received packet updates sensor liveness and can close an offline alert,
+because receipt itself proves that the sensor is online. Threshold-alert state
+is updated only when the newly stored reading is current in measurement order.
+An older measurement therefore remains available in history and exports but
+cannot reopen or otherwise rewrite the sensor's current threshold condition.
+
 ## Sensor Data Flow
 
 ```text
