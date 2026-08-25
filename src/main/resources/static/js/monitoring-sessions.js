@@ -31,9 +31,18 @@ const eventDescription = document.querySelector("#event-description");
 const eventFormError = document.querySelector("#event-form-error");
 const eventsList = document.querySelector("#session-events");
 const eventsEmpty = document.querySelector("#events-empty");
+const timelineSection = document.querySelector("#timeline-section");
+const timelineSensor = document.querySelector("#timeline-sensor");
+const timelineNote = document.querySelector("#timeline-note");
+const timelineLoading = document.querySelector("#timeline-loading");
+const timelineEmpty = document.querySelector("#timeline-empty");
+const timelineChart = document.querySelector("#timeline-chart");
+const timelineCanvas = document.querySelector("#timeline-canvas");
 
 let roomsById = new Map();
 let openSessionId = null;
+let timelineRefreshTimer = null;
+let timelineChartInstance = null;
 
 const statusLabels = {
     PLANNED: "Planned",
@@ -223,6 +232,7 @@ async function changeSessionStatus(id, action) {
 
 async function openDetails(id) {
     openSessionId = id;
+    timelineSensor.replaceChildren();
     detailsDialog.showModal();
     await refreshDetails();
 }
@@ -262,6 +272,9 @@ function renderDetails(session, events) {
         detailsActions.append(actionButton("Complete session", () => changeSessionStatus(session.id, "complete")));
         detailsActions.append(actionButton("Cancel", () => changeSessionStatus(session.id, "cancel"), true, true));
     }
+    if (session.status !== "PLANNED") {
+        detailsActions.append(actionButton("Export ZIP", () => downloadSessionExport(session.id), true));
+    }
     eventFormSection.classList.toggle("hidden", session.status !== "ACTIVE");
     if (session.status === "ACTIVE") {
         eventTime.min = toDateTimeLocal(session.startedAt);
@@ -269,6 +282,195 @@ function renderDetails(session, events) {
         if (!eventTime.value) eventTime.value = toDateTimeLocal(new Date().toISOString());
     }
     renderEvents(events);
+    timelineSection.classList.toggle("hidden", session.status === "PLANNED");
+    if (session.status !== "PLANNED") loadTimeline();
+    scheduleTimelineRefresh(session.status === "ACTIVE");
+}
+
+async function downloadSessionExport(sessionId) {
+    hideMessage(detailsError);
+    try {
+        const headers = new Headers();
+        const token = localStorage.getItem("token");
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+        const response = await fetch(`${sessionsApiUrl}/${sessionId}/export`, {headers});
+        if (response.status === 401 || response.status === 403) {
+            localStorage.removeItem("token");
+            window.location.href = "/login.html";
+            return;
+        }
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || error.error || `Export failed with status ${response.status}`);
+        }
+        const disposition = response.headers.get("Content-Disposition") || "";
+        const filename = disposition.match(/filename="([^"]+)"/)?.[1] || `session-${sessionId}-export.zip`;
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        showMessage(detailsError, error.message, true);
+    }
+}
+
+async function loadTimeline(sensorId = timelineSensor.value) {
+    timelineLoading.classList.remove("hidden");
+    timelineEmpty.classList.add("hidden");
+    timelineChart.classList.add("hidden");
+    hideMessage(timelineNote);
+    try {
+        const suffix = sensorId ? `?sensorId=${encodeURIComponent(sensorId)}` : "";
+        const timeline = await request(`${sessionsApiUrl}/${openSessionId}/timeline${suffix}`);
+        const sensors = uniqueTimelineSensors(timeline.readings);
+        if (!sensorId && sensors.length > 0) {
+            renderTimelineSensorOptions(sensors, sensors[0].id);
+            await loadTimeline(String(sensors[0].id));
+            return;
+        }
+        if (sensors.length > 0 && timelineSensor.options.length === 0) {
+            renderTimelineSensorOptions(sensors, Number(sensorId) || sensors[0].id);
+        }
+        renderTimeline(timeline, Number(sensorId));
+    } catch (error) {
+        showMessage(timelineNote, error.message, true);
+    } finally {
+        timelineLoading.classList.add("hidden");
+    }
+}
+
+function uniqueTimelineSensors(readings) {
+    const sensors = new Map();
+    for (const reading of readings) {
+        if (!sensors.has(reading.sensorId)) sensors.set(reading.sensorId, {
+            id: reading.sensorId, name: reading.sensorName, type: reading.sensorType, unit: reading.unit
+        });
+    }
+    return [...sensors.values()];
+}
+
+function renderTimelineSensorOptions(sensors, selectedId) {
+    timelineSensor.replaceChildren();
+    for (const sensor of sensors) {
+        const unit = sensor.unit ? ` · ${sensor.unit}` : "";
+        timelineSensor.append(createOption(sensor.id, `${sensor.name} · ${sensor.type}${unit}`));
+    }
+    timelineSensor.value = String(selectedId);
+}
+
+function renderTimeline(timeline, sensorId) {
+    const readings = timeline.readings.filter(reading => !sensorId || reading.sensorId === sensorId);
+    timelineEmpty.classList.toggle("hidden", readings.length > 0);
+    timelineChart.classList.toggle("hidden", readings.length === 0);
+    if (readings.length === 0) {
+        destroyTimelineChart();
+        timelineSensor.replaceChildren(createOption("", "No sensors with readings"));
+        return;
+    }
+    if (timeline.readingsTruncated) {
+        showMessage(timelineNote, "Only the latest 5,000 readings were considered; the graph was downsampled for display.");
+    }
+    drawTimelineChart(timeline, readings);
+}
+
+function drawTimelineChart(timeline, readings) {
+    const from = new Date(timeline.from).getTime();
+    const to = Math.max(new Date(timeline.to).getTime(), from + 1000);
+    const values = readings.flatMap(reading => [reading.value, reading.safeMin, reading.safeMax])
+        .filter(value => value != null).map(Number);
+    let minimum = Math.min(...values), maximum = Math.max(...values);
+    if (minimum === maximum) { minimum -= 1; maximum += 1; }
+    const padding = (maximum - minimum) * 0.08;
+    minimum -= padding; maximum += padding;
+    const readingData = readings.map(reading => ({x: new Date(reading.measuredAt).getTime(), y: Number(reading.value), reading}));
+    const datasets = [{
+        label: readings[0].sensorName,
+        data: readingData,
+        parsing: false,
+        borderColor: "#16778f",
+        borderWidth: 2.5,
+        pointBackgroundColor: readingData.map(point => point.reading.status === "OUTSIDE_RANGE" ? "#b42318" : "#16778f"),
+        pointBorderColor: readingData.map(point => point.reading.status === "OUTSIDE_RANGE" ? "#ffffff" : "#16778f"),
+        pointBorderWidth: readingData.map(point => point.reading.status === "OUTSIDE_RANGE" ? 1.5 : 0),
+        pointRadius: readingData.map(point => point.reading.status === "OUTSIDE_RANGE" ? 4 : 2.5),
+        pointHoverRadius: 6,
+        tension: 0,
+        fill: false,
+        timelineKind: "reading"
+    }];
+
+    for (const event of timeline.events) {
+        datasets.push(markerDataset(event.occurredAt, minimum, maximum, "#d97706", [5, 4],
+            `${categoryLabels[event.category] || event.category}: ${event.title}`, from, to));
+    }
+    for (const alert of timeline.alerts.filter(alert => alert.sensorId == null || alert.sensorId === readings[0].sensorId)) {
+        const originalMarkerTime = alert.violationStartedAt || alert.createdAt;
+        const markerTime = new Date(originalMarkerTime).getTime() < from ? timeline.from : originalMarkerTime;
+        datasets.push(markerDataset(markerTime, minimum, maximum, "#b42318", [2, 3],
+            `${alert.severity}: ${alert.title}`, from, to));
+    }
+
+    destroyTimelineChart();
+    timelineChartInstance = new Chart(timelineCanvas, {
+        type: "line",
+        data: {datasets},
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: {mode: "nearest", intersect: false},
+            scales: {
+                x: {
+                    type: "linear", min: from, max: to,
+                    grid: {color: "#e5eaed"},
+                    ticks: {callback: value => new Date(value).toLocaleTimeString()}
+                },
+                y: {min: minimum, max: maximum, grid: {color: "#e5eaed"}}
+            },
+            plugins: {
+                legend: {display: false},
+                tooltip: {callbacks: {
+                    title: items => items.length ? formatDate(new Date(items[0].parsed.x).toISOString()) : "",
+                    label: item => item.dataset.timelineKind === "marker"
+                        ? item.dataset.markerLabel
+                        : `${item.parsed.y}${item.raw.reading.unit ? ` ${item.raw.reading.unit}` : ""}${item.raw.reading.status === "OUTSIDE_RANGE" ? " · Outside safe range" : ""}`
+                }}
+            }
+        }
+    });
+}
+
+function markerDataset(time, minimum, maximum, color, borderDash, label, from, to) {
+    const timestamp = new Date(time).getTime();
+    if (timestamp < from || timestamp > to) return {data: [], timelineKind: "marker"};
+    return {
+        label,
+        data: [{x: timestamp, y: minimum}, {x: timestamp, y: maximum}],
+        parsing: false,
+        borderColor: color,
+        borderWidth: 2,
+        borderDash,
+        pointRadius: [0, 4],
+        pointHoverRadius: [0, 6],
+        fill: false,
+        timelineKind: "marker",
+        markerLabel: label
+    };
+}
+
+function destroyTimelineChart() {
+    if (!timelineChartInstance) return;
+    timelineChartInstance.destroy();
+    timelineChartInstance = null;
+}
+
+function scheduleTimelineRefresh(active) {
+    window.clearInterval(timelineRefreshTimer);
+    timelineRefreshTimer = active ? window.setInterval(() => {
+        if (detailsDialog.open && document.visibilityState === "visible") loadTimeline(timelineSensor.value);
+    }, 10000) : null;
 }
 
 function detailItem(label, value, wide = false) {
@@ -355,6 +557,8 @@ document.querySelector("#show-create-form").addEventListener("click", () => {
 document.querySelector("#close-session-form").addEventListener("click", closeSessionForm);
 document.querySelector("#cancel-session-form").addEventListener("click", closeSessionForm);
 document.querySelector("#close-details").addEventListener("click", () => detailsDialog.close());
+detailsDialog.addEventListener("close", () => scheduleTimelineRefresh(false));
+timelineSensor.addEventListener("change", () => loadTimeline(timelineSensor.value));
 filterForm.addEventListener("submit", event => { event.preventDefault(); loadSessions(); });
 document.querySelector("#clear-filters").addEventListener("click", () => {
     roomFilter.value = ""; statusFilter.value = ""; loadSessions();

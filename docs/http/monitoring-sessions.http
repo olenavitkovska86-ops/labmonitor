@@ -43,6 +43,20 @@ Content-Type: application/json
 ### List session events in chronological order
 GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/events
 
+### Get the session timeline (readings, events and overlapping alerts)
+GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/timeline
+
+### Get the timeline for one sensor
+GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/timeline?sensorId=1
+
+### Export the session as ZIP (15 minutes before and after)
+GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/export
+
 # Event categories: OBSERVATION, INTERVENTION, CONFIGURATION_CHANGE,
 # MAINTENANCE, INCIDENT, OTHER. New events are accepted only while the session
 # is ACTIVE and their occurredAt must be between startedAt and the current time.
+# Timeline readings are bounded and downsampled to at most 200 displayed points
+# per sensor. `readingsTruncated` indicates that only the latest 5,000 source
+# readings were considered.
+# The ZIP export contains session.csv, readings.csv, events.csv, and alerts.csv.
+# Full readings use the configured export row limit and include a session_phase.

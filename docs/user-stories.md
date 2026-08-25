@@ -1,8 +1,8 @@
 ## User Stories
 
 Sections for cameras and audit logs describe future scope and are not part of
-the current MVP. Monitoring sessions and session events are implemented at the
-API/domain level; their timeline UI and combined export remain planned.
+the current MVP. Monitoring sessions, timestamped events, the timeline UI, and
+the combined ZIP export are implemented.
 
 ### 1. Organizations
 

@@ -149,10 +149,8 @@ Status values:
 
 ## Next Implementation Order
 
-1. Add a monitoring-session timeline with reading, event, and alert markers.
-2. Add full monitoring-session export.
-3. Add a small Python analysis example.
-4. Prepare the UI, documentation, sample data, and screenshots for demonstration.
+1. Add a small Python analysis example.
+2. Prepare the UI, documentation, sample data, and screenshots for demonstration.
 
 Cameras, AI, audit logs, MQTT, energy readings, and security state are outside
 the current MVP. A reading-retention policy is useful operational follow-up but

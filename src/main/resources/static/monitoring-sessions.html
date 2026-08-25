@@ -96,6 +96,28 @@
         <div id="details-summary" class="details-summary"></div>
         <div id="details-actions" class="form-actions"></div>
 
+        <section id="timeline-section" class="session-timeline-section hidden">
+            <div class="session-timeline-heading">
+                <div><p class="eyebrow">Session timeline</p><h3>Readings and markers</h3></div>
+                <label class="timeline-sensor-picker" for="timeline-sensor">
+                    <span>Sensor</span>
+                    <select id="timeline-sensor"></select>
+                </label>
+            </div>
+            <p id="timeline-note" class="form-guidance hidden"></p>
+            <p id="timeline-loading" class="state">Loading timeline...</p>
+            <p id="timeline-empty" class="state hidden">No readings were recorded in this session.</p>
+            <div id="timeline-chart" class="session-chart hidden">
+                <canvas id="timeline-canvas" role="img" aria-label="Sensor readings with event and alert markers"></canvas>
+            </div>
+            <div class="timeline-legend" aria-label="Timeline legend">
+                <span><i class="legend-reading"></i>Reading</span>
+                <span><i class="legend-unsafe"></i>Outside safe range</span>
+                <span><i class="legend-event"></i>User event</span>
+                <span><i class="legend-alert"></i>Alert</span>
+            </div>
+        </section>
+
         <section id="event-form-section" class="session-event-form hidden">
             <h3>Record an event</h3>
             <form id="event-form">
@@ -130,6 +152,7 @@
 </dialog>
 
 <script src="/js/breadcrumbs.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <script src="/js/monitoring-sessions.js"></script>
 <script src="/js/alert-notifications.js"></script>
 </body>
