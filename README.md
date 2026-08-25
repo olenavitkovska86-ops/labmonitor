@@ -1,6 +1,9 @@
 # LabMonitor
 
-LabMonitor is a Spring Boot project for managing and monitoring laboratory organizations, labs, rooms, sensors, cameras, alerts, and audit logs.
+LabMonitor is a Spring Boot application for monitoring controlled spaces such as
+laboratories and server rooms. It manages organizations, labs, rooms, sensors,
+readings, alerts, analytics, and timestamped monitoring sessions. Cameras and
+audit logs are outside the current MVP and remain possible future work.
 
 ## Requirements
 
@@ -57,16 +60,21 @@ Configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` in your IDE run configurati
 
 4. The application runs on port `8080`.
 
+Open `/login.html` and sign in before using the protected API or application
+pages. Authentication is stateless and uses the JWT returned by `/auth/login`.
+
 Open the web interface in a browser:
 
 ```text
 http://localhost:8080
+http://localhost:8080/login.html
 http://localhost:8080/organizations.html
 http://localhost:8080/labs.html
 http://localhost:8080/rooms.html
 http://localhost:8080/sensors.html
 http://localhost:8080/sensor-readings.html?sensorId=1
 http://localhost:8080/analytics.html
+http://localhost:8080/alerts.html
 ```
 
 The root URL opens the LabMonitor home page. The web interface follows the
@@ -79,7 +87,9 @@ Organizations -> Labs -> Rooms -> Sensors
 The pages provide viewing, searching, creating, editing, activation, and
 deactivation where supported. The sensor page also provides safe value range
 configuration. Select a sensor name to view its current reading and measurement
-history.
+history or export it as CSV. The sensors page can export readings for every
+sensor in a selected room. Both exports use a long, analysis-friendly format
+suitable for Python, Excel, R, and MATLAB.
 
 Activity follows the laboratory hierarchy. A sensor can accept readings only
 when the sensor, its room, and its lab are all active. Deactivating a lab or room
@@ -96,12 +106,14 @@ http://localhost:8080/api/rooms
 http://localhost:8080/api/sensors
 http://localhost:8080/api/sensors/1/current-reading
 http://localhost:8080/api/sensors/1/readings
+http://localhost:8080/api/sensor-readings/export?roomId=1&sensorId=1&from=2026-08-24T00:00:00&to=2026-08-25T00:00:00
+http://localhost:8080/api/monitoring-sessions
 http://localhost:8080/api/analytics/organizations/1/overview
 http://localhost:8080/api/analytics/organizations/1/problem-rooms
 ```
 
-If the corresponding database table is empty, an API endpoint returns an empty
-JSON array:
+Authenticated list endpoints return an empty JSON array when no matching data
+exists:
 
 ```json
 []
@@ -140,6 +152,46 @@ members therefore only need to pull the code and start the application. The
 files under `src/main/resources/db/manual` are retained for reference and should
 not normally be run by hand.
 
+## Reading export
+
+`GET /api/sensor-readings/export` exports either one sensor (`sensorId`) or all
+sensors in a room. `roomId`, `from`, and `to` are required. Exports are limited
+to 30 days and 250,000 rows by default. Override these limits with
+`READING_EXPORT_MAX_PERIOD` and `READING_EXPORT_MAX_ROWS`.
+
+Each row includes measurement and receipt times, room and sensor identity,
+sensor type, value, unit, the safe-range snapshot, and the calculated status.
+Numeric fields, including negative values, remain numeric in the CSV. Formula
+protection is applied only to textual fields whose first character could be
+interpreted as a spreadsheet formula.
+
+## Monitoring sessions
+
+A monitoring session represents a bounded observation period in one room. A
+session can be planned, started, completed, or cancelled. Only one session can
+be active in a room at a time. Timestamped events can be recorded while the
+session is active using universal categories such as observation, intervention,
+maintenance, and incident. The session detail view combines sensor readings,
+event markers, and alert markers in a bounded timeline. Long timelines retain
+up to 200 readings per sensor, sampled evenly across the full session so that
+high-frequency sensors do not hide sparse sensors or earlier periods. The first
+and last reading of each sensor are retained when sampling is required.
+
+A started session can also be downloaded as a ZIP containing `session.csv`,
+`readings.csv`, `events.csv`, and `alerts.csv`. The files include stable entity
+IDs and organization, lab, room, and sensor context where applicable. Readings
+include 15 minutes before and after the session, a `context_session_id`, and an
+explicit `BEFORE`, `DURING`, or `AFTER` phase. Events use `session_id` because
+they belong to the session. Alerts use `context_session_id` because they only
+overlap its time window; they expose workflow and physical-condition status
+separately, together with start/end phases and `overlaps_session`.
+
+For an active session, `ended_at` remains empty. The current time is used only
+as the effective upper boundary for collecting timeline and export data.
+Cancelled sessions that were never started have neither a timeline nor an
+export. Numeric CSV fields remain numeric, while potentially formula-like user
+text is escaped for spreadsheet safety.
+
 ## Documentation
 
 Project planning documents are stored in:
@@ -151,4 +203,5 @@ docs/user-stories.md
 docs/architecture/domain-model.md
 docs/http/sensors.http
 docs/http/sensor-readings.http
+docs/http/monitoring-sessions.http
 ```

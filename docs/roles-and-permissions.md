@@ -1,5 +1,11 @@
 ## Roles and Permissions
 
+This document describes the target permission model. The backend currently
+requires authentication for API access, but detailed method-level role checks
+are not yet applied consistently to every organization, lab, room, sensor, and
+alert operation. Camera and audit-log permissions below are planned and are not
+part of the current MVP.
+
 1. LIMITED_EMPLOYEE
 
 Can:

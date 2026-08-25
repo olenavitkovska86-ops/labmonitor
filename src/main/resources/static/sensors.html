@@ -112,6 +112,20 @@
 
             <button class="button button-secondary" type="submit">Search</button>
             <button id="clear-search" class="button button-link" type="button">Clear</button>
+
+            <label class="search">
+                <span>Export period</span>
+                <select id="room-export-period">
+                    <option value="24">24 hours</option>
+                    <option value="168">7 days</option>
+                    <option value="720">30 days</option>
+                </select>
+            </label>
+
+            <button id="export-room-readings" class="button button-secondary" type="button" disabled
+                    title="Select a room to export its readings">
+                Export room CSV
+            </button>
         </form>
 
         <div id="page-message" class="message hidden" role="status"></div>

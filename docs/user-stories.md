@@ -1,5 +1,9 @@
 ## User Stories
 
+Sections for cameras and audit logs describe future scope and are not part of
+the current MVP. Monitoring sessions, timestamped events, the timeline UI, and
+the combined ZIP export are implemented.
+
 ### 1. Organizations
 
 User story:
@@ -207,7 +211,8 @@ so that I can monitor laboratory conditions.
 
 Acceptance criteria:
 1. LIMITED_EMPLOYEE can view current reading for a sensor.
-2. Current reading is the latest reading by measuredAt.
+2. Current reading is the latest reading by measuredAt, with the reading ID as
+   the deterministic descending tie-breaker for equal timestamps.
 3. Reading includes value, unit and measuredAt.
 4. If sensor has no readings, system returns empty current reading.
 5. LIMITED_EMPLOYEE cannot view sensors from another organization.
@@ -282,7 +287,7 @@ I want to resolve an alert,
 so that the incident is marked as finished.
 
 Acceptance criteria:
-1. LIMITED_EMPLOYEE can resolve active or acknowledged alert.
+1. LIMITED_EMPLOYEE can resolve an acknowledged alert.
 2. Alert status changes to RESOLVED.
 3. resolvedAt is set.
 4. resolvedByUserId is set.
@@ -363,3 +368,52 @@ Acceptance criteria:
 3. New password must be stored as password hash.
 4. If current password is incorrect, system returns validation error.
 5. After password change, user can log in with new password.
+
+### 10. Monitoring Sessions and Events
+
+User story:
+As an authenticated user,
+I want to create and run a monitoring session for a room,
+so that readings, alerts, and human actions share a meaningful time period.
+
+Acceptance criteria:
+1. A session is created in `PLANNED` status for an active room and lab.
+2. A planned session can be started.
+3. Only one session can be `ACTIVE` in a room at a time.
+4. An active session can be completed.
+5. A planned or active session can be cancelled.
+6. Completed and cancelled sessions cannot be restarted.
+7. The authenticated user is stored as the session creator.
+
+User story:
+As an authenticated user,
+I want to record timestamped events during an active session,
+so that later analysis can explain changes in sensor readings and alerts.
+
+Acceptance criteria:
+1. An event belongs to one active monitoring session.
+2. Category, title, and occurrence time are required.
+3. Categories are `OBSERVATION`, `INTERVENTION`, `CONFIGURATION_CHANGE`,
+   `MAINTENANCE`, `INCIDENT`, and `OTHER`.
+4. Event time cannot precede the session start or be in the future.
+5. The authenticated user is stored as the event creator.
+6. Session events are returned in chronological order.
+
+User story:
+As an authenticated user,
+I want to inspect and export a started monitoring session,
+so that its readings, alerts, and events can be analysed together.
+
+Acceptance criteria:
+1. The timeline combines readings, events, and physically overlapping alerts.
+2. Long timelines retain at most 200 readings per sensor, sampled across the
+   complete time range with the first and last reading retained.
+3. A started session can be exported as a ZIP containing `session.csv`,
+   `readings.csv`, `events.csv`, and `alerts.csv`.
+4. Reading context covers 15 minutes before and after the session and identifies
+   each row as `BEFORE`, `DURING`, or `AFTER`.
+5. Exported records include stable entity and contextual session IDs.
+6. Alert export distinguishes workflow status from physical condition status.
+7. An active session has an empty `ended_at`; current time is only an effective
+   query boundary.
+8. A cancelled session that never started has no timeline or export.

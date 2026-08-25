@@ -21,8 +21,10 @@ resolution times, daily activity, and the rooms with the most alerts.
   or `MEDIUM` to medium attention.
 - The main problem is the most severe alert. An unacknowledged alert wins a tie.
 - Problem duration starts at the oldest unresolved alert in the room.
-- Offline sensors are counted separately. They do not affect room priority until
-  sensor-offline alerts are generated reliably.
+- Offline sensors are counted separately. An active sensor that stops reporting
+  also creates a `SENSOR_OFFLINE` alert, so it affects room priority through the
+  normal unresolved-alert rules. A new reading restores the sensor and closes
+  that alert automatically.
 - Uptime is intentionally excluded because device status history is not stored.
 - A threshold alert represents one continuous violation. Further unsafe readings
   update its latest and most extreme values; a safe reading records recovery.

@@ -69,4 +69,20 @@ public interface AlertRepository extends JpaRepository<Alert, Long>, JpaSpecific
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
+
+    @EntityGraph(attributePaths = {"room.lab.organization", "sensor", "acknowledgedByUser", "resolvedByUser", "reopenedByUser"})
+    @Query("""
+            select alert
+            from Alert alert
+            where alert.room.id = :roomId
+              and coalesce(alert.violationStartedAt, alert.createdAt) <= :to
+              and (coalesce(alert.recoveredAt, alert.resolvedAt) is null
+                   or coalesce(alert.recoveredAt, alert.resolvedAt) >= :from)
+            order by coalesce(alert.violationStartedAt, alert.createdAt) asc, alert.id asc
+            """)
+    List<Alert> findOverlappingRoomPeriod(
+            @Param("roomId") Long roomId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
 }

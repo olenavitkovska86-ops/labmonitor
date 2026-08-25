@@ -22,6 +22,7 @@ const valueInput = document.querySelector("#reading-value");
 const measuredAtInput = document.querySelector("#measured-at");
 const historyLimitNote = document.querySelector("#history-limit-note");
 const readingsUpdatedAt = document.querySelector("#readings-updated-at");
+const exportReadingsButton = document.querySelector("#export-readings");
 let historyLimit = 1000;
 let selectedHours = 24;
 
@@ -85,6 +86,7 @@ async function initializePage() {
             request(`${organizationsApiUrl}/${sensor.organizationId}`)
         ]);
         renderSensorDetails();
+        exportReadingsButton.disabled = false;
         await loadReadings();
     } catch (error) {
         loadingState.classList.add("hidden");
@@ -260,6 +262,48 @@ function closeForm() {
     hideMessage(formError);
 }
 
+async function exportReadings() {
+    const originalLabel = exportReadingsButton.textContent;
+    exportReadingsButton.disabled = true;
+    exportReadingsButton.textContent = "Preparing...";
+    hideMessage(pageMessage);
+    try {
+        const to = new Date();
+        const from = new Date(to.getTime() - selectedHours * 60 * 60 * 1000);
+        const parameters = new URLSearchParams({
+            roomId: sensor.roomId,
+            sensorId,
+            from: formatLocalDateTime(from),
+            to: formatLocalDateTime(to)
+        });
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${readingsApiUrl}/export?${parameters}`, {
+            headers: token ? {Authorization: `Bearer ${token}`} : {}
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.message || `Export failed with status ${response.status}`);
+        }
+        const blobUrl = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = filenameFrom(response) || `sensor-${sensorId}-readings.csv`;
+        link.click();
+        URL.revokeObjectURL(blobUrl);
+        showMessage(pageMessage, `CSV exported for the selected ${formatPeriod(selectedHours)} period.`);
+    } catch (error) {
+        showMessage(pageMessage, error.message, true);
+    } finally {
+        exportReadingsButton.disabled = false;
+        exportReadingsButton.textContent = originalLabel;
+    }
+}
+
+function filenameFrom(response) {
+    const disposition = response.headers.get("Content-Disposition") || "";
+    return disposition.match(/filename="([^"]+)"/)?.[1];
+}
+
 async function saveReading(event) {
     event.preventDefault();
     hideMessage(formError);
@@ -300,6 +344,7 @@ document.querySelector("#show-reading-form").addEventListener("click", openForm)
 document.querySelector("#close-reading-form").addEventListener("click", closeForm);
 document.querySelector("#cancel-reading-form").addEventListener("click", closeForm);
 form.addEventListener("submit", saveReading);
+exportReadingsButton.addEventListener("click", exportReadings);
 initializePage();
 document.addEventListener("labmonitor:refresh", () => {
     if (sensor) loadReadings({silent: true});

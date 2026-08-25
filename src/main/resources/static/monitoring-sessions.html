@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Sessions | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">LabMonitor</a>
+    <span class="subtitle">Controlled-space monitoring</span>
+</header>
+
+<main class="page">
+    <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
+
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Observation context</p>
+            <h1>Monitoring sessions</h1>
+            <p class="intro">Group readings, alerts and human actions into a meaningful observation period.</p>
+        </div>
+        <button id="show-create-form" class="button button-primary" type="button">New session</button>
+    </section>
+
+    <section id="session-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">Plan observation</p>
+                <h2>New monitoring session</h2>
+            </div>
+            <button id="close-session-form" class="icon-button" type="button" aria-label="Close">&times;</button>
+        </div>
+        <form id="session-form">
+            <label for="session-room">Room</label>
+            <select id="session-room" required><option value="">Select an active room</option></select>
+
+            <label for="session-name">Name</label>
+            <input id="session-name" maxlength="150" required placeholder="For example: Cooling system test">
+
+            <label for="session-description">Description</label>
+            <textarea id="session-description" maxlength="1000" rows="4"
+                      placeholder="What is being observed and why?"></textarea>
+
+            <div id="session-form-error" class="message message-error hidden" role="alert"></div>
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Create planned session</button>
+                <button id="cancel-session-form" class="button button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <form id="filter-form" class="toolbar">
+            <label class="search">
+                <span>Room</span>
+                <select id="room-filter"><option value="">All rooms</option></select>
+            </label>
+            <label class="search">
+                <span>Status</span>
+                <select id="status-filter">
+                    <option value="">All statuses</option>
+                    <option value="PLANNED">Planned</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+            </label>
+            <button class="button button-secondary" type="submit">Apply</button>
+            <button id="clear-filters" class="button button-link" type="button">Clear</button>
+        </form>
+
+        <div id="page-message" class="message hidden" role="status"></div>
+        <p id="loading-state" class="state">Loading monitoring sessions...</p>
+        <p id="empty-state" class="state hidden">No monitoring sessions found.</p>
+        <div id="table-wrapper" class="table-wrapper hidden">
+            <table>
+                <thead><tr>
+                    <th>Session</th><th>Room</th><th>Status</th><th>Started</th><th>Ended</th>
+                    <th class="actions-column">Actions</th>
+                </tr></thead>
+                <tbody id="session-rows"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<dialog id="session-details-dialog" class="details-dialog session-details-dialog" aria-labelledby="details-title">
+    <div class="dialog-heading">
+        <div><p class="eyebrow">Monitoring session</p><h2 id="details-title">Session details</h2></div>
+        <button id="close-details" class="icon-button" type="button" aria-label="Close">&times;</button>
+    </div>
+    <p id="details-loading" class="state">Loading session...</p>
+    <div id="details-content" class="hidden">
+        <div id="details-summary" class="details-summary"></div>
+        <div id="details-actions" class="form-actions"></div>
+
+        <section id="timeline-section" class="session-timeline-section hidden">
+            <div class="session-timeline-heading">
+                <div><p class="eyebrow">Session timeline</p><h3>Readings and markers</h3></div>
+                <label class="timeline-sensor-picker" for="timeline-sensor">
+                    <span>Sensor</span>
+                    <select id="timeline-sensor"></select>
+                </label>
+            </div>
+            <p id="timeline-note" class="form-guidance hidden"></p>
+            <p id="timeline-loading" class="state">Loading timeline...</p>
+            <p id="timeline-empty" class="state hidden">No readings were recorded in this session.</p>
+            <div id="timeline-chart" class="session-chart hidden">
+                <canvas id="timeline-canvas" role="img" aria-label="Sensor readings with event and alert markers"></canvas>
+            </div>
+            <div class="timeline-legend" aria-label="Timeline legend">
+                <span><i class="legend-reading"></i>Reading</span>
+                <span><i class="legend-unsafe"></i>Outside safe range</span>
+                <span><i class="legend-event"></i>User event</span>
+                <span><i class="legend-alert"></i>Alert</span>
+            </div>
+        </section>
+
+        <section id="event-form-section" class="session-event-form hidden">
+            <h3>Record an event</h3>
+            <form id="event-form">
+                <label for="event-category">Category</label>
+                <select id="event-category" required>
+                    <option value="">Select category</option>
+                    <option value="OBSERVATION">Observation</option>
+                    <option value="INTERVENTION">Intervention</option>
+                    <option value="CONFIGURATION_CHANGE">Configuration change</option>
+                    <option value="MAINTENANCE">Maintenance</option>
+                    <option value="INCIDENT">Incident</option>
+                    <option value="OTHER">Other</option>
+                </select>
+                <label for="event-title">Title</label>
+                <input id="event-title" maxlength="150" required placeholder="What happened?">
+                <label for="event-time">Occurred at</label>
+                <input id="event-time" type="datetime-local" step="1" required>
+                <label for="event-description">Description</label>
+                <textarea id="event-description" maxlength="1000" rows="3"></textarea>
+                <div id="event-form-error" class="message message-error hidden" role="alert"></div>
+                <div class="form-actions"><button class="button button-primary" type="submit">Add event</button></div>
+            </form>
+        </section>
+
+        <section class="session-events-section">
+            <h3>Events</h3>
+            <p id="events-empty" class="state">No events recorded.</p>
+            <ol id="session-events" class="alert-timeline hidden"></ol>
+        </section>
+    </div>
+    <div id="details-error" class="message message-error hidden" role="alert"></div>
+</dialog>
+
+<script src="/js/breadcrumbs.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<script src="/js/monitoring-sessions.js"></script>
+<script src="/js/alert-notifications.js"></script>
+</body>
+</html>

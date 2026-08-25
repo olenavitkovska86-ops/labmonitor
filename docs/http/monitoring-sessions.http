@@ -1,0 +1,64 @@
+### Variables
+@baseUrl = http://localhost:8080
+@roomId = 1
+@sessionId = 1
+
+### Create a planned monitoring session
+POST {{baseUrl}}/api/monitoring-sessions
+Content-Type: application/json
+
+{
+  "roomId": {{roomId}},
+  "name": "Cooling system test",
+  "description": "Observe temperature before and after restarting cooling"
+}
+
+### List sessions, optionally filtered by room and status
+GET {{baseUrl}}/api/monitoring-sessions?roomId={{roomId}}&status=ACTIVE
+
+### Get one session
+GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}
+
+### Start a planned session
+# A room can have only one ACTIVE session.
+POST {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/start
+
+### Complete an active session
+POST {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/complete
+
+### Cancel a planned or active session
+POST {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/cancel
+
+### Add an event to an active session
+POST {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/events
+Content-Type: application/json
+
+{
+  "category": "INTERVENTION",
+  "title": "Restarted cooling unit",
+  "description": "Airflow returned after the restart",
+  "occurredAt": "2026-08-25T10:15:00"
+}
+
+### List session events in chronological order
+GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/events
+
+### Get the session timeline (readings, events and overlapping alerts)
+GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/timeline
+
+### Get the timeline for one sensor
+GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/timeline?sensorId=1
+
+### Export the session as ZIP (15 minutes before and after)
+GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/export
+
+# Event categories: OBSERVATION, INTERVENTION, CONFIGURATION_CHANGE,
+# MAINTENANCE, INCIDENT, OTHER. New events are accepted only while the session
+# is ACTIVE and their occurredAt must be between startedAt and the current time.
+# Timeline readings are bounded and downsampled to at most 200 displayed points
+# per sensor across the full time range, retaining the first and last point.
+# `readingsTruncated` indicates that sampling omitted intermediate readings.
+# The ZIP export contains session.csv, readings.csv, events.csv, and alerts.csv.
+# Full readings use the configured export row limit and include stable IDs plus
+# a BEFORE, DURING, or AFTER session_phase. Alerts distinguish workflow status
+# from physical condition status and describe their relation to the session.
