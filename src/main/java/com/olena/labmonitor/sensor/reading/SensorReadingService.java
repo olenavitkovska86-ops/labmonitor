@@ -52,11 +52,22 @@ public class SensorReadingService {
         SensorReading reading = new SensorReading(sensor, request.value(), measuredAt);
         SensorReading savedReading = sensorReadingRepository.saveAndFlush(reading);
         LocalDateTime receivedAt = savedReading.getCreatedAt();
+        // Every received packet proves liveness, but historical measurements must not rewrite current threshold state.
         sensor.recordReading(receivedAt);
         alertService.processSensorOnline(sensor, receivedAt);
-        alertService.processThresholdReading(sensor, request.value(), measuredAt);
+        if (isCurrentReading(savedReading)) {
+            alertService.processThresholdReading(sensor, savedReading.getValue(), savedReading.getMeasuredAt());
+        }
 
         return SensorReadingResponse.from(savedReading);
+    }
+
+    private boolean isCurrentReading(SensorReading savedReading) {
+        if (savedReading.getId() == null) return false;
+        return sensorReadingRepository
+                .findFirstBySensorIdOrderByMeasuredAtDescIdDesc(savedReading.getSensor().getId())
+                .map(current -> savedReading.getId().equals(current.getId()))
+                .orElse(false);
     }
 
     @Transactional(readOnly = true)
