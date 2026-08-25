@@ -93,7 +93,8 @@ public class SensorReadingExportService {
 
     private void append(StringBuilder csv, Object value) {
         String text = value == null ? "" : value.toString();
-        if (!text.isEmpty() && "=+-@".indexOf(text.charAt(0)) >= 0) text = "'" + text;
+        if (!(value instanceof Number) && !text.isEmpty()
+                && "=+-@".indexOf(text.charAt(0)) >= 0) text = "'" + text;
         csv.append('"').append(text.replace("\"", "\"\"")).append("\",");
     }
 

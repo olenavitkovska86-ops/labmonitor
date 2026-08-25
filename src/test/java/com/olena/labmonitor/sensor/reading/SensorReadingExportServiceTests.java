@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -102,6 +103,38 @@ class SensorReadingExportServiceTests {
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.export(1L, 4L, FROM, TO));
+    }
+
+    @Test
+    void keepsNegativeReadingAndSafeRangeValuesNumeric() {
+        sensor.updateSafeRange(new BigDecimal("-20"), new BigDecimal("-5"));
+        SensorReading reading = reading("-12.5", FROM.plusMinutes(1));
+        stubExport(List.of(reading));
+
+        String csv = new String(service.export(1L, 2L, FROM, TO).content(), StandardCharsets.UTF_8);
+
+        assertTrue(csv.contains("\"-12.5\",\"C\",\"-20\",\"-5\",SAFE"));
+        assertFalse(csv.contains("\"'-"));
+    }
+
+    @Test
+    void protectsUserTextFromCsvFormulas() {
+        room.update("=HYPERLINK(\"https://example.invalid\")", RoomType.EXPERIMENT_ROOM, null, null);
+        sensor.update("+dangerous sensor", "@external data");
+        SensorReading reading = reading("22.4", FROM.plusMinutes(1));
+        stubExport(List.of(reading));
+
+        String csv = new String(service.export(1L, 2L, FROM, TO).content(), StandardCharsets.UTF_8);
+
+        assertTrue(csv.contains("\"'=HYPERLINK(\"\"https://example.invalid\"\")\""));
+        assertTrue(csv.contains("\"'+dangerous sensor\""));
+        assertTrue(csv.contains("\"'@external data\""));
+    }
+
+    private void stubExport(List<SensorReading> readings) {
+        when(roomService.getExistingRoom(1L)).thenReturn(room);
+        when(sensorService.getExistingSensor(2L)).thenReturn(sensor);
+        when(repository.findForExport(any(), any(), any(), any(), any(Pageable.class))).thenReturn(readings);
     }
 
     private SensorReading reading(String value, LocalDateTime measuredAt) {
