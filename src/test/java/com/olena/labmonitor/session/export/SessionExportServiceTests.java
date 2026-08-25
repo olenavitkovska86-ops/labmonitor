@@ -2,9 +2,15 @@ package com.olena.labmonitor.session.export;
 
 import com.olena.labmonitor.alert.Alert;
 import com.olena.labmonitor.alert.AlertRepository;
+import com.olena.labmonitor.alert.AlertSeverity;
+import com.olena.labmonitor.alert.AlertStatus;
+import com.olena.labmonitor.alert.AlertType;
 import com.olena.labmonitor.config.MonitoringProperties;
+import com.olena.labmonitor.lab.Lab;
+import com.olena.labmonitor.organization.Organization;
 import com.olena.labmonitor.room.Room;
 import com.olena.labmonitor.sensor.Sensor;
+import com.olena.labmonitor.sensor.SensorType;
 import com.olena.labmonitor.sensor.reading.SensorReading;
 import com.olena.labmonitor.sensor.reading.SensorReadingRepository;
 import com.olena.labmonitor.sensor.reading.SensorReadingStatus;
@@ -61,7 +67,7 @@ class SessionExportServiceTests {
         assertTrue(entries.get("readings.csv").contains("\"BEFORE\""));
         assertTrue(entries.get("readings.csv").contains("\"DURING\""));
         assertTrue(entries.get("readings.csv").contains("\"AFTER\""));
-        assertTrue(entries.get("readings.csv").contains("safe_min,safe_max,status"));
+        assertTrue(entries.get("readings.csv").contains("safe_min,safe_max,reading_status"));
     }
 
     @Test
@@ -112,8 +118,11 @@ class SessionExportServiceTests {
         String sessionCsv = unzip(service.export(10L).content()).get("session.csv");
         String dataRow = sessionCsv.lines().skip(1).findFirst().orElseThrow();
 
-        assertTrue(dataRow.contains("\"ACTIVE\""));
-        assertTrue(dataRow.contains("\"" + start + "\",\"\",\"" + start.minusMinutes(15) + "\",\""));
+        List<String> fields = csvFields(dataRow);
+        assertEquals("ACTIVE", fields.get(3));
+        assertEquals(start.toString(), fields.get(10));
+        assertEquals("", fields.get(11));
+        assertEquals(start.minusMinutes(15).toString(), fields.get(15));
     }
 
     @Test
@@ -148,6 +157,50 @@ class SessionExportServiceTests {
         assertTrue(entries.get("events.csv").contains("\"'-dangerous text\""));
     }
 
+    @Test
+    void enrichesCsvSchemaWithHierarchyIdentifiersAndSessionRelations() throws Exception {
+        var start = LocalDateTime.of(2026, 8, 25, 10, 0);
+        var end = start.plusHours(1);
+        MonitoringSession session = session(start, end, MonitoringSessionStatus.COMPLETED);
+        SensorReading reading = reading(start.plusMinutes(5));
+        Sensor sensor = reading.getSensor();
+        SessionEvent event = mock(SessionEvent.class);
+        User eventUser = mock(User.class);
+        when(event.getId()).thenReturn(7L);
+        when(event.getOccurredAt()).thenReturn(start.plusMinutes(10));
+        when(event.getCreatedAt()).thenReturn(start.plusMinutes(11));
+        when(event.getCreatedBy()).thenReturn(eventUser);
+        when(eventUser.getId()).thenReturn(12L);
+        when(eventUser.getFirstName()).thenReturn("Event");
+        when(eventUser.getLastName()).thenReturn("Author");
+
+        Alert alert = mock(Alert.class);
+        when(alert.getId()).thenReturn(9L);
+        when(alert.getSensor()).thenReturn(sensor);
+        when(alert.getType()).thenReturn(AlertType.SENSOR_THRESHOLD);
+        when(alert.getSeverity()).thenReturn(AlertSeverity.HIGH);
+        when(alert.getStatus()).thenReturn(AlertStatus.ACTIVE);
+        when(alert.getViolationStartedAt()).thenReturn(start.minusMinutes(5));
+        when(alert.getRecoveredAt()).thenReturn(start.plusMinutes(10));
+        stubExport(session, List.of(reading), List.of(event), List.of(alert));
+
+        Map<String, String> entries = unzip(service.export(10L).content());
+
+        assertTrue(entries.get("session.csv").startsWith("\uFEFFsession_id,session_name,description,status,"
+                + "organization_id,organization_name,lab_id,lab_name,room_id,room_name"));
+        assertTrue(entries.get("readings.csv").startsWith("\uFEFFcontext_session_id,reading_id,session_phase,"
+                + "organization_id,organization_name,lab_id,lab_name"));
+        assertTrue(entries.get("readings.csv").contains("\"10\",\"4\",\"DURING\",\"20\",\"Test organization\","
+                + "\"21\",\"Test lab\""));
+        assertTrue(entries.get("events.csv").contains("\"10\",\"7\",\"" + start.plusMinutes(10) + "\""));
+        assertTrue(entries.get("events.csv").contains("\"12\",\"Event Author\""));
+        assertTrue(entries.get("alerts.csv").startsWith("\uFEFFcontext_session_id,alert_id,organization_id,"
+                + "organization_name,lab_id,lab_name,room_id,room_name"));
+        assertTrue(entries.get("alerts.csv").contains("\"ACTIVE\",\"RECOVERED\",\""
+                + start.minusMinutes(5) + "\",\"" + start.plusMinutes(10)
+                + "\",\"BEFORE\",\"DURING\",\"true\""));
+    }
+
     private void stubExport(MonitoringSession session, List<SensorReading> readings,
                             List<SessionEvent> events, List<Alert> alerts) {
         LocalDateTime exportFrom = session.getStartedAt().minusMinutes(15);
@@ -162,6 +215,8 @@ class SessionExportServiceTests {
     private MonitoringSession session(LocalDateTime start, LocalDateTime end, MonitoringSessionStatus status) {
         MonitoringSession session = mock(MonitoringSession.class);
         Room room = mock(Room.class);
+        Lab lab = mock(Lab.class);
+        Organization organization = mock(Organization.class);
         User user = mock(User.class);
         when(session.getId()).thenReturn(10L);
         when(session.getName()).thenReturn("Cooling test");
@@ -171,8 +226,16 @@ class SessionExportServiceTests {
         when(session.getEndedAt()).thenReturn(end);
         when(session.getRoom()).thenReturn(room);
         when(session.getCreatedBy()).thenReturn(user);
+        when(session.getCreatedAt()).thenReturn(LocalDateTime.of(2026, 8, 25, 8, 0));
         when(room.getId()).thenReturn(2L);
         when(room.getName()).thenReturn("Server room");
+        when(room.getLab()).thenReturn(lab);
+        when(lab.getId()).thenReturn(21L);
+        when(lab.getName()).thenReturn("Test lab");
+        when(lab.getOrganization()).thenReturn(organization);
+        when(organization.getId()).thenReturn(20L);
+        when(organization.getName()).thenReturn("Test organization");
+        when(user.getId()).thenReturn(11L);
         when(user.getFirstName()).thenReturn("Test");
         when(user.getLastName()).thenReturn("User");
         return session;
@@ -183,6 +246,7 @@ class SessionExportServiceTests {
         Sensor sensor = mock(Sensor.class);
         Room room = mock(Room.class);
         when(reading.getMeasuredAt()).thenReturn(measuredAt);
+        when(reading.getId()).thenReturn(4L);
         when(reading.getCreatedAt()).thenReturn(measuredAt.plusSeconds(1));
         when(reading.getSensor()).thenReturn(sensor);
         when(reading.getRoom()).thenReturn(room);
@@ -192,10 +256,35 @@ class SessionExportServiceTests {
         when(reading.getStatus()).thenReturn(SensorReadingStatus.SAFE);
         when(sensor.getId()).thenReturn(3L);
         when(sensor.getName()).thenReturn("Temperature");
+        when(sensor.getType()).thenReturn(SensorType.TEMPERATURE);
         when(sensor.getUnit()).thenReturn("C");
         when(room.getId()).thenReturn(2L);
         when(room.getName()).thenReturn("Server room");
         return reading;
+    }
+
+    private List<String> csvFields(String row) {
+        List<String> fields = new java.util.ArrayList<>();
+        StringBuilder field = new StringBuilder();
+        boolean quoted = false;
+        for (int index = 0; index < row.length(); index++) {
+            char character = row.charAt(index);
+            if (character == '"') {
+                if (quoted && index + 1 < row.length() && row.charAt(index + 1) == '"') {
+                    field.append('"');
+                    index++;
+                } else {
+                    quoted = !quoted;
+                }
+            } else if (character == ',' && !quoted) {
+                fields.add(field.toString());
+                field.setLength(0);
+            } else {
+                field.append(character);
+            }
+        }
+        fields.add(field.toString());
+        return fields;
     }
 
     private Map<String, String> unzip(byte[] content) throws Exception {

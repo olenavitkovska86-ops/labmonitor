@@ -4,6 +4,9 @@ import com.olena.labmonitor.alert.Alert;
 import com.olena.labmonitor.alert.AlertRepository;
 import com.olena.labmonitor.common.exception.InvalidOperationException;
 import com.olena.labmonitor.config.MonitoringProperties;
+import com.olena.labmonitor.lab.Lab;
+import com.olena.labmonitor.organization.Organization;
+import com.olena.labmonitor.room.Room;
 import com.olena.labmonitor.sensor.Sensor;
 import com.olena.labmonitor.sensor.reading.SensorReading;
 import com.olena.labmonitor.sensor.reading.SensorReadingRepository;
@@ -82,8 +85,8 @@ public class SessionExportService {
         try (var output = new ByteArrayOutputStream(); var zip = new ZipOutputStream(output, StandardCharsets.UTF_8)) {
             addEntry(zip, "session.csv", sessionCsv(session, exportFrom, exportTo));
             addEntry(zip, "readings.csv", readingsCsv(session, sessionEnd, readings));
-            addEntry(zip, "events.csv", eventsCsv(events));
-            addEntry(zip, "alerts.csv", alertsCsv(alerts));
+            addEntry(zip, "events.csv", eventsCsv(session, events));
+            addEntry(zip, "alerts.csv", alertsCsv(session, sessionEnd, alerts));
             zip.finish();
             return output.toByteArray();
         } catch (IOException exception) {
@@ -92,50 +95,94 @@ public class SessionExportService {
     }
 
     private String sessionCsv(MonitoringSession session, LocalDateTime exportFrom, LocalDateTime exportTo) {
-        var csv = csv("session_id,session_name,description,status,room_id,room,started_at,ended_at,"
-                + "export_from,export_to,context_minutes,created_by\n");
+        Room room = session.getRoom();
+        Lab lab = room.getLab();
+        Organization organization = lab.getOrganization();
+        var csv = csv("session_id,session_name,description,status,organization_id,organization_name,lab_id,lab_name,"
+                + "room_id,room_name,started_at,ended_at,created_at,created_by_user_id,created_by_name,"
+                + "export_from,export_to,context_minutes\n");
         row(csv, session.getId(), session.getName(), session.getDescription(), session.getStatus(),
-                session.getRoom().getId(), session.getRoom().getName(), session.getStartedAt(), session.getEndedAt(),
-                exportFrom, exportTo, CONTEXT.toMinutes(), userName(session.getCreatedBy()));
+                organization.getId(), organization.getName(), lab.getId(), lab.getName(), room.getId(), room.getName(),
+                session.getStartedAt(), session.getEndedAt(), session.getCreatedAt(), userId(session.getCreatedBy()),
+                userName(session.getCreatedBy()), exportFrom, exportTo, CONTEXT.toMinutes());
         return csv.toString();
     }
 
     private String readingsCsv(MonitoringSession session, LocalDateTime sessionEnd, List<SensorReading> readings) {
-        var csv = csv("measured_at,received_at,session_phase,room_id,room,sensor_id,sensor,sensor_type,"
-                + "value,unit,safe_min,safe_max,status\n");
+        Lab lab = session.getRoom().getLab();
+        Organization organization = lab.getOrganization();
+        var csv = csv("context_session_id,reading_id,session_phase,organization_id,organization_name,lab_id,lab_name,"
+                + "room_id,room_name,sensor_id,sensor_name,sensor_type,measured_at,received_at,value,unit,"
+                + "safe_min,safe_max,reading_status\n");
         for (SensorReading reading : readings) {
             Sensor sensor = reading.getSensor();
-            row(csv, reading.getMeasuredAt(), reading.getCreatedAt(), phase(reading.getMeasuredAt(), session, sessionEnd),
-                    reading.getRoom().getId(), reading.getRoom().getName(), sensor.getId(), sensor.getName(),
-                    sensor.getType(), reading.getValue(), sensor.getUnit(), reading.getSafeMin(), reading.getSafeMax(),
-                    reading.getStatus());
+            row(csv, session.getId(), reading.getId(), phase(reading.getMeasuredAt(), session, sessionEnd),
+                    organization.getId(), organization.getName(), lab.getId(), lab.getName(), reading.getRoom().getId(),
+                    reading.getRoom().getName(), sensor.getId(), sensor.getName(), sensor.getType(), reading.getMeasuredAt(),
+                    reading.getCreatedAt(), reading.getValue(), sensor.getUnit(), reading.getSafeMin(),
+                    reading.getSafeMax(), reading.getStatus());
         }
         return csv.toString();
     }
 
-    private String eventsCsv(List<SessionEvent> events) {
-        var csv = csv("event_id,occurred_at,category,title,description,created_at,created_by\n");
-        events.forEach(event -> row(csv, event.getId(), event.getOccurredAt(), event.getCategory(), event.getTitle(),
-                event.getDescription(), event.getCreatedAt(), userName(event.getCreatedBy())));
+    private String eventsCsv(MonitoringSession session, List<SessionEvent> events) {
+        var csv = csv("session_id,event_id,occurred_at,created_at,category,title,description,created_by_user_id,"
+                + "created_by_name\n");
+        events.forEach(event -> row(csv, session.getId(), event.getId(), event.getOccurredAt(), event.getCreatedAt(),
+                event.getCategory(), event.getTitle(), event.getDescription(), userId(event.getCreatedBy()),
+                userName(event.getCreatedBy())));
         return csv.toString();
     }
 
-    private String alertsCsv(List<Alert> alerts) {
-        var csv = csv("alert_id,sensor_id,sensor,type,severity,status,title,message,violation_started_at,created_at,"
-                + "acknowledged_at,resolved_at,resolution_outcome,resolution_comment,initial_value,latest_value,"
-                + "most_extreme_value,last_violation_at,recovered_at\n");
+    private String alertsCsv(MonitoringSession session, LocalDateTime sessionEnd, List<Alert> alerts) {
+        Room room = session.getRoom();
+        Lab lab = room.getLab();
+        Organization organization = lab.getOrganization();
+        var csv = csv("context_session_id,alert_id,organization_id,organization_name,lab_id,lab_name,room_id,room_name,"
+                + "sensor_id,sensor_name,sensor_type,unit,alert_type,severity,workflow_status,condition_status,"
+                + "condition_started_at,condition_ended_at,started_phase,ended_phase,overlaps_session,title,message,"
+                + "created_at,acknowledged_at,resolved_at,reopened_at,resolution_outcome,resolution_comment,"
+                + "initial_value,latest_value,most_extreme_value,last_violation_at,recovered_at\n");
         for (Alert alert : alerts) {
             Sensor sensor = alert.getSensor();
-            row(csv, alert.getId(), sensor == null ? null : sensor.getId(), sensor == null ? null : sensor.getName(),
-                    alert.getType(), alert.getSeverity(), alert.getStatus(), alert.getTitle(), alert.getMessage(),
-                    alert.getViolationStartedAt(), alert.getCreatedAt(), alert.getAcknowledgedAt(), alert.getResolvedAt(),
-                    alert.getResolutionOutcome(), alert.getResolutionComment(), alert.getInitialValue(),
-                    alert.getLatestValue(), alert.getMostExtremeValue(), alert.getLastViolationAt(), alert.getRecoveredAt());
+            LocalDateTime conditionStart = conditionStart(alert);
+            LocalDateTime conditionEnd = conditionEnd(alert);
+            row(csv, session.getId(), alert.getId(), organization.getId(), organization.getName(), lab.getId(),
+                    lab.getName(), room.getId(), room.getName(), sensor == null ? null : sensor.getId(),
+                    sensor == null ? null : sensor.getName(), sensor == null ? null : sensor.getType(),
+                    sensor == null ? null : sensor.getUnit(), alert.getType(), alert.getSeverity(), alert.getStatus(),
+                    conditionStatus(alert, conditionEnd), conditionStart, conditionEnd,
+                    phase(conditionStart, session, sessionEnd), phase(conditionEnd, session, sessionEnd),
+                    overlapsSession(conditionStart, conditionEnd, session.getStartedAt(), sessionEnd), alert.getTitle(),
+                    alert.getMessage(), alert.getCreatedAt(), alert.getAcknowledgedAt(), alert.getResolvedAt(),
+                    alert.getReopenedAt(), alert.getResolutionOutcome(), alert.getResolutionComment(),
+                    alert.getInitialValue(), alert.getLatestValue(), alert.getMostExtremeValue(),
+                    alert.getLastViolationAt(), alert.getRecoveredAt());
         }
         return csv.toString();
+    }
+
+    private LocalDateTime conditionStart(Alert alert) {
+        return alert.getViolationStartedAt() == null ? alert.getCreatedAt() : alert.getViolationStartedAt();
+    }
+
+    private LocalDateTime conditionEnd(Alert alert) {
+        return alert.getRecoveredAt() == null ? alert.getResolvedAt() : alert.getRecoveredAt();
+    }
+
+    private String conditionStatus(Alert alert, LocalDateTime conditionEnd) {
+        if (conditionEnd == null) return "ONGOING";
+        return alert.getRecoveredAt() == null ? "ENDED" : "RECOVERED";
+    }
+
+    private boolean overlapsSession(LocalDateTime conditionStart, LocalDateTime conditionEnd,
+                                    LocalDateTime sessionStart, LocalDateTime sessionEnd) {
+        return conditionStart != null && !conditionStart.isAfter(sessionEnd)
+                && (conditionEnd == null || !conditionEnd.isBefore(sessionStart));
     }
 
     private String phase(LocalDateTime measuredAt, MonitoringSession session, LocalDateTime sessionEnd) {
+        if (measuredAt == null) return null;
         if (measuredAt.isBefore(session.getStartedAt())) return "BEFORE";
         if (measuredAt.isAfter(sessionEnd)) return "AFTER";
         return "DURING";
@@ -143,6 +190,10 @@ public class SessionExportService {
 
     private String userName(com.olena.labmonitor.user.User user) {
         return user == null ? null : user.getFirstName() + " " + user.getLastName();
+    }
+
+    private Long userId(com.olena.labmonitor.user.User user) {
+        return user == null ? null : user.getId();
     }
 
     private StringBuilder csv(String header) {
