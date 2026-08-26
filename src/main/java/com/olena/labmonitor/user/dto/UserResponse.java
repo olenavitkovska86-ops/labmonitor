@@ -1,6 +1,5 @@
 package com.olena.labmonitor.user.dto;
 
-import com.olena.labmonitor.membership.Membership;
 import com.olena.labmonitor.user.User;
 
 import java.time.LocalDateTime;
@@ -14,12 +13,20 @@ public record UserResponse(
         String phone,
         String status,
         String globalRole,
-        List<Membership> membership, // Mapped by UserMapper
+        List<MembershipInfo> memberships, // Mapped by UserMapper
         LocalDateTime lastLoginAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
     public static UserResponse from(User user){
+        List<MembershipInfo> memberships =
+                user.getMemberships().stream()
+                        .map(m -> new MembershipInfo(
+                                m.getOrganization().getId(),
+                                m.getOrganization().getName(),
+                                m.getRole()
+                        )).toList();
+
         return new UserResponse(
                 user.getId(),
                 user.getEmail(),
@@ -28,14 +35,13 @@ public record UserResponse(
                 user.getPhone(),
                 user.getStatus(),
                 user.getGlobalRole(),
-                user.getMemberships(),
+                memberships,
                 user.getLastLoginAt(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );
     }
 
-    // TODO: Fix the organization id thingy with claud
     public record MembershipInfo(
             Long organizationId,
             String organizationName,

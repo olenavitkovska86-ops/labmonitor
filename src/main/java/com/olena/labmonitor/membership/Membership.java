@@ -37,6 +37,10 @@ public class Membership {
         this.role = role;
     }
 
+    public void setRole(String role) {
+        this.role = role;
+    }
+
     public Long getId() { return id; }
     public Organization getOrganization() { return organization; }
     public User getUser() { return user; }

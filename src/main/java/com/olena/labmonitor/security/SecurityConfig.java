@@ -43,8 +43,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login").permitAll()
                         .requestMatchers("/auth/change-password").authenticated()
-                        .requestMatchers(HttpMethod.POST,"/admin/users").hasRole("SUPER_ADMIN")
-                        .requestMatchers("/admin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/index.html").permitAll()
                         .requestMatchers("/css/**").permitAll()
