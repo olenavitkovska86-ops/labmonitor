@@ -89,6 +89,8 @@ async function initializePage() {
         renderRoomOptions(rooms);
         applyRoomFromUrl();
         await loadSessions();
+        const sessionId = new URLSearchParams(window.location.search).get("sessionId");
+        if (sessionId && /^\d+$/.test(sessionId)) await openDetails(Number(sessionId));
     } catch (error) {
         loadingState.classList.add("hidden");
         showMessage(pageMessage, error.message, true);

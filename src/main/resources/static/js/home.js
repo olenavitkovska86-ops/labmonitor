@@ -39,7 +39,17 @@ async function simulatorRequest(path, options = {}) {
             Authorization: `Bearer ${token}`
         }
     });
-    if (response.status === 401 || response.status === 403) return null;
+    if (response.status === 401) {
+        localStorage.removeItem("token");
+        const error = new Error("Your session expired. Log in again to control the simulator.");
+        error.status = 401;
+        throw error;
+    }
+    if (response.status === 403) {
+        const error = new Error("Simulator control requires an actual SUPER_ADMIN or LAB_ADMIN account.");
+        error.status = 403;
+        throw error;
+    }
     if (response.ok) return response.json();
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || `Request failed with status ${response.status}`);
@@ -52,6 +62,11 @@ async function loadSimulatorStatus() {
         simulatorPanel.classList.remove("hidden");
         renderSimulatorStatus(status);
     } catch (error) {
+        if (error.status === 403) return;
+        if (error.status === 401) {
+            window.location.href = "/login.html";
+            return;
+        }
         showSimulatorError(error.message);
     }
 }

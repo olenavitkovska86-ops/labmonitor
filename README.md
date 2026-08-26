@@ -78,11 +78,27 @@ http://localhost:8080/alerts.html
 ```
 
 The root URL opens the LabMonitor home page. The web interface follows the
-laboratory structure:
+primary workflow navigation:
+
+```text
+Overview | Monitor | History & exports | Alerts | Sessions
+```
+
+`Monitor` follows the laboratory structure:
 
 ```text
 Organizations -> Labs -> Rooms -> Sensors
 ```
+
+Role-specific Administration navigation will be connected after the final
+user/role/security model is merged. Navigation visibility is a UX concern;
+backend authorization remains responsible for protecting data and actions.
+
+`History & exports` keeps historical analysis out of the operational Overview.
+It provides alert periods, clickable daily alert bars, reading CSV export by
+room/sensor/time range, and a path to Monitoring Session ZIP exports. The
+current Administration responsibility editor uses clearly labelled demo data
+until the final membership and assignment APIs are available.
 
 The pages provide viewing, searching, creating, editing, activation, and
 deactivation where supported. The sensor page also provides safe value range
