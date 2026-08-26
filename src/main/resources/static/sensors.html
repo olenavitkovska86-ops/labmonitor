@@ -21,7 +21,7 @@
             <h1>Sensors</h1>
             <p class="intro">Manage room sensors and their safe value ranges.</p>
         </div>
-        <button id="show-create-form" class="button button-primary" type="button">
+        <button id="show-create-form" class="button button-primary hidden" type="button" data-permission="sensors.manage" data-permission-reveal>
             Add sensor
         </button>
     </section>
@@ -154,9 +154,9 @@
     </section>
 </main>
 
-<script src="/js/navigation.js"></script>
 <script src="/js/breadcrumbs.js"></script>
-<script src="/js/csrf.js"></script>
+<script src="/js/api-client.js"></script>
+<script src="/js/auth-context.js"></script>
 <script src="/js/sensors.js"></script>
 <script src="/js/alert-notifications.js"></script>
 </body>

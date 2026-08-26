@@ -7,63 +7,49 @@ let selectedPeriod = "LAST_7_DAYS";
 let roomsById = new Map();
 let organizationAlerts = null;
 
-async function request(url) {
-    const token = localStorage.getItem("token");
-    const response = await fetch(url, {headers: token ? {Authorization: `Bearer ${token}`} : {}});
-    if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem("token");
-        location.href = "/login.html";
-        throw new Error("Authentication is required");
-    }
-    if (response.ok) return response.json();
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || error.error || `Request failed with status ${response.status}`);
-}
-
-async function initialize() {
+async function initializeHistory() {
     setDefaultRange();
     try {
-        const organizations = await request("/api/organizations");
+        await labMonitorAuthReady;
+        const organizations = await apiRequest("/api/organizations");
         historyOrganization.replaceChildren(...organizations.map(item => option(item.id, item.name)));
         if (!organizations.length) {
-            historyLoading.textContent = "No organizations are available.";
+            historyLoading.textContent = "No organizations are available for your account.";
             return;
         }
-        historyOrganization.disabled = false;
+        historyOrganization.disabled = organizations.length === 1;
         await loadOrganization();
-    } catch (error) { showMessage(error.message, true); }
+    } catch (error) { showHistoryMessage(error.message, true); }
 }
 
 async function loadOrganization() {
     historyLoading.classList.remove("hidden");
-    hideMessage();
+    hideHistoryMessage();
     try {
         const organizationId = historyOrganization.value;
         organizationAlerts = null;
         closeSelectedDay();
-        const labs = await request(`/api/labs?organizationId=${organizationId}`);
-        const roomLists = await Promise.all(labs.map(lab => request(`/api/rooms?labId=${lab.id}`)));
+        const labs = await apiRequest(`/api/labs?organizationId=${organizationId}`);
+        const roomLists = await Promise.all(labs.map(lab => apiRequest(`/api/rooms?labId=${lab.id}`)));
         const rooms = roomLists.flat();
         roomsById = new Map(rooms.map(room => [room.id, room]));
-        exportRoom.replaceChildren(option("", "Select a Room"), ...rooms.map(room => {
+        exportRoom.replaceChildren(option("", "Select a room"), ...rooms.map(room => {
             const lab = labs.find(item => item.id === room.labId);
             return option(room.id, `${lab?.name || "Lab"} / ${room.name}`);
         }));
         exportRoom.disabled = rooms.length === 0;
-        exportSensor.replaceChildren(option("", "All sensors in Room"));
+        exportSensor.replaceChildren(option("", "All sensors in room"));
         exportSensor.disabled = true;
         await loadAlertHistory();
-    } catch (error) { showMessage(error.message, true); }
+    } catch (error) { showHistoryMessage(error.message, true); }
     finally { historyLoading.classList.add("hidden"); }
 }
 
 async function loadAlertHistory() {
-    closeSelectedDay();
-    const organizationId = historyOrganization.value;
-    const history = await request(`/api/analytics/organizations/${organizationId}/history?period=${selectedPeriod}`);
+    const history = await apiRequest(`/api/analytics/organizations/${historyOrganization.value}/history?period=${selectedPeriod}`);
     renderStatus(history);
-    renderChart(history.dailyAlerts);
-    renderRooms(history.mostProblematicRooms);
+    renderHistoryChart(history.dailyAlerts);
+    renderHistoryRooms(history.mostProblematicRooms);
 }
 
 function renderStatus(history) {
@@ -78,11 +64,13 @@ function renderStatus(history) {
     }));
 }
 
-function renderChart(days) {
+function renderHistoryChart(days) {
     const chart = document.querySelector("#history-chart");
     const maximum = Math.max(1, ...days.map(day => day.alerts));
     chart.replaceChildren(...days.map(day => {
-        const item = document.createElement("button"); item.type = "button"; item.className = "history-day history-day-button";
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "history-day history-day-button";
         item.title = `${day.alerts} alerts, ${day.criticalAlerts} critical`;
         item.setAttribute("aria-label", `${formatLongDay(day.date)}: ${day.alerts} alerts, ${day.criticalAlerts} critical`);
         item.addEventListener("click", () => showDayAlerts(day.date, item));
@@ -105,28 +93,44 @@ async function showDayAlerts(date, selectedBar) {
     panel.classList.remove("hidden");
     document.querySelector("#selected-day-title").textContent = `Alerts on ${formatLongDay(date)}`;
     list.replaceChildren();
+    document.querySelector("#selected-day-empty").classList.add("hidden");
     try {
-        organizationAlerts ||= await request(`/api/alerts?organizationId=${historyOrganization.value}`);
-        const alerts = organizationAlerts.filter(alert => alert.createdAt?.slice(0, 10) === date)
+        organizationAlerts ||= await apiRequest(`/api/alerts?organizationId=${historyOrganization.value}`);
+        const alerts = organizationAlerts
+            .filter(alert => alert.createdAt?.slice(0, 10) === date)
             .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
         document.querySelector("#selected-day-empty").classList.toggle("hidden", alerts.length !== 0);
-        list.replaceChildren(...alerts.map(alert => {
-            const room = roomsById.get(alert.roomId);
-            const row = document.createElement("article"); row.className = "day-alert-row";
-            const identity = document.createElement("div"); identity.className = "overview-identity";
-            const roomName = document.createElement("strong"); roomName.textContent = room?.name || `Room ${alert.roomId}`;
-            const time = document.createElement("span"); time.textContent = new Date(alert.createdAt).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
-            identity.append(roomName, time);
-            const severity = document.createElement("span"); severity.className = `priority-badge priority-${alert.severity.toLowerCase()}`; severity.textContent = alert.severity;
-            const issue = document.createElement("div"); issue.className = "overview-detail";
-            const title = document.createElement("strong"); title.textContent = alert.title;
-            const status = document.createElement("span"); status.textContent = alert.status;
-            issue.append(title, status);
-            const link = document.createElement("a"); link.className = "button button-secondary button-small";
-            link.href = `/alerts.html?alertId=${alert.id}`; link.textContent = "View alert";
-            row.append(identity, severity, issue, link); return row;
-        }));
-    } catch (error) { showMessage(error.message, true); }
+        list.replaceChildren(...alerts.map(renderDayAlert));
+    } catch (error) { showHistoryMessage(error.message, true); }
+}
+
+function renderDayAlert(alert) {
+    const room = roomsById.get(alert.roomId);
+    const row = document.createElement("article");
+    row.className = "day-alert-row";
+    const identity = document.createElement("div");
+    identity.className = "day-alert-identity";
+    const roomName = document.createElement("strong");
+    roomName.textContent = room?.name || `Room ${alert.roomId}`;
+    const time = document.createElement("span");
+    time.textContent = new Date(alert.createdAt).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+    identity.append(roomName, time);
+    const severity = document.createElement("span");
+    severity.className = `priority-badge priority-${alert.severity.toLowerCase()}`;
+    severity.textContent = alert.severity;
+    const issue = document.createElement("div");
+    issue.className = "day-alert-detail";
+    const title = document.createElement("strong");
+    title.textContent = alert.title;
+    const status = document.createElement("span");
+    status.textContent = alert.status;
+    issue.append(title, status);
+    const link = document.createElement("a");
+    link.className = "button button-secondary button-small";
+    link.href = `/alerts.html?alertId=${alert.id}`;
+    link.textContent = "View alert";
+    row.append(identity, severity, issue, link);
+    return row;
 }
 
 function closeSelectedDay() {
@@ -134,12 +138,11 @@ function closeSelectedDay() {
     document.querySelectorAll(".history-day-button").forEach(item => item.classList.remove("history-day-selected"));
 }
 
-function renderRooms(rooms) {
+function renderHistoryRooms(rooms) {
     const list = document.querySelector("#history-room-list");
     document.querySelector("#history-empty").classList.toggle("hidden", rooms.length !== 0);
     list.replaceChildren(...rooms.map(room => {
-        const link = document.createElement("a"); link.className = "history-room";
-        link.href = `/alerts.html?roomId=${room.roomId}`;
+        const link = document.createElement("a"); link.className = "history-room"; link.href = `/alerts.html?roomId=${room.roomId}`;
         const identity = document.createElement("span");
         const name = document.createElement("strong"); name.textContent = room.roomName;
         const lab = document.createElement("small"); lab.textContent = room.labName;
@@ -151,26 +154,23 @@ function renderRooms(rooms) {
 }
 
 async function loadSensors() {
-    exportSensor.replaceChildren(option("", "All sensors in Room"));
+    exportSensor.replaceChildren(option("", "All sensors in room"));
     if (!exportRoom.value) { exportSensor.disabled = true; return; }
     try {
-        const sensors = await request(`/api/sensors?roomId=${exportRoom.value}`);
+        const sensors = await apiRequest(`/api/sensors?roomId=${exportRoom.value}`);
         exportSensor.append(...sensors.map(sensor => option(sensor.id, sensor.name)));
         exportSensor.disabled = false;
-    } catch (error) { showMessage(error.message, true); }
+    } catch (error) { showHistoryMessage(error.message, true); }
 }
 
 async function downloadReadings(event) {
     event.preventDefault();
-    hideMessage();
+    hideHistoryMessage();
     const parameters = new URLSearchParams({roomId: exportRoom.value,
         from: document.querySelector("#export-from").value, to: document.querySelector("#export-to").value});
     if (exportSensor.value) parameters.set("sensorId", exportSensor.value);
     try {
-        const token = localStorage.getItem("token");
-        const response = await fetch(`/api/sensor-readings/export?${parameters}`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : {}
-        });
+        const response = await apiFetch(`/api/sensor-readings/export?${parameters}`);
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             throw new Error(error.message || `Export failed with status ${response.status}`);
@@ -178,10 +178,11 @@ async function downloadReadings(event) {
         const blob = await response.blob();
         const disposition = response.headers.get("Content-Disposition") || "";
         const filename = disposition.match(/filename="([^"]+)"/)?.[1] || "sensor-readings.csv";
-        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = filename;
-        document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(link.href);
-        showMessage("CSV export downloaded.");
-    } catch (error) { showMessage(error.message, true); }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a"); link.href = url; link.download = filename;
+        document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+        showHistoryMessage("CSV export downloaded.");
+    } catch (error) { showHistoryMessage(error.message, true); }
 }
 
 function setDefaultRange() {
@@ -194,8 +195,8 @@ function formatDuration(value) { return value == null ? "No data" : value < 60 ?
 function formatDay(value, count) { return new Intl.DateTimeFormat(undefined, count > 7 ? {month: "short", day: "numeric"} : {weekday: "short"}).format(new Date(`${value}T00:00:00`)); }
 function formatLongDay(value) { return new Intl.DateTimeFormat(undefined, {dateStyle: "long"}).format(new Date(`${value}T00:00:00`)); }
 function option(value, label) { const item = document.createElement("option"); item.value = value; item.textContent = label; return item; }
-function showMessage(text, error = false) { historyMessage.textContent = text; historyMessage.classList.toggle("message-error", error); historyMessage.classList.remove("hidden"); }
-function hideMessage() { historyMessage.classList.add("hidden"); }
+function showHistoryMessage(text, error = false) { historyMessage.textContent = text; historyMessage.className = `message ${error ? "message-error" : "message-success"}`; }
+function hideHistoryMessage() { historyMessage.classList.add("hidden"); }
 
 historyOrganization.addEventListener("change", loadOrganization);
 exportRoom.addEventListener("change", loadSensors);
@@ -203,7 +204,7 @@ document.querySelector("#reading-export-form").addEventListener("submit", downlo
 document.querySelector("#close-selected-day").addEventListener("click", closeSelectedDay);
 document.querySelectorAll("[data-period]").forEach(button => button.addEventListener("click", async () => {
     document.querySelectorAll("[data-period]").forEach(item => item.classList.remove("active"));
-    button.classList.add("active"); selectedPeriod = button.dataset.period;
-    try { await loadAlertHistory(); } catch (error) { showMessage(error.message, true); }
+    button.classList.add("active"); selectedPeriod = button.dataset.period; closeSelectedDay();
+    try { await loadAlertHistory(); } catch (error) { showHistoryMessage(error.message, true); }
 }));
-initialize();
+initializeHistory();

@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -138,6 +139,23 @@ class AnalyticsServiceTests {
         assertEquals(7, result.dailyAlerts().size());
         assertEquals(100L, result.mostProblematicRooms().getFirst().roomId());
         assertEquals(2, result.mostProblematicRooms().getFirst().alerts());
+    }
+
+    @Test
+    void scopedHistoryDoesNotIncludeAlertsFromUnassignedRooms() {
+        Alert allowed = alert(1L, firstRoom, AlertSeverity.HIGH, AlertStatus.ACTIVE, NOW.minusDays(1));
+        Alert hidden = alert(2L, secondRoom, AlertSeverity.CRITICAL, AlertStatus.RESOLVED, NOW.minusDays(1));
+        when(alertRepository.findByOrganizationIdAndCreatedAtBetween(
+                1L, LocalDateTime.of(2026, 8, 14, 0, 0), NOW
+        )).thenReturn(List.of(allowed, hidden));
+
+        OrganizationHistoryResponse result = analyticsService.getOrganizationHistory(
+                1L, AnalyticsPeriod.LAST_7_DAYS, Set.of(100L));
+
+        assertEquals(1, result.alertsCreated());
+        assertEquals(0, result.criticalAlerts());
+        assertEquals(List.of(100L), result.mostProblematicRooms().stream()
+                .map(room -> room.roomId()).toList());
     }
 
     private Room room(Lab lab, Long id, String name) {

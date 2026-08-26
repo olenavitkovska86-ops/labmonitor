@@ -1,11 +1,6 @@
 async function loadAlertCount() {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     try {
-        const response = await fetch("/api/alerts/unresolved-count", {
-            headers: {Authorization: `Bearer ${token}`}
-        });
+        const response = await apiFetch("/api/alerts/unresolved-count");
         if (!response.ok) return;
 
         const result = await response.json();
@@ -30,26 +25,13 @@ const stopSimulatorButton = document.querySelector("#stop-simulator");
 const simulatorMessage = document.querySelector("#simulator-message");
 
 async function simulatorRequest(path, options = {}) {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
-    const response = await fetch(`/api/simulator${path}`, {
+    const response = await apiFetch(`/api/simulator${path}`, {
         ...options,
         headers: {
-            ...(options.headers || {}),
-            Authorization: `Bearer ${token}`
+            ...(options.headers || {})
         }
     });
-    if (response.status === 401) {
-        localStorage.removeItem("token");
-        const error = new Error("Your session expired. Log in again to control the simulator.");
-        error.status = 401;
-        throw error;
-    }
-    if (response.status === 403) {
-        const error = new Error("Simulator control requires an actual SUPER_ADMIN or LAB_ADMIN account.");
-        error.status = 403;
-        throw error;
-    }
+    if (response.status === 401 || response.status === 403) return null;
     if (response.ok) return response.json();
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || `Request failed with status ${response.status}`);
@@ -62,11 +44,6 @@ async function loadSimulatorStatus() {
         simulatorPanel.classList.remove("hidden");
         renderSimulatorStatus(status);
     } catch (error) {
-        if (error.status === 403) return;
-        if (error.status === 401) {
-            window.location.href = "/login.html";
-            return;
-        }
         showSimulatorError(error.message);
     }
 }

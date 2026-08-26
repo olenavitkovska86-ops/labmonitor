@@ -17,28 +17,42 @@
         <p class="eyebrow">Monitoring platform</p>
         <h1>Welcome to LabMonitor</h1>
         <p class="intro">
-            Follow laboratory conditions, respond to alerts, and record monitoring sessions.
+            Manage laboratory organizations, labs and rooms from one place.
         </p>
     </section>
 
     <section class="module-grid" aria-label="Application sections">
-        <a class="module-card" href="/analytics.html">
+        <a class="module-card" href="/organizations.html">
             <span class="module-number">01</span>
-            <h2>Overview</h2>
-            <p>See current operational status and rooms that need attention.</p>
-            <span class="module-link">Open overview &rarr;</span>
+            <h2>Organizations</h2>
+            <p>View, search and manage laboratory organizations.</p>
+            <span class="module-link">Open organizations &rarr;</span>
         </a>
 
-        <a class="module-card" href="/organizations.html">
+        <a class="module-card" href="/labs.html">
             <span class="module-number">02</span>
-            <h2>Monitor</h2>
-            <p>Move through organizations, labs, rooms, sensors, and their readings.</p>
-            <span class="module-link">Open monitoring &rarr;</span>
+            <h2>Labs</h2>
+            <p>Browse and manage labs within an organization.</p>
+            <span class="module-link">Open labs &rarr;</span>
+        </a>
+
+        <a class="module-card" href="/rooms.html">
+            <span class="module-number">03</span>
+            <h2>Rooms</h2>
+            <p>Browse and manage rooms within a laboratory.</p>
+            <span class="module-link">Open rooms &rarr;</span>
+        </a>
+
+        <a class="module-card" href="/sensors.html">
+            <span class="module-number">04</span>
+            <h2>Sensors</h2>
+            <p>Manage sensors and configure their safe value ranges.</p>
+            <span class="module-link">Open sensors &rarr;</span>
         </a>
 
         <a class="module-card" href="/alerts.html">
             <div class="module-card-topline">
-                <span class="module-number">03</span>
+                <span class="module-number">05</span>
                 <span id="alert-count" class="alert-count hidden" aria-label="Unresolved alerts"></span>
             </div>
             <h2>Alerts</h2>
@@ -46,15 +60,36 @@
             <span class="module-link">Open alerts &rarr;</span>
         </a>
 
+        <a class="module-card" href="/analytics.html">
+            <span class="module-number">06</span>
+            <h2>Operational overview</h2>
+            <p>See which rooms require attention and why.</p>
+            <span class="module-link">Open overview &rarr;</span>
+        </a>
+
         <a class="module-card" href="/monitoring-sessions.html">
-            <span class="module-number">04</span>
-            <h2>Sessions</h2>
+            <span class="module-number">07</span>
+            <h2>Monitoring sessions</h2>
             <p>Record bounded observation periods and timestamped human actions.</p>
             <span class="module-link">Open sessions &rarr;</span>
         </a>
+
+        <a class="module-card" href="/history.html">
+            <span class="module-number">08</span>
+            <h2>History &amp; exports</h2>
+            <p>Review alert history and download permitted sensor readings as CSV.</p>
+            <span class="module-link">Open history &rarr;</span>
+        </a>
+
+        <a class="module-card hidden" href="/administration.html" data-permission="users.manage" data-permission-reveal>
+            <span class="module-number">09</span>
+            <h2>Administration</h2>
+            <p>Manage real user accounts, roles and organization access.</p>
+            <span class="module-link">Open administration &rarr;</span>
+        </a>
     </section>
 
-    <section id="simulator-panel" class="panel simulator-panel hidden" aria-labelledby="simulator-title">
+    <section id="simulator-panel" class="panel simulator-panel hidden" aria-labelledby="simulator-title" data-permission="system.read">
         <div>
             <p class="eyebrow">Local demonstration</p>
             <h2 id="simulator-title">Sensor simulator</h2>
@@ -76,7 +111,8 @@
 
     <p class="login-note">API operations require an authenticated LabMonitor account.</p>
 </main>
-<script src="/js/navigation.js"></script>
+<script src="/js/api-client.js"></script>
+<script src="/js/auth-context.js"></script>
 <script src="/js/home.js"></script>
 <script src="/js/alert-notifications.js"></script>
 </body>

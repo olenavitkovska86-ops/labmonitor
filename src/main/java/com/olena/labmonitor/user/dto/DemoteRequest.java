@@ -1,4 +1,12 @@
 package com.olena.labmonitor.user.dto;
 
-public record DemoteRequest(String role, Long organizationId) {
+import com.olena.labmonitor.membership.dto.MembershipScopeRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+
+public record DemoteRequest(
+        @NotNull String role,
+        @NotNull Long organizationId,
+        @NotNull @Valid MembershipScopeRequest scope
+) {
 }

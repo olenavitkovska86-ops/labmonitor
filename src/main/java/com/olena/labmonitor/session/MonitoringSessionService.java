@@ -107,6 +107,10 @@ public class MonitoringSessionService {
                 new ResourceNotFoundException("Monitoring session with id " + id + " was not found"));
     }
 
+    public Room getRoom(Long roomId) {
+        return roomService.getExistingRoom(roomId);
+    }
+
     private User getUser(String email) {
         return userRepository.findByEmail(email).orElseThrow(() ->
                 new ResourceNotFoundException("User was not found for authenticated account " + email));
