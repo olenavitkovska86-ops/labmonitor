@@ -61,24 +61,7 @@ const categoryLabels = {
 };
 
 async function request(url, options = {}) {
-    const headers = new Headers(options.headers || {});
-    const token = localStorage.getItem("token");
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-    if (options.body) headers.set("Content-Type", "application/json");
-    const response = await fetch(url, {...options, headers});
-
-    if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem("token");
-        window.location.href = "/login.html";
-        throw new Error("Authentication is required");
-    }
-    if (response.ok) return response.status === 204 ? null : response.json();
-
-    let error;
-    try { error = await response.json(); }
-    catch { throw new Error(`Request failed with status ${response.status}`); }
-    const details = error.details?.length ? `: ${error.details.join(", ")}` : "";
-    throw new Error(`${error.message || error.error}${details}`);
+    return apiRequest(url, options);
 }
 
 async function initializePage() {
@@ -290,12 +273,8 @@ function renderDetails(session, events) {
 async function downloadSessionExport(sessionId) {
     hideMessage(detailsError);
     try {
-        const headers = new Headers();
-        const token = localStorage.getItem("token");
-        if (token) headers.set("Authorization", `Bearer ${token}`);
-        const response = await fetch(`${sessionsApiUrl}/${sessionId}/export`, {headers});
+        const response = await apiFetch(`${sessionsApiUrl}/${sessionId}/export`);
         if (response.status === 401 || response.status === 403) {
-            localStorage.removeItem("token");
             window.location.href = "/login.html";
             return;
         }

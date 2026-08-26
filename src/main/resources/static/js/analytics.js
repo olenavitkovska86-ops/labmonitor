@@ -11,30 +11,13 @@ let selectedHistoryPeriod = null;
 let analyticsRefreshInProgress = false;
 
 async function request(url) {
-    const token = localStorage.getItem("token");
-    const headers = new Headers();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-
-    const response = await fetch(url, {headers});
-    if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem("token");
-        window.location.href = "/login.html";
-        throw new Error("Authentication is required");
-    }
-    if (response.ok) return response.json();
-
-    try {
-        const error = await response.json();
-        throw new Error(error.message || error.error || `Request failed with status ${response.status}`);
-    } catch (error) {
-        if (error instanceof SyntaxError) throw new Error(`Request failed with status ${response.status}`);
-        throw error;
-    }
+    return apiRequest(url);
 }
 
 async function initialize() {
     hideMessage();
     try {
+        const auth = await labMonitorAuthReady;
         const organizations = await request("/api/organizations");
         renderOrganizations(organizations);
         if (organizations.length === 0) {
@@ -46,7 +29,12 @@ async function initialize() {
         const selected = organizations.find(organization => String(organization.id) === requestedId)
             || organizations[0];
         organizationSelect.value = selected.id;
-        organizationSelect.disabled = false;
+        organizationSelect.disabled = organizations.length === 1;
+        const membership = auth.membership(selected.id);
+        if (membership) {
+            document.querySelector(".analytics-hero .eyebrow").textContent =
+                membership.role === "LAB_ADMIN" ? "Lab administrator overview" : "Employee overview";
+        }
         await loadAnalytics(selected.id);
     } catch (error) {
         loadingState.classList.add("hidden");

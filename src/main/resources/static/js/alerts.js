@@ -33,32 +33,7 @@ let openDetailsAlertId = null;
 let detailsRefreshInProgress = false;
 
 async function request(url, options = {}) {
-    const token = localStorage.getItem("token");
-    const headers = new Headers(options.headers || {});
-    if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-    }
-
-    const response = await fetch(url, {...options, headers});
-
-    if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem("token");
-        window.location.href = "/login.html";
-        throw new Error("Authentication is required");
-    }
-
-    if (response.ok) {
-        return response.status === 204 ? null : response.json();
-    }
-
-    let error;
-    try {
-        error = await response.json();
-    } catch {
-        throw new Error(`Request failed with status ${response.status}`);
-    }
-    const details = error.details?.length ? `: ${error.details.join(", ")}` : "";
-    throw new Error(`${error.message || error.error}${details}`);
+    return apiRequest(url, options);
 }
 
 async function loadAlerts({silent = false} = {}) {
