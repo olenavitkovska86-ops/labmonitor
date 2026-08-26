@@ -42,6 +42,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPasswordHash())
+                .disabled(!"ACTIVE".equals(user.getStatus()))
                 .authorities(authorities)
                 .build();
     }

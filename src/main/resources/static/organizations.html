@@ -21,11 +21,11 @@
 
     <section class="hero">
         <div>
-            <p class="eyebrow">Monitoring</p>
+            <p class="eyebrow">Administration</p>
             <h1>Organizations</h1>
             <p class="intro">Create and manage laboratory organizations.</p>
         </div>
-        <button id="show-create-form" class="button button-primary" type="button">
+        <button id="show-create-form" class="button button-primary hidden" type="button" data-permission="organizations.manage" data-permission-reveal>
             Add organization
         </button>
     </section>
@@ -84,8 +84,8 @@
     </section>
 </main>
 
-<script src="/js/navigation.js"></script>
-<script src="/js/csrf.js"></script>
+<script src="/js/api-client.js"></script>
+<script src="/js/auth-context.js"></script>
 <script src="/js/organizations.js"></script>
 <script src="/js/alert-notifications.js"></script>
 </body>

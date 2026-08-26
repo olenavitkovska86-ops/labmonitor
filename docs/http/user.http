@@ -1,8 +1,3 @@
-
-### View profile
-GET http://localhost:8080/api/users/me
-
-
 ### Login
 POST http://localhost:8080/auth/login
 Content-Type: application/json
@@ -12,10 +7,10 @@ Content-Type: application/json
   "password": "Test123!"
 }
 
-### Change password (run login first then copy the token)
+### Change password (kör login ovan först, kopiera token hit)
 POST http://localhost:8080/auth/change-password
 Content-Type: application/json
-Authorization: Bearer Copy_Token_Here
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0LmFkbWluQGxhYm1vbml0b3IubG9jYWwiLCJyb2xlcyI6WyJST0xFX1NVUEVSX0FETUlOIl0sImlhdCI6MTc4NjcwNjMzOSwiZXhwIjoxNzg2NzA5OTM5fQ.3TLx0uaV5aImpglp91LqKULdV9dTc8_6rMBMGpsZ8x4
 
 {
   "oldPassword": "Test123!",
@@ -25,7 +20,7 @@ Authorization: Bearer Copy_Token_Here
 ### Create user (SUPER_ADMIN only)
 POST http://localhost:8080/api/users
 Content-Type: application/json
-Authorization: Bearer Bearer Copy_Token_Here
+Authorization: Bearer KLISTRA_IN_FÄRSKT_TOKEN_HÄR
 
 {
   "email": "ny.anvandare@labmonitor.local",

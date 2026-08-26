@@ -1,4 +1,0 @@
-@baseUrl = http://localhost:8080
-
-### Change role - SUPER_ADMIN
-PATCH {{baseUrl}}/admin/organizations/{organizationId}/users/{userId}/role

@@ -1,36 +1,29 @@
-const alertNotificationStorageKey = "dismissedHighPriorityAlertIds";
+const dismissedHighPriorityAlertIds = new Set();
 const alertNotificationContainer = document.createElement("div");
 alertNotificationContainer.className = "alert-notifications";
 alertNotificationContainer.setAttribute("aria-live", "assertive");
 document.body.append(alertNotificationContainer);
 
 function readDismissedAlertIds() {
-    try {
-        return new Set(JSON.parse(localStorage.getItem(alertNotificationStorageKey) || "[]"));
-    } catch {
-        return new Set();
-    }
-}
-
-function saveDismissedAlertIds(ids) {
-    localStorage.setItem(alertNotificationStorageKey, JSON.stringify([...ids].slice(-500)));
+    return dismissedHighPriorityAlertIds;
 }
 
 function rememberDismissedAlertId(id) {
-    const dismissed = readDismissedAlertIds();
-    dismissed.add(id);
-    saveDismissedAlertIds(dismissed);
+    dismissedHighPriorityAlertIds.add(id);
 }
 
 async function checkHighPriorityAlerts() {
-    const token = localStorage.getItem("token");
-    if (!token || document.visibilityState !== "visible") return;
+    if (document.visibilityState !== "visible") return;
 
     try {
-        const headers = {Authorization: `Bearer ${token}`};
+        const auth = await labMonitorAuthReady;
+        if (!auth.user.alertNotificationsEnabled) {
+            alertNotificationContainer.replaceChildren();
+            return;
+        }
         const responses = await Promise.all([
-            fetch("/api/alerts?status=ACTIVE&severity=HIGH", {headers}),
-            fetch("/api/alerts?status=ACTIVE&severity=CRITICAL", {headers})
+            apiFetch("/api/alerts?status=ACTIVE&severity=HIGH"),
+            apiFetch("/api/alerts?status=ACTIVE&severity=CRITICAL")
         ]);
         if (responses.some(response => response.status === 401 || response.status === 403)) return;
         if (responses.some(response => !response.ok)) return;
@@ -49,7 +42,8 @@ async function checkHighPriorityAlerts() {
         const dismissed = readDismissedAlertIds();
         const activeAlertIds = new Set(alerts.map(alert => alert.id));
         const activeDismissals = new Set([...dismissed].filter(id => activeAlertIds.has(id)));
-        if (activeDismissals.size !== dismissed.size) saveDismissedAlertIds(activeDismissals);
+        dismissedHighPriorityAlertIds.clear();
+        activeDismissals.forEach(id => dismissedHighPriorityAlertIds.add(id));
         const visibleIds = new Set(
             [...alertNotificationContainer.querySelectorAll("[data-alert-id]")]
                 .map(toast => toast.dataset.alertId)
@@ -118,13 +112,10 @@ function dispatchMonitoringRefresh() {
 }
 
 document.addEventListener("labmonitor:refresh", checkHighPriorityAlerts);
-checkHighPriorityAlerts();
+labMonitorAuthReady.then(checkHighPriorityAlerts).catch(() => {});
 setInterval(dispatchMonitoringRefresh, 5000);
 document.addEventListener("visibilitychange", dispatchMonitoringRefresh);
-window.addEventListener("storage", event => {
-    if (event.key !== alertNotificationStorageKey) return;
-    const dismissed = readDismissedAlertIds();
-    alertNotificationContainer.querySelectorAll("[data-alert-id]").forEach(toast => {
-        if (dismissed.has(Number(toast.dataset.alertId))) toast.remove();
-    });
+document.addEventListener("labmonitor:notifications-changed", event => {
+    if (!event.detail.enabled) alertNotificationContainer.replaceChildren();
+    else checkHighPriorityAlerts();
 });

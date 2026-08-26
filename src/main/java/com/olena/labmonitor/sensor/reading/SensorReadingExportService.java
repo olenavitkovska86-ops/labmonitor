@@ -65,6 +65,10 @@ public class SensorReadingExportService {
         return new CsvExport(scope + "-readings.csv", csv.toString().getBytes(StandardCharsets.UTF_8));
     }
 
+    public Room getRoom(Long roomId) {
+        return roomService.getExistingRoom(roomId);
+    }
+
     private void validatePeriod(LocalDateTime from, LocalDateTime to) {
         if (from == null || to == null) throw new IllegalArgumentException("Export start and end time are required");
         if (!from.isBefore(to)) throw new IllegalArgumentException("Export start time must be before end time");

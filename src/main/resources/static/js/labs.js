@@ -23,34 +23,12 @@ let organizationsById = new Map();
 let searchTimer;
 
 async function request(url, options = {}) {
-    const token = localStorage.getItem("token");
-    const headers = {"Content-Type": "application/json"};
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-        ...options,
-        headers
-    });
-
-    if (response.ok) {
-        return response.status === 204 ? null : response.json();
-    }
-
-    let error;
-    try {
-        error = await response.json();
-    } catch {
-        throw new Error(`Request failed with status ${response.status}`);
-    }
-
-    const details = error.details?.length ? `: ${error.details.join(", ")}` : "";
-    throw new Error(`${error.message || error.error}${details}`);
+    return apiRequest(url, options);
 }
 
 async function initializePage() {
     try {
+        await labMonitorAuthReady;
         const organizations = await request(organizationsApiUrl);
         organizationsById = new Map(organizations.map(organization => [organization.id, organization]));
         renderOrganizationOptions(organizations);
@@ -192,7 +170,7 @@ function createActionsCell(lab) {
     );
     lifecycleButton.addEventListener("click", () => changeLabActivity(lab));
 
-    actions.append(editButton, lifecycleButton);
+    if (window.labMonitorAuth?.has("labs.manage")) actions.append(editButton, lifecycleButton);
     cell.append(actions);
     return cell;
 }

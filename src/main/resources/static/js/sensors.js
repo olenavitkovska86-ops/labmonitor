@@ -53,34 +53,12 @@ let sensorRefreshInProgress = false;
 let searchTimer;
 
 async function request(url, options = {}) {
-    const token = localStorage.getItem("token");
-    const headers = {"Content-Type": "application/json"};
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-        ...options,
-        headers
-    });
-
-    if (response.ok) {
-        return response.status === 204 ? null : response.json();
-    }
-
-    let error;
-    try {
-        error = await response.json();
-    } catch {
-        throw new Error(`Request failed with status ${response.status}`);
-    }
-
-    const details = error.details?.length ? `: ${error.details.join(", ")}` : "";
-    throw new Error(`${error.message || error.error}${details}`);
+    return apiRequest(url, options);
 }
 
 async function initializePage() {
     try {
+        await labMonitorAuthReady;
         const [rooms, labs, organizations] = await Promise.all([
             request(roomsApiUrl),
             request(labsApiUrl),
@@ -330,7 +308,12 @@ function createActionsCell(sensor) {
     );
     activityButton.addEventListener("click", () => changeSensorActivity(sensor));
 
-    actions.append(editButton, rangeButton, activityButton);
+    const canManage = window.labMonitorAuth?.has("sensors.manage");
+    const canUpdateSettings = window.labMonitorAuth?.hasForOrganization(
+        "sensors.settings.update", sensor.organizationId);
+    if (canManage) actions.append(editButton);
+    if (canUpdateSettings) actions.append(rangeButton);
+    if (canManage) actions.append(activityButton);
     cell.append(actions);
     return cell;
 }
@@ -511,10 +494,7 @@ async function exportRoomReadings() {
             from: formatLocalDateTime(from),
             to: formatLocalDateTime(to)
         });
-        const token = localStorage.getItem("token");
-        const response = await fetch(`/api/sensor-readings/export?${parameters}`, {
-            headers: token ? {Authorization: `Bearer ${token}`} : {}
-        });
+        const response = await apiFetch(`/api/sensor-readings/export?${parameters}`);
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             throw new Error(error.message || `Export failed with status ${response.status}`);

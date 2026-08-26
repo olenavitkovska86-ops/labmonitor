@@ -17,30 +17,7 @@ const searchInput = document.querySelector("#search-input");
 let searchTimer;
 
 async function request(url, options = {}) {
-    const token = localStorage.getItem("token");
-    const headers = {"Content-Type": "application/json"};
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, {
-        ...options,
-        headers
-    });
-
-    if (response.ok) {
-        return response.status === 204 ? null : response.json();
-    }
-
-    let error;
-    try {
-        error = await response.json();
-    } catch {
-        throw new Error(`Request failed with status ${response.status}`);
-    }
-
-    const details = error.details?.length ? `: ${error.details.join(", ")}` : "";
-    throw new Error(`${error.message || error.error}${details}`);
+    return apiRequest(url, options);
 }
 
 async function loadOrganizations() {
@@ -116,7 +93,8 @@ function createActionsCell(organization) {
     const deleteButton = createButton("Delete", "button button-danger button-small");
     deleteButton.addEventListener("click", () => deleteOrganization(organization));
 
-    actions.append(analyticsLink, editButton, deleteButton);
+    actions.append(analyticsLink);
+    if (window.labMonitorAuth?.has("organizations.manage")) actions.append(editButton, deleteButton);
     cell.append(actions);
     return cell;
 }
@@ -224,4 +202,7 @@ searchInput.addEventListener("input", () => {
 });
 form.addEventListener("submit", saveOrganization);
 
-loadOrganizations();
+labMonitorAuthReady.then(loadOrganizations).catch(error => {
+    loadingState.classList.add("hidden");
+    showMessage(pageMessage, error.message, true);
+});

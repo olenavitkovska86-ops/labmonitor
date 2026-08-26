@@ -40,6 +40,9 @@ public class User {
     @Column(name = "global_role", nullable = false, length = 30)
     private String globalRole = "NONE";
 
+    @Column(name = "alert_notifications_enabled", nullable = false)
+    private boolean alertNotificationsEnabled = true;
+
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
@@ -99,6 +102,14 @@ public class User {
 
     public String getGlobalRole() {
         return globalRole;
+    }
+
+    public boolean isAlertNotificationsEnabled() {
+        return alertNotificationsEnabled;
+    }
+
+    public void setAlertNotificationsEnabled(boolean alertNotificationsEnabled) {
+        this.alertNotificationsEnabled = alertNotificationsEnabled;
     }
 
     public LocalDateTime getLastLoginAt() {
