@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
@@ -86,6 +87,22 @@ public class AnalyticsService {
         );
     }
 
+    public OrganizationOverviewResponse getOrganizationOverview(Long organizationId, Set<Long> allowedRoomIds) {
+        if (allowedRoomIds == null) return getOrganizationOverview(organizationId);
+        Organization organization = getOrganization(organizationId);
+        List<Alert> alerts = getUnresolvedAlerts(organizationId).stream()
+                .filter(alert -> allowedRoomIds.contains(alert.getRoom().getId())).toList();
+        long offlineSensors = sensorRepository.findAll().stream()
+                .filter(sensor -> allowedRoomIds.contains(sensor.getRoom().getId()))
+                .filter(sensor -> sensor.isActive() && sensor.getStatus() == SensorStatus.OFFLINE)
+                .count();
+        return new OrganizationOverviewResponse(
+                organization.getId(), organization.getName(), LocalDateTime.now(clock), allowedRoomIds.size(),
+                alerts.stream().map(alert -> alert.getRoom().getId()).distinct().count(), alerts.size(),
+                alerts.stream().filter(alert -> alert.getStatus() == AlertStatus.ACTIVE).count(),
+                alerts.stream().filter(alert -> alert.getSeverity() == AlertSeverity.CRITICAL).count(), offlineSensors);
+    }
+
     public List<ProblemRoomResponse> getProblemRooms(Long organizationId) {
         getOrganization(organizationId);
         Map<Long, List<Alert>> alertsByRoom = new LinkedHashMap<>();
@@ -99,6 +116,13 @@ public class AnalyticsService {
                         .comparing(ProblemRoomResponse::attentionLevel).reversed()
                         .thenComparing(ProblemRoomResponse::unacknowledgedAlerts, Comparator.reverseOrder())
                         .thenComparing(ProblemRoomResponse::problemStartedAt))
+                .toList();
+    }
+
+    public List<ProblemRoomResponse> getProblemRooms(Long organizationId, Set<Long> allowedRoomIds) {
+        if (allowedRoomIds == null) return getProblemRooms(organizationId);
+        return getProblemRooms(organizationId).stream()
+                .filter(room -> allowedRoomIds.contains(room.roomId()))
                 .toList();
     }
 
@@ -123,6 +147,24 @@ public class AnalyticsService {
                 dailyCounts(alerts, from.toLocalDate(), to.toLocalDate()),
                 roomHistory(alerts)
         );
+    }
+
+    public OrganizationHistoryResponse getOrganizationHistory(
+            Long organizationId, AnalyticsPeriod period, Set<Long> allowedRoomIds) {
+        if (allowedRoomIds == null) return getOrganizationHistory(organizationId, period);
+        getOrganization(organizationId);
+        LocalDateTime to = LocalDateTime.now(clock);
+        LocalDateTime from = period == AnalyticsPeriod.LAST_24_HOURS
+                ? to.minusHours(24)
+                : to.toLocalDate().atStartOfDay().minusDays(period.days() - 1L);
+        List<Alert> alerts = alertRepository.findByOrganizationIdAndCreatedAtBetween(organizationId, from, to)
+                .stream().filter(alert -> allowedRoomIds.contains(alert.getRoom().getId())).toList();
+        return new OrganizationHistoryResponse(
+                organizationId, period, from, to, alerts.size(),
+                alerts.stream().filter(alert -> alert.getSeverity() == AlertSeverity.CRITICAL).count(),
+                alerts.stream().filter(alert -> alert.getStatus() == AlertStatus.RESOLVED).count(),
+                averageMinutes(alerts, true), averageMinutes(alerts, false),
+                dailyCounts(alerts, from.toLocalDate(), to.toLocalDate()), roomHistory(alerts));
     }
 
     private ProblemRoomResponse toProblemRoom(List<Alert> alerts) {
