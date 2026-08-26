@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 public record MonitoringSessionResponse(
         Long id,
         Long roomId,
+        Long labId,
+        Long organizationId,
         String roomName,
         String name,
         String description,
@@ -22,7 +24,8 @@ public record MonitoringSessionResponse(
     public static MonitoringSessionResponse from(MonitoringSession session) {
         var creator = session.getCreatedBy();
         return new MonitoringSessionResponse(
-                session.getId(), session.getRoom().getId(), session.getRoom().getName(),
+                session.getId(), session.getRoom().getId(), session.getRoom().getLab().getId(),
+                session.getRoom().getLab().getOrganization().getId(), session.getRoom().getName(),
                 session.getName(), session.getDescription(), session.getStatus(),
                 session.getStartedAt(), session.getEndedAt(), creator.getId(),
                 creator.getFirstName() + " " + creator.getLastName(),

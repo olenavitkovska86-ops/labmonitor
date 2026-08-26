@@ -5,6 +5,9 @@ import com.olena.labmonitor.organization.dto.OrganizationResponse;
 import com.olena.labmonitor.organization.dto.UpdateOrganizationRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import com.olena.labmonitor.security.AccessPolicy;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,11 +26,14 @@ import java.util.List;
 public class OrganizationController {
 
     private final OrganizationService organizationService;
+    private final AccessPolicy accessPolicy;
 
-    public OrganizationController(OrganizationService organizationService) {
+    public OrganizationController(OrganizationService organizationService, AccessPolicy accessPolicy) {
         this.organizationService = organizationService;
+        this.accessPolicy = accessPolicy;
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrganizationResponse create(@Valid @RequestBody CreateOrganizationRequest request) {
@@ -35,15 +41,22 @@ public class OrganizationController {
     }
 
     @GetMapping
-    public List<OrganizationResponse> findAll(@RequestParam(required = false) String search) {
-        return organizationService.findAll(search);
+    public List<OrganizationResponse> findAll(@RequestParam(required = false) String search,
+                                              Authentication authentication) {
+        var access = accessPolicy.forAuthentication(authentication);
+        return organizationService.findAll(search).stream()
+                .filter(organization -> access.canViewOrganization(organization.id()))
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public OrganizationResponse findById(@PathVariable Long id) {
-        return organizationService.findById(id);
+    public OrganizationResponse findById(@PathVariable Long id, Authentication authentication) {
+        var organization = organizationService.findById(id);
+        accessPolicy.forAuthentication(authentication).requireViewOrganization(organization.id());
+        return organization;
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PutMapping("/{id}")
     public OrganizationResponse update(
             @PathVariable Long id,
@@ -52,6 +65,7 @@ public class OrganizationController {
         return organizationService.update(id, request);
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
