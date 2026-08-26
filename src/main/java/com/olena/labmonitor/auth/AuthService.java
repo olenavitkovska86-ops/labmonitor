@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 
 @Service
 @Transactional
@@ -51,6 +52,9 @@ public class AuthService {
         );
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(login.getEmail());
+        User user = userRepository.findByEmail(login.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        user.setLastLoginAt(LocalDateTime.now());
         return jwtService.generateToken(userDetails);
 
     }

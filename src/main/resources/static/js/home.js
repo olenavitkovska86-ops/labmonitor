@@ -1,11 +1,6 @@
 async function loadAlertCount() {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     try {
-        const response = await fetch("/api/alerts/unresolved-count", {
-            headers: {Authorization: `Bearer ${token}`}
-        });
+        const response = await apiFetch("/api/alerts/unresolved-count");
         if (!response.ok) return;
 
         const result = await response.json();
@@ -30,13 +25,10 @@ const stopSimulatorButton = document.querySelector("#stop-simulator");
 const simulatorMessage = document.querySelector("#simulator-message");
 
 async function simulatorRequest(path, options = {}) {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
-    const response = await fetch(`/api/simulator${path}`, {
+    const response = await apiFetch(`/api/simulator${path}`, {
         ...options,
         headers: {
-            ...(options.headers || {}),
-            Authorization: `Bearer ${token}`
+            ...(options.headers || {})
         }
     });
     if (response.status === 401 || response.status === 403) return null;

@@ -7,7 +7,11 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
-    //MapStruct automatically generates the implementations
-    UserResponse toResponse(User user);
-    List<UserResponse> toResponses(List<User> users);
+    default UserResponse toResponse(User user) {
+        return UserResponse.from(user);
+    }
+
+    default List<UserResponse> toResponses(List<User> users) {
+        return users.stream().map(this::toResponse).toList();
+    }
 }

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/">LabMonitor</a><span class="subtitle">Administration</span></header>
+<main class="page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><a class="breadcrumb-link" href="/">Home</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Administration</span></nav>
+    <section class="hero">
+        <div><p class="eyebrow">System administration</p><h1>Users and access</h1><p class="intro">Accounts and memberships stored by LabMonitor.</p></div>
+        <button id="show-user-form" class="button button-primary" type="button">Add user</button>
+    </section>
+    <div id="admin-message" class="message hidden" role="alert"></div>
+    <section id="user-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading"><h2>New user</h2><button id="close-user-form" class="icon-button" type="button">&times;</button></div>
+        <form id="user-form">
+            <div class="form-grid">
+                <div><label for="user-email">Email</label><input id="user-email" type="email" required></div>
+                <div><label for="user-password">Temporary password</label><input id="user-password" type="password" minlength="8" required></div>
+                <div><label for="user-first-name">First name</label><input id="user-first-name" required></div>
+                <div><label for="user-last-name">Last name</label><input id="user-last-name" required></div>
+                <div><label for="user-role">Initial role</label><select id="user-role"><option value="LIMITED_EMPLOYEE">Limited employee</option><option value="LAB_ADMIN">Lab administrator</option><option value="SUPER_ADMIN">Super administrator</option></select></div>
+                <div id="organization-field"><label for="user-organization">Organization</label><select id="user-organization"></select></div>
+            </div>
+            <p class="state">The initial membership covers the whole organization. Use Edit access after creation to limit it to specific labs or rooms.</p>
+            <div class="form-actions"><button class="button button-primary" type="submit">Create user</button><button id="cancel-user-form" class="button button-secondary" type="button">Cancel</button></div>
+        </form>
+    </section>
+    <section id="membership-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading"><div><p class="eyebrow">Organization access</p><h2 id="membership-form-title">Add membership</h2></div><button id="close-membership-form" class="icon-button" type="button">&times;</button></div>
+        <form id="membership-form">
+            <input id="membership-id" type="hidden"><input id="membership-user-id" type="hidden">
+            <div class="form-grid">
+                <div><label for="membership-organization">Organization</label><select id="membership-organization" required></select></div>
+                <div><label for="membership-role">Role</label><select id="membership-role"><option value="LIMITED_EMPLOYEE">Limited employee</option><option value="LAB_ADMIN">Lab administrator</option></select></div>
+                <div><label for="membership-scope">Access scope</label><select id="membership-scope"><option value="ORGANIZATION">Whole organization</option><option value="SPECIFIC">Specific labs and rooms</option></select></div>
+            </div>
+            <div id="specific-scope-fields" class="scope-grid hidden">
+                <fieldset><legend>Labs</legend><div id="membership-labs" class="scope-options"></div></fieldset>
+                <fieldset><legend>Individual rooms</legend><div id="membership-rooms" class="scope-options"></div></fieldset>
+            </div>
+            <div id="membership-form-error" class="message message-error hidden" role="alert"></div>
+            <div class="form-actions"><button class="button button-primary" type="submit">Save access</button><button id="cancel-membership-form" class="button button-secondary" type="button">Cancel</button></div>
+        </form>
+    </section>
+    <section class="panel">
+        <div class="panel-heading"><h2>Users</h2></div>
+        <p id="users-loading" class="state">Loading users...</p>
+        <div id="users-table" class="table-wrapper hidden"><table><thead><tr><th>User</th><th>Global role</th><th>Memberships</th><th>Status</th><th>Actions</th></tr></thead><tbody id="user-rows"></tbody></table></div>
+    </section>
+</main>
+<script src="/js/api-client.js"></script><script src="/js/auth-context.js"></script><script src="/js/administration.js"></script>
+</body>
+</html>

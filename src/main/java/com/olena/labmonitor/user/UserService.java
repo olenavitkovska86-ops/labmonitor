@@ -11,6 +11,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Set;
+
 @Service
 @Transactional
 public class UserService {
@@ -45,13 +48,37 @@ public class UserService {
         return userMapper.toResponse(user);
     }
 
-    // Need authorization check
-    public UserResponse update(Long id, UpdateUserRequest request){
+    @Transactional(readOnly = true)
+    public List<UserResponse> findAll() {
+        return userRepository.findAll().stream().map(userMapper::toResponse).toList();
+    }
+
+    public UserResponse updateStatus(Long id, String status, String actingUserEmail) {
+        if (!Set.of("ACTIVE", "DISABLED").contains(status)) {
+            throw new IllegalArgumentException("Status must be ACTIVE or DISABLED");
+        }
         User user = getUser(id);
+        if (user.getEmail().equalsIgnoreCase(actingUserEmail) && "DISABLED".equals(status)) {
+            throw new IllegalArgumentException("You cannot disable your own account");
+        }
+        user.setStatus(status);
+        return userMapper.toResponse(userRepository.saveAndFlush(user));
+    }
+
+    public UserResponse updateMe(String email, UpdateUserRequest request){
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
         user.update(request.firstName(), request.lastName(), request.phone());
         User savedUser = userRepository.saveAndFlush(user);
 
         return userMapper.toResponse(savedUser);
+    }
+
+    public UserResponse updateNotificationPreference(String email, boolean enabled) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        user.setAlertNotificationsEnabled(enabled);
+        return userMapper.toResponse(userRepository.saveAndFlush(user));
     }
 
 
@@ -84,6 +111,7 @@ public class UserService {
 
             Membership membership = new Membership(organization, savedUser, role);
             membershipRepository.save(membership);
+            savedUser.getMemberships().add(membership);
 
             return userMapper.toResponse(savedUser);
         }

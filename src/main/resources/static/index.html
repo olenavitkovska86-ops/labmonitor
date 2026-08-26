@@ -73,9 +73,23 @@
             <p>Record bounded observation periods and timestamped human actions.</p>
             <span class="module-link">Open sessions &rarr;</span>
         </a>
+
+        <a class="module-card" href="/history.html">
+            <span class="module-number">08</span>
+            <h2>History &amp; exports</h2>
+            <p>Review alert history and download permitted sensor readings as CSV.</p>
+            <span class="module-link">Open history &rarr;</span>
+        </a>
+
+        <a class="module-card hidden" href="/administration.html" data-permission="users.manage" data-permission-reveal>
+            <span class="module-number">09</span>
+            <h2>Administration</h2>
+            <p>Manage real user accounts, roles and organization access.</p>
+            <span class="module-link">Open administration &rarr;</span>
+        </a>
     </section>
 
-    <section id="simulator-panel" class="panel simulator-panel hidden" aria-labelledby="simulator-title">
+    <section id="simulator-panel" class="panel simulator-panel hidden" aria-labelledby="simulator-title" data-permission="system.read">
         <div>
             <p class="eyebrow">Local demonstration</p>
             <h2 id="simulator-title">Sensor simulator</h2>
@@ -97,6 +111,8 @@
 
     <p class="login-note">API operations require an authenticated LabMonitor account.</p>
 </main>
+<script src="/js/api-client.js"></script>
+<script src="/js/auth-context.js"></script>
 <script src="/js/home.js"></script>
 <script src="/js/alert-notifications.js"></script>
 </body>
