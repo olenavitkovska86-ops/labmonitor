@@ -33,6 +33,12 @@ class AdministrationSecurityFlowTests {
     @Autowired PasswordEncoder passwordEncoder;
 
     @Test
+    void unauthenticatedApiRequestReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void superAdminCapabilityAuthorityAndCsrfFlowStayConsistent() throws Exception {
         User administrator = user("admin@example.com", "SUPER_ADMIN");
         User employee = user("employee@example.com", "NONE");
