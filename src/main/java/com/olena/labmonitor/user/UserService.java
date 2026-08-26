@@ -3,10 +3,14 @@ package com.olena.labmonitor.user;
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.membership.Membership;
 import com.olena.labmonitor.membership.MembershipRepository;
+import com.olena.labmonitor.membership.MembershipService;
+import com.olena.labmonitor.membership.dto.SaveMembershipRequest;
 import com.olena.labmonitor.organization.Organization;
 import com.olena.labmonitor.user.dto.CreateUserRequest;
 import com.olena.labmonitor.user.dto.UpdateUserRequest;
 import com.olena.labmonitor.user.dto.UserResponse;
+import com.olena.labmonitor.user.dto.DemoteRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,14 +27,17 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final UserValidator userValidator;
+    private final MembershipService membershipService;
 
     public UserService(UserRepository userRepository, MembershipRepository membershipRepository,
-                       UserMapper userMapper, PasswordEncoder passwordEncoder, UserValidator userValidator){
+                       UserMapper userMapper, PasswordEncoder passwordEncoder, UserValidator userValidator,
+                       MembershipService membershipService){
         this.userRepository = userRepository;
         this.membershipRepository = membershipRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.userValidator = userValidator;
+        this.membershipService = membershipService;
     }
 
 
@@ -49,8 +56,38 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponse> findAll() {
-        return userRepository.findAll().stream().map(userMapper::toResponse).toList();
+    public List<UserResponse> findAll(Long organizationId, String search) {
+        boolean hasSearch = search != null && !search.isBlank();
+        List<User> users;
+        if (organizationId != null && hasSearch) {
+            users = userRepository.searchByOrganizationId(organizationId, search.trim());
+        } else if (organizationId != null) {
+            users = userRepository.findByOrganizationId(organizationId);
+        } else if (hasSearch) {
+            users = userRepository.search(search.trim());
+        } else {
+            users = userRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+        }
+        return users.stream().map(userMapper::toResponse).toList();
+    }
+
+    public UserResponse promoteToSuperAdmin(Long userId) {
+        User user = getUser(userId);
+        user.setGlobalRole("SUPER_ADMIN");
+        membershipRepository.deleteAll(membershipRepository.findByUserId(userId));
+        user.getMemberships().clear();
+        return userMapper.toResponse(user);
+    }
+
+    public UserResponse demoteFromSuperAdmin(Long userId, DemoteRequest request) {
+        User user = getUser(userId);
+        if (!"SUPER_ADMIN".equals(user.getGlobalRole())) {
+            throw new IllegalArgumentException("User is not a SUPER_ADMIN");
+        }
+        user.setGlobalRole("NONE");
+        membershipService.create(new SaveMembershipRequest(
+                userId, request.organizationId(), request.role(), request.scope()));
+        return userMapper.toResponse(user);
     }
 
     public UserResponse updateStatus(Long id, String status, String actingUserEmail) {

@@ -59,7 +59,9 @@ public class MembershipService {
 
         Membership membership = new Membership(organization, user, request.role());
         membership.updateAccess(request.role(), request.scope().type(), access.labs(), access.rooms());
-        return MembershipResponse.from(membershipRepository.save(membership));
+        Membership saved = membershipRepository.save(membership);
+        user.getMemberships().add(saved);
+        return MembershipResponse.from(saved);
     }
 
     public MembershipResponse update(Long membershipId, UpdateMembershipRequest request) {
@@ -67,6 +69,15 @@ public class MembershipService {
         Membership membership = getMembership(membershipId);
         AccessSelection access = resolveAccess(membership.getOrganization().getId(), request.scope());
         membership.updateAccess(request.role(), request.scope().type(), access.labs(), access.rooms());
+        return MembershipResponse.from(membership);
+    }
+
+    public MembershipResponse changeRole(Long userId, Long organizationId, String role) {
+        validateRole(role);
+        Membership membership = membershipRepository.findByUserIdAndOrganizationId(userId, organizationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Membership not found"));
+        membership.updateAccess(role, membership.getScopeType(),
+                membership.getAccessibleLabs(), membership.getAccessibleRooms());
         return MembershipResponse.from(membership);
     }
 

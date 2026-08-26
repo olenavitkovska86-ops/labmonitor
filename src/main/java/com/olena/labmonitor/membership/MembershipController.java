@@ -3,6 +3,7 @@ package com.olena.labmonitor.membership;
 import com.olena.labmonitor.membership.dto.MembershipResponse;
 import com.olena.labmonitor.membership.dto.SaveMembershipRequest;
 import com.olena.labmonitor.membership.dto.UpdateMembershipRequest;
+import com.olena.labmonitor.membership.dto.ChangeRoleRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -41,6 +43,12 @@ public class MembershipController {
     public MembershipResponse update(@PathVariable Long id,
                                      @Valid @RequestBody UpdateMembershipRequest request) {
         return membershipService.update(id, request);
+    }
+
+    @PatchMapping("/organizations/{organizationId}/users/{userId}/role")
+    public MembershipResponse changeRole(@PathVariable Long organizationId, @PathVariable Long userId,
+                                         @Valid @RequestBody ChangeRoleRequest request) {
+        return membershipService.changeRole(userId, organizationId, request.role());
     }
 
     @DeleteMapping("/{id}")

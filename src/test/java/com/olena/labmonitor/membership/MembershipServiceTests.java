@@ -114,6 +114,21 @@ class MembershipServiceTests {
         verify(membershipRepository).delete(membership);
     }
 
+    @Test
+    void changesRoleWithoutChangingPersistedScope() {
+        Lab lab = lab(10L, organization);
+        Membership membership = membership(30L, organization, user);
+        membership.updateAccess("LIMITED_EMPLOYEE", MembershipScopeType.SPECIFIC, Set.of(lab), Set.of());
+        when(membershipRepository.findByUserIdAndOrganizationId(2L, 1L))
+                .thenReturn(Optional.of(membership));
+
+        var response = service.changeRole(2L, 1L, "LAB_ADMIN");
+
+        assertThat(response.role()).isEqualTo("LAB_ADMIN");
+        assertThat(response.scopeType()).isEqualTo(MembershipScopeType.SPECIFIC);
+        assertThat(response.labIds()).containsExactly(10L);
+    }
+
     private static Organization organization(Long id, String name) {
         Organization organization = new Organization(name, null);
         ReflectionTestUtils.setField(organization, "id", id);

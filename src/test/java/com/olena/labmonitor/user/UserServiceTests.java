@@ -2,6 +2,12 @@ package com.olena.labmonitor.user;
 
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.membership.MembershipRepository;
+import com.olena.labmonitor.membership.MembershipService;
+import com.olena.labmonitor.membership.Membership;
+import com.olena.labmonitor.membership.MembershipScopeType;
+import com.olena.labmonitor.membership.dto.MembershipScopeRequest;
+import com.olena.labmonitor.membership.dto.SaveMembershipRequest;
+import com.olena.labmonitor.user.dto.DemoteRequest;
 import com.olena.labmonitor.user.dto.UpdateUserRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -25,6 +33,7 @@ class UserServiceTests {
     @Mock UserMapper userMapper;
     @Mock PasswordEncoder passwordEncoder;
     @Mock UserValidator userValidator;
+    @Mock MembershipService membershipService;
 
     @InjectMocks UserService userService;
 
@@ -85,5 +94,39 @@ class UserServiceTests {
         assertThatThrownBy(() -> userService.updateStatus(7L, "INVITED", "admin@example.com"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("ACTIVE or DISABLED");
+    }
+
+    @Test
+    void promotionRemovesOrganizationMemberships() {
+        User user = new User("employee@example.com", "hash", "Employee", "User", null);
+        Membership membership = org.mockito.Mockito.mock(Membership.class);
+        user.getMemberships().add(membership);
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        when(membershipRepository.findByUserId(7L)).thenReturn(List.of(membership));
+        when(userMapper.toResponse(user)).thenAnswer(invocation ->
+                com.olena.labmonitor.user.dto.UserResponse.from(invocation.getArgument(0)));
+
+        var response = userService.promoteToSuperAdmin(7L);
+
+        assertThat(response.globalRole()).isEqualTo("SUPER_ADMIN");
+        assertThat(user.getMemberships()).isEmpty();
+        verify(membershipRepository).deleteAll(List.of(membership));
+    }
+
+    @Test
+    void demotionCreatesMembershipWithRequestedScope() {
+        User user = new User("admin@example.com", "hash", "Admin", "User", null);
+        user.setGlobalRole("SUPER_ADMIN");
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        when(userMapper.toResponse(user)).thenAnswer(invocation ->
+                com.olena.labmonitor.user.dto.UserResponse.from(invocation.getArgument(0)));
+        MembershipScopeRequest scope = new MembershipScopeRequest(
+                MembershipScopeType.SPECIFIC, Set.of(10L), Set.of());
+
+        var response = userService.demoteFromSuperAdmin(
+                7L, new DemoteRequest("LAB_ADMIN", 1L, scope));
+
+        assertThat(response.globalRole()).isEqualTo("NONE");
+        verify(membershipService).create(new SaveMembershipRequest(7L, 1L, "LAB_ADMIN", scope));
     }
 }
