@@ -3,6 +3,7 @@ package com.olena.labmonitor.user;
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.membership.Membership;
 import com.olena.labmonitor.membership.MembershipRepository;
+import com.olena.labmonitor.membership.MembershipService;
 import com.olena.labmonitor.organization.Organization;
 import com.olena.labmonitor.user.dto.CreateUserRequest;
 import com.olena.labmonitor.user.dto.UpdateUserRequest;
@@ -21,18 +22,17 @@ import static org.springframework.util.StringUtils.hasText;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final MembershipRepository membershipRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final UserValidator userValidator;
+    private final MembershipService membershipService;
 
-    public UserService(UserRepository userRepository, MembershipRepository membershipRepository,
-                       UserMapper userMapper, PasswordEncoder passwordEncoder, UserValidator userValidator){
+    public UserService(UserRepository userRepository, UserMapper userMapper, PasswordEncoder passwordEncoder, UserValidator userValidator, MembershipService membershipService){
         this.userRepository = userRepository;
-        this.membershipRepository = membershipRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.userValidator = userValidator;
+        this.membershipService = membershipService;
     }
 
 
@@ -60,7 +60,10 @@ public class UserService {
     }
 
 
-    // Super Admin
+    // ========================
+    // SUPER_ADMIN ONLY
+    // ========================
+
     @Transactional(readOnly = true)
     public List<UserResponse> getAll(Long organizationId, String search){
         List<User> users = findUsers(organizationId, search);
@@ -88,20 +91,31 @@ public class UserService {
             return userMapper.toResponse(savedUser);
         }
 
-        // Required orgaization ID
-        if (role.equals("LAB_ADMIN") || role.equals("LIMITED_EMPLOYEE")){
-            Organization organization = userValidator.validateAndGetOrganization(request.organization());
+        User savedUser = userRepository.save(user);
+        membershipService.createMembership(savedUser.getId(), request.organization(), role);
+        return userMapper.toResponse(savedUser);
 
-            User savedUser = userRepository.save(user);
+//        // In case of unhandled fourth role
+//        throw new IllegalStateException("Unhandled role: " + role);
+//
+    }
 
-            Membership membership = new Membership(organization, savedUser, role);
-            membershipRepository.save(membership);
+    public UserResponse promoteToSuperAdmin(Long userId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-            return userMapper.toResponse(savedUser);
-        }
+        user.setGlobalRole("SUPER_ADMIN");
+        membershipService.deleteMembership(userId);
+        return userMapper.toResponse(user);
+    }
 
-        // In case of unhandled fourth role
-        throw new IllegalStateException("Unhandled role: " + role);
+    public UserResponse demoteFromSuperAdmin(Long userId, Long organizationId, String role){
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new ResourceNotFoundException("User not found"));
+
+        user.setGlobalRole("NONE");
+        membershipService.createMembership(userId, organizationId, role);
+        return userMapper.toResponse(user);
     }
 
 
