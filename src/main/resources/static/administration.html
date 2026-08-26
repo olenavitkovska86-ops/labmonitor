@@ -24,20 +24,49 @@
             <h1>Users &amp; responsibility</h1>
             <p class="intro">Manage an organization membership, role, and responsibility scope together.</p>
         </div>
-        <button class="button button-primary" type="button" disabled title="Available after the user administration API is merged">
-            Add user <span class="button-status">Backend not connected</span>
-        </button>
+        <button id="show-user-form" class="button button-primary" type="button">Add user</button>
     </section>
 
     <div class="integration-status" role="status">
         <span class="integration-status-dot"></span>
-        <div><strong>Administration preview</strong>
-            <span>Page flow is active with demo data. User, Membership, and Assignment APIs are not connected yet.</span></div>
+        <div><strong>Administration API connected</strong>
+            <span>Users, organization memberships, and roles are live. Lab and room responsibility assignments remain a preview.</span></div>
     </div>
+
+    <section id="user-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading">
+            <h2>New user</h2>
+            <button id="close-user-form" class="icon-button" type="button" aria-label="Close">&times;</button>
+        </div>
+        <form id="user-form">
+            <label for="user-first-name">First name</label>
+            <input id="user-first-name" maxlength="100" required>
+            <label for="user-last-name">Last name</label>
+            <input id="user-last-name" maxlength="100" required>
+            <label for="user-email">Email</label>
+            <input id="user-email" type="email" required>
+            <label for="user-password">Temporary password</label>
+            <input id="user-password" type="password" required>
+            <label for="user-organization">Organization</label>
+            <select id="user-organization" required></select>
+            <label for="user-role">Role in organization</label>
+            <select id="user-role" required>
+                <option value="LIMITED_EMPLOYEE">Limited employee</option>
+                <option value="LAB_ADMIN">Lab admin</option>
+            </select>
+            <div id="user-form-error" class="message message-error hidden" role="alert"></div>
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Create user</button>
+                <button id="cancel-user-form" class="button button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <div id="administration-message" class="message hidden" role="status"></div>
 
     <div class="responsibility-layout">
         <section class="panel responsibility-context">
-            <div class="panel-heading"><div><h2>User &amp; membership</h2><span class="data-source-badge">Demo data</span></div></div>
+            <div class="panel-heading"><div><h2>User &amp; membership</h2><span class="data-source-badge">Live API</span></div></div>
             <label for="prototype-user">User <small>Choose an account</small></label>
             <select id="prototype-user"></select>
             <label for="prototype-organization">Organization <small>Membership organization</small></label>
@@ -51,16 +80,22 @@
                 <span>Current responsibility</span>
                 <strong id="responsibility-summary">No responsibility selected</strong>
             </div>
-            <button class="button button-secondary membership-action" type="button" disabled
-                    title="Available after the Membership API is merged">
-                Add organization membership <span class="button-status">Not connected</span>
+            <button id="save-membership-role" class="button button-primary membership-action" type="button">
+                Save membership role
+            </button>
+            <div id="membership-message" class="message hidden" role="status"></div>
+            <button id="show-membership-form" class="button button-secondary membership-action" type="button">
+                Add organization membership
+            </button>
+            <button id="remove-membership" class="button button-danger membership-action" type="button">
+                Remove membership
             </button>
         </section>
 
         <section class="panel responsibility-editor">
             <div class="panel-heading">
                 <div><h2>Responsibility</h2><p class="section-description">Choose where this role applies. Use the broadest useful scope.</p></div>
-                <span class="data-source-badge">Browser memory</span>
+                <span class="data-source-badge">Live structure · browser selections</span>
             </div>
             <label class="scope-all-option">
                 <input id="organization-wide" type="checkbox">
@@ -75,6 +110,30 @@
             <p class="save-connection-note">Save currently updates browser memory only. Persistence will use the future Assignment API.</p>
         </section>
     </div>
+
+    <section id="membership-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading">
+            <div>
+                <h2>Add organization membership</h2>
+                <p class="section-description">Add the selected user to another organization.</p>
+            </div>
+            <button id="close-membership-form" class="icon-button" type="button" aria-label="Close">&times;</button>
+        </div>
+        <form id="membership-form">
+            <label for="membership-organization">Organization</label>
+            <select id="membership-organization" required></select>
+            <label for="membership-role">Role in organization</label>
+            <select id="membership-role" required>
+                <option value="LIMITED_EMPLOYEE">Limited employee</option>
+                <option value="LAB_ADMIN">Lab admin</option>
+            </select>
+            <div id="membership-form-error" class="message message-error hidden" role="alert"></div>
+            <div class="form-actions">
+                <button class="button button-primary" type="submit">Add membership</button>
+                <button id="cancel-membership-form" class="button button-secondary" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
 </main>
 <script src="/js/navigation.js"></script>
 <script src="/js/administration.js"></script>

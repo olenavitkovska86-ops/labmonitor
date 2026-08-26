@@ -97,8 +97,10 @@ backend authorization remains responsible for protecting data and actions.
 `History & exports` keeps historical analysis out of the operational Overview.
 It provides alert periods, clickable daily alert bars, reading CSV export by
 room/sensor/time range, and a path to Monitoring Session ZIP exports. The
-current Administration responsibility editor uses clearly labelled demo data
-until the final membership and assignment APIs are available.
+Administration loads users, organization memberships, roles, labs, and rooms
+from the live API. Membership roles can be updated and organization users can
+be created from the page. Responsibility selections remain a clearly labelled
+browser-only preview until the assignment API is available.
 
 The pages provide viewing, searching, creating, editing, activation, and
 deactivation where supported. The sensor page also provides safe value range
