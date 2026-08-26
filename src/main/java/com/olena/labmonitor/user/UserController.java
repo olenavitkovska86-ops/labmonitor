@@ -5,6 +5,7 @@ import com.olena.labmonitor.user.dto.UpdateUserRequest;
 import com.olena.labmonitor.user.dto.UserResponse;
 import com.olena.labmonitor.user.dto.UpdateUserStatusRequest;
 import com.olena.labmonitor.user.dto.UpdateNotificationPreferenceRequest;
+import com.olena.labmonitor.user.dto.DemoteRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,8 +21,10 @@ public class UserController {
 
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     @GetMapping
-    public java.util.List<UserResponse> findAll() {
-        return userService.findAll();
+    public java.util.List<UserResponse> findAll(
+            @RequestParam(required = false) Long organizationId,
+            @RequestParam(required = false) String search) {
+        return userService.findAll(organizationId, search);
     }
 
     @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -65,6 +68,18 @@ public class UserController {
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request){
         UserResponse response = userService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PatchMapping("/{id}/promote")
+    public UserResponse promote(@PathVariable Long id) {
+        return userService.promoteToSuperAdmin(id);
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PatchMapping("/{id}/demote")
+    public UserResponse demote(@PathVariable Long id, @Valid @RequestBody DemoteRequest request) {
+        return userService.demoteFromSuperAdmin(id, request);
     }
 
 
