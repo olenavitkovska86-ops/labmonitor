@@ -164,6 +164,10 @@ function renderRooms(rooms) {
     for (const room of rooms) {
         const lab = labsById.get(room.labId);
         const row = document.createElement("tr");
+        row.dataset.roomId = room.id;
+        if (new URLSearchParams(window.location.search).get("roomId") === String(room.id)) {
+            row.classList.add("table-row-focus");
+        }
         row.append(
             createCell(room.id),
             createRoomLinkCell(room),

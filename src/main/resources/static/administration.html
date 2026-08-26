@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">LabMonitor</a>
+    <span class="subtitle">System administration</span>
+</header>
+<main class="page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a class="breadcrumb-link" href="/">Home</a><span class="breadcrumb-separator">/</span>
+        <a class="breadcrumb-link" href="/analytics.html?overviewRole=SUPER_ADMIN">Overview</a>
+        <span class="breadcrumb-separator">/</span><span class="breadcrumb-current">Administration</span>
+    </nav>
+
+    <section class="hero">
+        <div>
+            <p class="eyebrow">Administration</p>
+            <h1>Users &amp; responsibility</h1>
+            <p class="intro">Manage an organization membership, role, and responsibility scope together.</p>
+        </div>
+        <button class="button button-primary" type="button" disabled title="Available after the user administration API is merged">
+            Add user <span class="button-status">Backend not connected</span>
+        </button>
+    </section>
+
+    <div class="integration-status" role="status">
+        <span class="integration-status-dot"></span>
+        <div><strong>Administration preview</strong>
+            <span>Page flow is active with demo data. User, Membership, and Assignment APIs are not connected yet.</span></div>
+    </div>
+
+    <div class="responsibility-layout">
+        <section class="panel responsibility-context">
+            <div class="panel-heading"><div><h2>User &amp; membership</h2><span class="data-source-badge">Demo data</span></div></div>
+            <label for="prototype-user">User <small>Choose an account</small></label>
+            <select id="prototype-user"></select>
+            <label for="prototype-organization">Organization <small>Membership organization</small></label>
+            <select id="prototype-organization"></select>
+            <label for="prototype-role">Role in organization <small>What this user can do</small></label>
+            <select id="prototype-role">
+                <option value="LIMITED_EMPLOYEE">Limited employee</option>
+                <option value="LAB_ADMIN">Lab admin</option>
+            </select>
+            <div class="responsibility-summary">
+                <span>Current responsibility</span>
+                <strong id="responsibility-summary">No responsibility selected</strong>
+            </div>
+            <button class="button button-secondary membership-action" type="button" disabled
+                    title="Available after the Membership API is merged">
+                Add organization membership <span class="button-status">Not connected</span>
+            </button>
+        </section>
+
+        <section class="panel responsibility-editor">
+            <div class="panel-heading">
+                <div><h2>Responsibility</h2><p class="section-description">Choose where this role applies. Use the broadest useful scope.</p></div>
+                <span class="data-source-badge">Browser memory</span>
+            </div>
+            <label class="scope-all-option">
+                <input id="organization-wide" type="checkbox">
+                <span><strong>Whole organization</strong><small>All labs, rooms, and sensors</small></span>
+            </label>
+            <div id="responsibility-tree" class="responsibility-tree"></div>
+            <div id="responsibility-message" class="message hidden" role="status"></div>
+            <div class="form-actions">
+                <button id="save-responsibility" class="button button-primary" type="button">Save responsibility</button>
+                <button id="reset-responsibility" class="button button-secondary" type="button">Reset</button>
+            </div>
+            <p class="save-connection-note">Save currently updates browser memory only. Persistence will use the future Assignment API.</p>
+        </section>
+    </div>
+</main>
+<script src="/js/navigation.js"></script>
+<script src="/js/administration.js"></script>
+</body>
+</html>
