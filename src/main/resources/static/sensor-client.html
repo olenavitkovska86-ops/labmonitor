@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor data client | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/">LabMonitor</a><span class="subtitle">Sensor data client</span></header>
+<main class="page acquisition-page">
+    <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
+    <section class="dashboard-heading">
+        <div><p class="eyebrow">Reading client</p><h1 id="client-title">Sensor data client</h1><p class="intro">Send numeric measurements through the standard SensorReading endpoint.</p></div>
+    </section>
+    <div id="client-message" class="message hidden" role="alert"></div>
+    <p id="client-loading" class="state">Loading sensor...</p>
+    <section id="client-content" class="panel acquisition-panel hidden">
+        <div class="acquisition-facts">
+            <div><span>Type</span><strong id="client-type">—</strong></div>
+            <div><span>Unit</span><strong id="client-unit">—</strong></div>
+            <div><span>Safe range</span><strong id="client-range">—</strong></div>
+            <div><span>Last submitted value</span><strong id="client-reading">—</strong></div>
+        </div>
+        <div class="acquisition-controls">
+            <label for="client-interval">Submission interval</label>
+            <select id="client-interval"><option value="5">Every 5 seconds</option><option value="60">Every minute</option></select>
+            <button id="start-client" class="button button-primary" type="button">Start readings</button>
+            <button id="stop-client" class="button button-danger hidden" type="button">Stop readings</button>
+            <span id="client-state" class="status status-inactive">Stopped</span>
+        </div>
+        <p class="state">Keep this page open while sending readings. The backend processes these values exactly like measurements from any other client.</p>
+    </section>
+</main>
+<script src="/js/breadcrumbs.js"></script><script src="/js/api-client.js"></script><script src="/js/auth-context.js"></script><script src="/js/app-shell.js"></script><script src="/js/sensor-client.js"></script><script src="/js/alert-notifications.js"></script>
+</body>
+</html>

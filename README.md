@@ -38,17 +38,20 @@ Monitoring rules have documented defaults in `application.properties` and can
 be changed with environment variables such as `ALERT_AUTO_RECOVERY_MAX_DURATION`
 or `READING_HISTORY_MAX_RESULTS`, without rebuilding the application.
 
-## Sensor simulator
+## Sensor data clients
 
-The local demo simulator is disabled whenever the application starts. A
-`SUPER_ADMIN` or `LAB_ADMIN` can start and stop it from the home page and choose
-an interval of five seconds or one minute.
+A `SUPER_ADMIN` can open a data client for an individual sensor from the
+Sensors page and submit generated numeric measurements every five seconds or
+every minute. The page must remain open while readings are being sent.
 
-Only active sensors with at least one configured safe boundary are simulated.
-Even-numbered sensors produce short mild deviations that can auto-recover;
-odd-numbered sensors produce escalating violations for the manual alert flow.
-The simulator uses the regular reading service and is limited to 20 sensors by
-default. It should remain disabled outside local demonstrations.
+An experimental iPhone client is available from the same sensor actions. It
+uses browser motion data, calculates RMS acceleration over 500 ms, and submits
+the result through the standard reading endpoint. Motion access normally
+requires opening the application over HTTPS on the iPhone.
+
+Both pages are ordinary API clients. The backend does not classify readings as
+generated, virtual, or physical: every accepted value follows the same
+`SensorReading` validation, storage, liveness, threshold, and alert flow.
 
 Active sensors are checked for missing readings every 10 seconds. A sensor that
 has not reported for two minutes is marked offline and creates one

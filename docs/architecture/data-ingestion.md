@@ -1,14 +1,13 @@
 # Data Ingestion
 
-LabMonitor currently receives sensor readings from different sources through a
-single application service. Camera ingestion is future work.
+LabMonitor receives sensor readings through a single application service.
+Camera ingestion is future work.
 
 ## Sources
 
-- Simulator
-- HTTP API from real devices
+- Browser-based data clients
+- HTTP API clients and physical devices
 - MQTT listener in a future version
-- Manual test data during development
 
 ## Design Rule
 
@@ -49,7 +48,7 @@ cannot reopen or otherwise rewrite the sensor's current threshold condition.
 ## Sensor Data Flow
 
 ```text
-Simulator / HTTP API / MQTT
+Browser client / device / HTTP API / MQTT
         ->
 SensorReadingService
         ->
@@ -61,7 +60,7 @@ AlertService
 ## Planned Camera Data Flow
 
 ```text
-Simulator / HTTP API / MQTT
+Browser client / device / HTTP API / MQTT
         ->
 CameraEventService
         ->
@@ -72,41 +71,20 @@ AlertService
 
 ## Current Project Version
 
-The current implementation uses:
+The current implementation uses the HTTP API. Browser pages may generate or
+acquire values and submit them to that API, while real sensors and MQTT support
+can be added later without changing the main domain model.
 
-- HTTP API
-- simulator data
+## Source-neutral readings
 
-Real sensors and MQTT support can be added later without changing the main domain model.
+`SensorReading` intentionally does not store whether a value came from a
+browser client, an iPhone, an integration, or a physical device. The backend
+validates and processes every accepted reading identically. Client names and
+transport-specific details must not leak into the sensor domain or alert logic.
 
-## Planned Source Type
-
-The current `SensorReading` entity does not store its source. A future device
-integration may add the following field to sensor readings and camera events.
-
-Recommended field:
-
-```text
-source_type
-```
-
-Recommended tables:
-
-```text
-sensor_readings.source_type
-camera_events.source_type
-```
-
-Recommended values:
-
-```text
-SIMULATOR
-HTTP_DEVICE
-MQTT_DEVICE
-MANUAL
-```
-
-This makes it possible to use simulator data and real device data in the same system without creating separate tables for each source.
+If operational traceability is required later, it should be designed as
+transport-level ingestion metadata or audit logging rather than changing the
+meaning of a sensor or splitting the reading flow.
 
 ## Future Device Fields
 

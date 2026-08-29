@@ -26,6 +26,8 @@ const minSafeValueInput = document.querySelector("#min-safe-value");
 const maxSafeValueInput = document.querySelector("#max-safe-value");
 const searchForm = document.querySelector("#search-form");
 const searchInput = document.querySelector("#search-input");
+const organizationFilter = document.querySelector("#organization-filter");
+const labFilter = document.querySelector("#lab-filter");
 const roomFilter = document.querySelector("#room-filter");
 const roomExportPeriod = document.querySelector("#room-export-period");
 const exportRoomReadingsButton = document.querySelector("#export-room-readings");
@@ -68,7 +70,7 @@ async function initializePage() {
         labsById = new Map(labs.map(lab => [lab.id, lab]));
         organizationsById = new Map(organizations.map(organization => [organization.id, organization]));
         renderRoomOptions(rooms);
-        applyRoomFromUrl();
+        initializeAdministrationFilters();
         updateRoomExportButton();
         renderSensorBreadcrumbs();
         await loadSensors();
@@ -81,9 +83,9 @@ async function initializePage() {
 function renderRoomOptions(rooms) {
     for (const room of rooms) {
         const lab = labsById.get(room.labId);
-        const label = `${room.name} (${lab?.name || `lab ${room.labId}`})`;
+        const organization = lab && organizationsById.get(lab.organizationId);
+        const label = `${room.name} (${lab?.name || `lab ${room.labId}`} · ${organization?.name || "organization"})`;
         roomInput.append(createOption(room.id, label));
-        roomFilter.append(createOption(room.id, label));
     }
 }
 
@@ -94,39 +96,42 @@ function createOption(value, label) {
     return option;
 }
 
-function applyRoomFromUrl() {
-    const roomId = new URLSearchParams(window.location.search).get("roomId");
+function initializeAdministrationFilters() {
+    organizationsById.forEach(organization => organizationFilter.append(createOption(organization.id, organization.name)));
+    const parameters = new URLSearchParams(window.location.search);
+    const requestedRoom = roomsById.get(Number(parameters.get("roomId")));
+    const requestedLab = requestedRoom ? labsById.get(requestedRoom.labId) : labsById.get(Number(parameters.get("labId")));
+    const organizationId = requestedLab?.organizationId || Number(parameters.get("organizationId"));
+    if (organizationsById.has(organizationId)) organizationFilter.value = organizationId;
+    populateLabFilter(requestedLab?.id);
+    populateRoomFilter(requestedRoom?.id);
+    if (requestedRoom) roomInput.value = requestedRoom.id;
+}
 
-    if (roomId && roomsById.has(Number(roomId))) {
-        roomFilter.value = roomId;
-        roomInput.value = roomId;
-    }
+function populateLabFilter(selectedId = "") {
+    labFilter.replaceChildren(createOption("", "All laboratories"));
+    const organizationId = Number(organizationFilter.value);
+    labsById.forEach(lab => {
+        if (!organizationId || lab.organizationId === organizationId) labFilter.append(createOption(lab.id, lab.name));
+    });
+    if ([...labFilter.options].some(option => String(option.value) === String(selectedId))) labFilter.value = selectedId;
+}
+
+function populateRoomFilter(selectedId = "") {
+    roomFilter.replaceChildren(createOption("", "All rooms"));
+    const organizationId = Number(organizationFilter.value);
+    const labId = Number(labFilter.value);
+    roomsById.forEach(room => {
+        const lab = labsById.get(room.labId);
+        if ((!organizationId || lab?.organizationId === organizationId) && (!labId || room.labId === labId)) {
+            roomFilter.append(createOption(room.id, room.name));
+        }
+    });
+    if ([...roomFilter.options].some(option => String(option.value) === String(selectedId))) roomFilter.value = selectedId;
 }
 
 function renderSensorBreadcrumbs() {
-    const room = roomsById.get(Number(roomFilter.value));
-    const lab = room && labsById.get(room.labId);
-    const organization = lab && organizationsById.get(lab.organizationId);
-    const items = [
-        {label: "Home", href: "/"},
-        {label: "Organizations", href: "/organizations.html"}
-    ];
-
-    if (organization) {
-        items.push({label: organization.name, href: `/labs.html?organizationId=${organization.id}`});
-    }
-    if (lab) {
-        items.push({label: lab.name, href: `/rooms.html?labId=${lab.id}`});
-    } else {
-        items.push({label: "Labs", href: "/labs.html"});
-    }
-    if (room) {
-        items.push({label: room.name, href: `/sensors.html?roomId=${room.id}`});
-    } else {
-        items.push({label: "Rooms", href: "/rooms.html"});
-    }
-    items.push({label: "Sensors"});
-    renderBreadcrumbs(items);
+    renderBreadcrumbs([{label: "Overview", href: "/analytics.html"}, {label: "Administration"}, {label: "Sensors"}]);
 }
 
 async function loadSensors() {
@@ -149,7 +154,13 @@ async function loadSensors() {
 
         const query = parameters.toString();
         const sensors = await request(query ? `${sensorsApiUrl}?${query}` : sensorsApiUrl);
-        renderSensors(sensors);
+        const organizationId = Number(organizationFilter.value);
+        const labId = Number(labFilter.value);
+        renderSensors(sensors.filter(sensor => {
+            const room = roomsById.get(sensor.roomId);
+            const lab = room && labsById.get(room.labId);
+            return (!organizationId || lab?.organizationId === organizationId) && (!labId || lab?.id === labId);
+        }));
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     } finally {
@@ -313,9 +324,21 @@ function createActionsCell(sensor) {
         "sensors.settings.update", sensor.organizationId);
     if (canManage) actions.append(editButton);
     if (canUpdateSettings) actions.append(rangeButton);
+    if (window.labMonitorAuth?.has("system.read")) {
+        actions.append(createActionLink("Data client", `/sensor-client.html?sensorId=${sensor.id}`));
+        actions.append(createActionLink("Connect iPhone", `/iphone-sensor.html?sensorId=${sensor.id}`));
+    }
     if (canManage) actions.append(activityButton);
     cell.append(actions);
     return cell;
+}
+
+function createActionLink(label, href) {
+    const link = document.createElement("a");
+    link.className = "button button-secondary button-small";
+    link.href = href;
+    link.textContent = label;
+    return link;
 }
 
 function createButton(label, className) {
@@ -527,7 +550,9 @@ searchForm.addEventListener("submit", event => {
 });
 document.querySelector("#clear-search").addEventListener("click", () => {
     searchInput.value = "";
-    roomFilter.value = "";
+    organizationFilter.value = "";
+    populateLabFilter();
+    populateRoomFilter();
     updateRoomExportButton();
     renderSensorBreadcrumbs();
     loadSensors();
@@ -535,6 +560,17 @@ document.querySelector("#clear-search").addEventListener("click", () => {
 searchInput.addEventListener("input", () => {
     window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(loadSensors, 300);
+});
+organizationFilter.addEventListener("change", () => {
+    populateLabFilter();
+    populateRoomFilter();
+    updateRoomExportButton();
+    loadSensors();
+});
+labFilter.addEventListener("change", () => {
+    populateRoomFilter();
+    updateRoomExportButton();
+    loadSensors();
 });
 roomFilter.addEventListener("change", () => {
     updateRoomExportButton();
