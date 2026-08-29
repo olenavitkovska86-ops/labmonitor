@@ -11,6 +11,7 @@ import java.util.Set;
 @Component
 public class UserValidator {
     private static final Set<String> VALID_ROLES = Set.of("SUPER_ADMIN", "LAB_ADMIN", "LIMITED_EMPLOYEE");
+    private static final String EMAIL_PATTERN = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
 
@@ -25,7 +26,7 @@ public class UserValidator {
             throw new InvalidOperationException("Email is already registered.");
         }
 
-        if(!email.matches("^[\\w-.]+@([\\w-]+\\.)+[\\w-]{2,4}$")){
+        if (!email.matches(EMAIL_PATTERN)) {
             throw new InvalidOperationException("Email format is invalid.");
         }
     }
