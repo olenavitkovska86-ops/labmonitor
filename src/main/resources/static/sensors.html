@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensors | LabMonitor</title>
+    <title>Sensor administration | LabMonitor</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <header class="topbar">
     <a class="brand" href="/">LabMonitor</a>
-    <span class="subtitle">Laboratory management</span>
+    <span class="subtitle">Administration</span>
 </header>
 
 <main class="page">
@@ -17,9 +17,9 @@
 
     <section class="hero">
         <div>
-            <p class="eyebrow">Monitoring</p>
-            <h1>Sensors</h1>
-            <p class="intro">Manage room sensors and their safe value ranges.</p>
+            <p class="eyebrow">Administration</p>
+            <h1>Sensor administration</h1>
+            <p class="intro">Add equipment, configure safe ranges, and connect data clients.</p>
         </div>
         <button id="show-create-form" class="button button-primary hidden" type="button" data-permission="sensors.manage" data-permission-reveal>
             Add sensor
@@ -99,15 +99,23 @@
     <section class="panel">
         <form id="search-form" class="toolbar">
             <label class="search">
-                <span>Search</span>
-                <input id="search-input" type="search" placeholder="Sensor name">
+                <span>Organization</span>
+                <select id="organization-filter"><option value="">All organizations</option></select>
+            </label>
+
+            <label class="search">
+                <span>Laboratory</span>
+                <select id="lab-filter"><option value="">All laboratories</option></select>
             </label>
 
             <label class="search">
                 <span>Room</span>
-                <select id="room-filter">
-                    <option value="">All rooms</option>
-                </select>
+                <select id="room-filter"><option value="">All rooms</option></select>
+            </label>
+
+            <label class="search">
+                <span>Search</span>
+                <input id="search-input" type="search" placeholder="Sensor name">
             </label>
 
             <button class="button button-secondary" type="submit">Search</button>
@@ -130,7 +138,7 @@
 
         <div id="page-message" class="message hidden" role="status"></div>
         <p id="loading-state" class="state">Loading sensors...</p>
-        <p id="empty-state" class="state hidden">No sensors found.</p>
+        <p id="empty-state" class="state hidden">No sensors found for the selected filters.</p>
 
         <div id="table-wrapper" class="table-wrapper hidden">
             <table>

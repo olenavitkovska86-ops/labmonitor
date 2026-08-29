@@ -4,7 +4,7 @@
     const currentPath = window.location.pathname === "/index.html" ? "/" : window.location.pathname;
     const items = [
         {label: "Overview", icon: "⌂", href: "/analytics.html", paths: ["/", "/analytics.html"]},
-        {label: "Monitor", icon: "▦", href: "/monitor.html", paths: ["/monitor.html", "/organizations.html", "/labs.html", "/rooms.html", "/sensors.html", "/sensor-readings.html"]},
+        {label: "Monitor", icon: "▦", href: "/monitor.html", paths: ["/monitor.html", "/organizations.html", "/labs.html", "/rooms.html", "/sensor-readings.html"]},
         {label: "Alerts", icon: "△", href: "/alerts.html", paths: ["/alerts.html"]},
         {label: "Sessions", icon: "◷", href: "/monitoring-sessions.html", paths: ["/monitoring-sessions.html"]},
         {label: "History & exports", icon: "⇩", href: "/history.html", paths: ["/history.html"]}
@@ -26,7 +26,9 @@
     administrationLabel.classList.add("hidden");
     const administrationLink = createLink({label: "Users & access", icon: "♙", href: "/administration.html", paths: ["/administration.html"]});
     administrationLink.classList.add("hidden");
-    sidebar.append(brand, navigation, administrationLabel, administrationLink);
+    const sensorAdministrationLink = createLink({label: "Sensors", icon: "⌁", href: "/sensors.html", paths: ["/sensors.html", "/sensor-client.html", "/iphone-sensor.html"]});
+    sensorAdministrationLink.classList.add("hidden");
+    sidebar.append(brand, navigation, administrationLabel, administrationLink, sensorAdministrationLink);
     topbar.insertAdjacentElement("afterend", sidebar);
     document.body.classList.add("has-app-sidebar");
 
@@ -40,9 +42,12 @@
     }
 
     labMonitorAuthReady.then(async auth => {
-        const hidden = !auth.has("users.manage");
-        administrationLabel.classList.toggle("hidden", hidden);
-        administrationLink.classList.toggle("hidden", hidden);
+        const canManageUsers = auth.has("users.manage");
+        const canAdministerSensors = auth.has("sensors.manage")
+            || auth.user.memberships?.some(membership => membership.permissions?.includes("sensors.settings.update"));
+        administrationLabel.classList.toggle("hidden", !canManageUsers && !canAdministerSensors);
+        administrationLink.classList.toggle("hidden", !canManageUsers);
+        sensorAdministrationLink.classList.toggle("hidden", !canAdministerSensors);
         if (!context) return;
         const organizations = await apiRequest("/api/organizations");
         const select = context.querySelector("select");
@@ -68,6 +73,7 @@
     }).catch(() => {
         administrationLabel.classList.add("hidden");
         administrationLink.classList.add("hidden");
+        sensorAdministrationLink.classList.add("hidden");
     });
 
     function createLabel(text) {

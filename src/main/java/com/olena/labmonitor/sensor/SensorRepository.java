@@ -6,23 +6,10 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import org.springframework.data.domain.Pageable;
 
 public interface SensorRepository extends JpaRepository<Sensor, Long> {
 
     long countByRoomLabOrganizationIdAndActiveTrueAndStatus(Long organizationId, SensorStatus status);
-
-    List<Sensor> findByActiveTrueOrderByIdAsc(Pageable pageable);
-
-    @Query("""
-            select count(sensor)
-            from Sensor sensor
-            where sensor.active = true
-              and sensor.room.active = true
-              and sensor.room.lab.active = true
-              and (sensor.minSafeValue is not null or sensor.maxSafeValue is not null)
-            """)
-    long countSimulatorEligibleSensors();
 
     @Query("""
             select sensor
