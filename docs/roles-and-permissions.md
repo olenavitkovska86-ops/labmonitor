@@ -131,3 +131,69 @@ LIMITED_EMPLOYEE
 LAB_ADMIN = LIMITED_EMPLOYEE + lab process/equipment settings
     ↓
 SUPER_ADMIN = LAB_ADMIN + system structure and user management
+
+
+## NEW — proposed LAB_ADMIN responsibility model (2026-08-29)
+
+> **Status: PROPOSED / NOT FULLY IMPLEMENTED.** This section records a new
+> product and authorization decision for team review. Items marked
+> `IMPLEMENTED` describe the current application. Items marked `PROPOSED`
+> require separate backend and frontend work before they can be treated as
+> available functionality.
+
+### Role purpose
+
+`LAB_ADMIN` is an organization-scoped operational administrator. The role is
+responsible for laboratory processes and equipment only inside the
+organization, labs, or rooms granted by its membership scope. It is not a
+system administrator and must not receive global user or organization
+management rights.
+
+### Current effective permissions
+
+The current application allows a `LAB_ADMIN` to:
+
+- view granted organizations, labs, rooms, sensors, readings, and analytics — `IMPLEMENTED`
+- acknowledge, resolve, and reopen alerts in granted rooms — `IMPLEMENTED`
+- create and manage monitoring sessions and session events in granted rooms — `IMPLEMENTED`
+- export permitted monitoring data — `IMPLEMENTED`
+- update sensor settings and safe ranges in granted rooms — `IMPLEMENTED`
+- view and update their own profile and change their password — `IMPLEMENTED`
+
+The current application does not allow a `LAB_ADMIN` to:
+
+- create, activate, deactivate, or delete organizations, labs, or rooms
+- create, activate, or deactivate sensors
+- manage global users, global roles, or organization memberships
+- access system-wide settings or data belonging to another membership scope
+
+### Proposed additions
+
+The following capabilities are considered appropriate for this role but are
+not yet implemented:
+
+- edit non-structural lab and room metadata, such as description or location,
+  inside the granted scope — `PROPOSED`
+- view the members of their own organization without access to global user
+  administration — `PROPOSED`
+- assign existing organization members to labs or rooms inside the admin's
+  scope, without creating users or changing global roles — `PROPOSED`
+
+Creating or deleting structural resources, inviting or disabling users,
+changing global roles, and managing other organizations remain
+`SUPER_ADMIN` responsibilities.
+
+### Proposed navigation
+
+The application shell should expose the following role-aware administration
+navigation:
+
+- `Users & access` — visible only to `SUPER_ADMIN`
+- `Sensor settings` — visible to `SUPER_ADMIN` and `LAB_ADMIN`
+- `Lab configuration` — visible to `LAB_ADMIN` only after the proposed
+  metadata permissions are implemented
+- `Team access` — visible only after scoped organization-member management is
+  implemented
+
+The contextual `Sensor settings` action in Monitor should remain available;
+the administration entry is an additional discovery path, not a replacement.

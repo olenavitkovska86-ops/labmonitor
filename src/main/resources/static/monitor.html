@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Monitor | LabMonitor</title><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="/">LabMonitor</a><span class="subtitle">Monitor</span></header>
+<main class="page monitor-page">
+    <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
+    <section class="dashboard-heading"><div><p class="eyebrow">Monitoring</p><h1>Monitor</h1><p class="intro">Navigate your accessible laboratory structure and open a resource workspace.</p></div></section>
+    <div id="monitor-message" class="message hidden" role="alert"></div>
+    <div class="monitor-layout">
+        <aside class="panel monitor-tree-panel">
+            <div class="monitor-tree-heading"><div><p class="panel-kicker">Resources</p><h2>Laboratory structure</h2></div><button id="refresh-tree" class="icon-button" type="button" title="Refresh resources">↻</button></div>
+            <p id="monitor-loading" class="state">Loading resources...</p>
+            <div id="resource-tree" class="resource-tree"></div>
+        </aside>
+        <section id="monitor-workspace" class="panel monitor-workspace">
+            <div class="monitor-empty-workspace"><span class="monitor-empty-icon" aria-hidden="true">▦</span><h2>Select a resource</h2><p>Choose an organization, lab, room or sensor from the tree to view its details and available actions.</p></div>
+        </section>
+    </div>
+</main>
+<script src="/js/breadcrumbs.js"></script><script src="/js/api-client.js"></script><script src="/js/auth-context.js"></script><script src="/js/app-shell.js"></script><script src="/js/monitor.js"></script><script src="/js/alert-notifications.js"></script>
+</body></html>

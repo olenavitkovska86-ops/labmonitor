@@ -29,11 +29,19 @@ const detailsSummary = document.querySelector("#details-summary");
 const detailsTimeline = document.querySelector("#alert-timeline");
 const detailsActions = document.querySelector("#details-actions");
 const detailsError = document.querySelector("#details-error");
+const initialParameters = new URLSearchParams(window.location.search);
 let openDetailsAlertId = null;
 let detailsRefreshInProgress = false;
 
 async function request(url, options = {}) {
     return apiRequest(url, options);
+}
+
+if ([...statusFilter.options].some(option => option.value === initialParameters.get("status"))) {
+    statusFilter.value = initialParameters.get("status");
+}
+if ([...severityFilter.options].some(option => option.value === initialParameters.get("severity"))) {
+    severityFilter.value = initialParameters.get("severity");
 }
 
 async function loadAlerts({silent = false} = {}) {
@@ -46,6 +54,7 @@ async function loadAlerts({silent = false} = {}) {
 
     const parameters = new URLSearchParams();
     const pageParameters = new URLSearchParams(window.location.search);
+    if (pageParameters.get("organizationId")) parameters.set("organizationId", pageParameters.get("organizationId"));
     if (pageParameters.get("roomId")) parameters.set("roomId", pageParameters.get("roomId"));
     if (statusFilter.value) parameters.set("status", statusFilter.value);
     if (severityFilter.value) parameters.set("severity", severityFilter.value);

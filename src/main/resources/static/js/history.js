@@ -17,6 +17,8 @@ async function initializeHistory() {
             historyLoading.textContent = "No organizations are available for your account.";
             return;
         }
+        const requestedId = new URLSearchParams(window.location.search).get("organizationId");
+        if (organizations.some(item => String(item.id) === requestedId)) historyOrganization.value = requestedId;
         historyOrganization.disabled = organizations.length === 1;
         await loadOrganization();
     } catch (error) { showHistoryMessage(error.message, true); }
