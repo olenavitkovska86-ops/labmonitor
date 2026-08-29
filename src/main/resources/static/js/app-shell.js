@@ -4,7 +4,7 @@
     const currentPath = window.location.pathname === "/index.html" ? "/" : window.location.pathname;
     const items = [
         {label: "Overview", icon: "⌂", href: "/analytics.html", paths: ["/", "/analytics.html"]},
-        {label: "Monitor", icon: "▦", href: "/monitor.html", paths: ["/monitor.html", "/organizations.html", "/labs.html", "/rooms.html", "/sensor-readings.html"]},
+        {label: "Monitor", icon: "▦", href: "/monitor.html", paths: ["/monitor.html", "/sensor-readings.html"]},
         {label: "Alerts", icon: "△", href: "/alerts.html", paths: ["/alerts.html"]},
         {label: "Sessions", icon: "◷", href: "/monitoring-sessions.html", paths: ["/monitoring-sessions.html"]},
         {label: "History & exports", icon: "⇩", href: "/history.html", paths: ["/history.html"]}
@@ -24,11 +24,18 @@
 
     const administrationLabel = createLabel("Administration");
     administrationLabel.classList.add("hidden");
-    const administrationLink = createLink({label: "Users & access", icon: "♙", href: "/administration.html", paths: ["/administration.html"]});
-    administrationLink.classList.add("hidden");
+    const organizationAdministrationLink = createLink({label: "Organizations", icon: "◇", href: "/organizations.html", paths: ["/organizations.html"]});
+    organizationAdministrationLink.classList.add("hidden");
+    const labAdministrationLink = createLink({label: "Laboratories", icon: "⌂", href: "/labs.html", paths: ["/labs.html"]});
+    labAdministrationLink.classList.add("hidden");
+    const roomAdministrationLink = createLink({label: "Rooms", icon: "□", href: "/rooms.html", paths: ["/rooms.html"]});
+    roomAdministrationLink.classList.add("hidden");
     const sensorAdministrationLink = createLink({label: "Sensors", icon: "⌁", href: "/sensors.html", paths: ["/sensors.html", "/sensor-client.html", "/iphone-sensor.html"]});
     sensorAdministrationLink.classList.add("hidden");
-    sidebar.append(brand, navigation, administrationLabel, administrationLink, sensorAdministrationLink);
+    const administrationLink = createLink({label: "Users & access", icon: "♙", href: "/administration.html", paths: ["/administration.html"]});
+    administrationLink.classList.add("hidden");
+    sidebar.append(brand, navigation, administrationLabel, organizationAdministrationLink,
+        labAdministrationLink, roomAdministrationLink, sensorAdministrationLink, administrationLink);
     topbar.insertAdjacentElement("afterend", sidebar);
     document.body.classList.add("has-app-sidebar");
 
@@ -42,12 +49,20 @@
     }
 
     labMonitorAuthReady.then(async auth => {
+        const canManageOrganizations = auth.has("organizations.manage");
+        const canManageLabs = auth.has("labs.manage");
+        const canManageRooms = auth.has("rooms.manage");
         const canManageUsers = auth.has("users.manage");
         const canAdministerSensors = auth.has("sensors.manage")
             || auth.user.memberships?.some(membership => membership.permissions?.includes("sensors.settings.update"));
-        administrationLabel.classList.toggle("hidden", !canManageUsers && !canAdministerSensors);
-        administrationLink.classList.toggle("hidden", !canManageUsers);
+        const canAdminister = canManageOrganizations || canManageLabs || canManageRooms
+            || canAdministerSensors || canManageUsers;
+        administrationLabel.classList.toggle("hidden", !canAdminister);
+        organizationAdministrationLink.classList.toggle("hidden", !canManageOrganizations);
+        labAdministrationLink.classList.toggle("hidden", !canManageLabs);
+        roomAdministrationLink.classList.toggle("hidden", !canManageRooms);
         sensorAdministrationLink.classList.toggle("hidden", !canAdministerSensors);
+        administrationLink.classList.toggle("hidden", !canManageUsers);
         if (!context) return;
         const organizations = await apiRequest("/api/organizations");
         const select = context.querySelector("select");
@@ -72,6 +87,9 @@
         });
     }).catch(() => {
         administrationLabel.classList.add("hidden");
+        organizationAdministrationLink.classList.add("hidden");
+        labAdministrationLink.classList.add("hidden");
+        roomAdministrationLink.classList.add("hidden");
         administrationLink.classList.add("hidden");
         sensorAdministrationLink.classList.add("hidden");
     });
