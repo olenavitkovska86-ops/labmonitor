@@ -46,6 +46,7 @@ async function loadAlerts({silent = false} = {}) {
 
     const parameters = new URLSearchParams();
     const pageParameters = new URLSearchParams(window.location.search);
+    if (pageParameters.get("organizationId")) parameters.set("organizationId", pageParameters.get("organizationId"));
     if (pageParameters.get("roomId")) parameters.set("roomId", pageParameters.get("roomId"));
     if (statusFilter.value) parameters.set("status", statusFilter.value);
     if (severityFilter.value) parameters.set("severity", severityFilter.value);

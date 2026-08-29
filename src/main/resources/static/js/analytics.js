@@ -1,4 +1,3 @@
-const organizationSelect = document.querySelector("#organization-select");
 const loadingState = document.querySelector("#loading-state");
 const analyticsContent = document.querySelector("#analytics-content");
 const pageMessage = document.querySelector("#page-message");
@@ -9,6 +8,8 @@ const historyView = document.querySelector("#history-view");
 let selectedOrganizationId;
 let selectedHistoryPeriod = null;
 let analyticsRefreshInProgress = false;
+let currentAuth;
+let accessibleOrganizations = [];
 
 async function request(url) {
     return apiRequest(url);
@@ -17,38 +18,21 @@ async function request(url) {
 async function initialize() {
     hideMessage();
     try {
-        const auth = await labMonitorAuthReady;
-        const organizations = await request("/api/organizations");
-        renderOrganizations(organizations);
-        if (organizations.length === 0) {
+        currentAuth = await labMonitorAuthReady;
+        accessibleOrganizations = await request("/api/organizations");
+        if (accessibleOrganizations.length === 0) {
             loadingState.textContent = "Create an organization to start monitoring laboratory operations.";
             return;
         }
 
         const requestedId = new URLSearchParams(window.location.search).get("organizationId");
-        const selected = organizations.find(organization => String(organization.id) === requestedId)
-            || organizations[0];
-        organizationSelect.value = selected.id;
-        organizationSelect.disabled = organizations.length === 1;
-        const membership = auth.membership(selected.id);
-        if (membership) {
-            document.querySelector(".analytics-hero .eyebrow").textContent =
-                membership.role === "LAB_ADMIN" ? "Lab administrator overview" : "Employee overview";
-        }
+        const selected = accessibleOrganizations.find(organization => String(organization.id) === requestedId)
+            || accessibleOrganizations[0];
+        configureRoleCopy(currentAuth, selected.id);
         await loadAnalytics(selected.id);
     } catch (error) {
         loadingState.classList.add("hidden");
         showMessage(error.message);
-    }
-}
-
-function renderOrganizations(organizations) {
-    organizationSelect.replaceChildren();
-    for (const organization of organizations) {
-        const option = document.createElement("option");
-        option.value = organization.id;
-        option.textContent = organization.name;
-        organizationSelect.append(option);
     }
 }
 
@@ -63,13 +47,15 @@ async function loadAnalytics(organizationId, {silent = false} = {}) {
 
     try {
         const baseUrl = `/api/analytics/organizations/${organizationId}`;
-        const [overview, problemRooms] = await Promise.all([
+        const [overview, problemRooms, dashboard] = await Promise.all([
             request(`${baseUrl}/overview`),
-            request(`${baseUrl}/problem-rooms`)
+            request(`${baseUrl}/problem-rooms`),
+            loadDashboardData(organizationId)
         ]);
         if (String(selectedOrganizationId) !== String(organizationId)) return;
         renderOverview(overview);
         renderProblemRooms(problemRooms);
+        renderRoleDashboard(overview, dashboard, organizationId);
         analyticsContent.classList.remove("hidden");
         updateUrl(organizationId);
     } catch (error) {
@@ -77,6 +63,127 @@ async function loadAnalytics(organizationId, {silent = false} = {}) {
     } finally {
         if (!silent) loadingState.classList.add("hidden");
     }
+}
+
+async function loadDashboardData(organizationId) {
+    const [labs, allRooms, allSensors, alerts, sessions] = await Promise.all([
+        request(`/api/labs?organizationId=${organizationId}`),
+        request("/api/rooms"),
+        request("/api/sensors"),
+        request(`/api/alerts?organizationId=${organizationId}`),
+        request("/api/monitoring-sessions?status=ACTIVE")
+    ]);
+    const rooms = allRooms.filter(room => String(room.organizationId) === String(organizationId));
+    const sensors = allSensors.filter(sensor => String(sensor.organizationId) === String(organizationId));
+    return {
+        labs,
+        rooms,
+        sensors,
+        alerts,
+        sessions: sessions.filter(session => String(session.organizationId) === String(organizationId))
+    };
+}
+
+function configureRoleCopy(auth, organizationId) {
+    const membership = auth.membership(organizationId);
+    const role = auth.user.globalRole === "SUPER_ADMIN" ? "SUPER_ADMIN" : membership?.role;
+    const titles = {
+        SUPER_ADMIN: ["System overview", "Monitor organizations, laboratory operations and system health."],
+        LAB_ADMIN: ["Laboratory overview", "Monitor the labs and rooms within your responsibility."],
+        LIMITED_EMPLOYEE: ["My monitoring overview", "Follow the rooms, sensors and work available to you."]
+    };
+    const copy = titles[role] || titles.LIMITED_EMPLOYEE;
+    setText("#overview-title", copy[0]);
+    setText("#overview-intro", copy[1]);
+}
+
+function renderRoleDashboard(overview, data, organizationId) {
+    const membership = currentAuth.membership(organizationId);
+    const role = currentAuth.user.globalRole === "SUPER_ADMIN" ? "SUPER_ADMIN" : membership?.role || "LIMITED_EMPLOYEE";
+    const openAlerts = data.alerts.filter(alert => alert.status !== "RESOLVED");
+    const metrics = role === "SUPER_ADMIN"
+        ? [["Organizations", accessibleOrganizations.length], ["Labs", data.labs.length], ["Rooms", data.rooms.length], ["Sensors", data.sensors.length], ["Open alerts", openAlerts.length, true]]
+        : role === "LAB_ADMIN"
+            ? [["Labs", data.labs.length], ["Rooms", data.rooms.length], ["Sensors", data.sensors.length], ["Open alerts", openAlerts.length, true], ["My role", "Lab admin"]]
+            : [["My rooms", data.rooms.length], ["My sensors", data.sensors.length], ["Open alerts", openAlerts.length, true], ["My access", scopeLabel(membership)]];
+    renderMetricCards(metrics);
+    renderSessions(data.sessions.filter(session => session.status === "ACTIVE").slice(0, 4));
+    renderRecentActivity(data.alerts.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 4), data);
+    renderStatusPanel(role, overview, membership, data);
+    renderQuickActions(role, organizationId);
+}
+
+function renderMetricCards(metrics) {
+    const grid = document.querySelector("#role-metric-grid");
+    grid.replaceChildren();
+    metrics.forEach(([label, value, attention]) => {
+        const card = document.createElement("article");
+        card.className = `dashboard-summary-card${attention ? " dashboard-summary-attention" : ""}`;
+        if (typeof value === "string") card.classList.add("dashboard-summary-text");
+        const name = document.createElement("span"); name.textContent = label;
+        const count = document.createElement("strong"); count.textContent = value;
+        const detail = document.createElement("small"); detail.textContent = attention ? "Requires review" : typeof value === "string" ? "Current assignment" : "Accessible now";
+        card.append(name, count, detail); grid.append(card);
+    });
+}
+
+function renderSessions(sessions) {
+    const list = document.querySelector("#active-session-list"); list.replaceChildren();
+    if (!sessions.length) { list.innerHTML = '<p class="dashboard-empty">No active monitoring sessions.</p>'; return; }
+    sessions.forEach(session => list.append(createDashboardRow(session.name, session.roomName || `Room ${session.roomId}`, "Active", "/monitoring-sessions.html")));
+}
+
+function renderRecentActivity(alerts, data) {
+    const list = document.querySelector("#recent-activity-list"); list.replaceChildren();
+    if (!alerts.length) { list.innerHTML = '<p class="dashboard-empty">No recent alert activity.</p>'; return; }
+    const roomNames = new Map(data.rooms.map(room => [room.id, room.name]));
+    const sensorNames = new Map(data.sensors.map(sensor => [sensor.id, sensor.name]));
+    alerts.forEach(alert => {
+        const location = sensorNames.get(alert.sensorId) || roomNames.get(alert.roomId) || "Monitoring alert";
+        list.append(createDashboardRow(alert.title, location, formatDate(alert.createdAt), `/alerts.html?roomId=${alert.roomId}`));
+    });
+}
+
+function createDashboardRow(titleText, detailText, metaText, href) {
+    const row = document.createElement("a"); row.className = "dashboard-list-row"; row.href = href;
+    const body = document.createElement("span"); const title = document.createElement("strong"); title.textContent = titleText;
+    const detail = document.createElement("small"); detail.textContent = detailText; body.append(title, detail);
+    const meta = document.createElement("span"); meta.className = "dashboard-row-meta"; meta.textContent = metaText;
+    row.append(body, meta); return row;
+}
+
+function renderStatusPanel(role, overview, membership, data) {
+    const title = document.querySelector("#status-panel-title");
+    const content = document.querySelector("#status-panel-content"); content.replaceChildren();
+    if (role === "LIMITED_EMPLOYEE") {
+        title.textContent = "Access information";
+        addStatus("Organization role", membership?.role?.replaceAll("_", " ") || "Employee");
+        addStatus("Scope", scopeLabel(membership));
+        addStatus("Accessible rooms", data.rooms.length);
+    } else {
+        title.textContent = "System status";
+        addStatus("Offline sensors", overview.offlineSensors, overview.offlineSensors > 0);
+        addStatus("Critical alerts", overview.criticalAlerts, overview.criticalAlerts > 0);
+        addStatus("Rooms healthy", Math.max(0, overview.totalRooms - overview.roomsRequiringAttention));
+    }
+    function addStatus(label, value, attention = false) {
+        const row = document.createElement("div"); row.className = "status-list-row";
+        const name = document.createElement("span"); name.textContent = label;
+        const result = document.createElement("strong"); result.textContent = value; result.classList.toggle("status-value-attention", attention);
+        row.append(name, result); content.append(row);
+    }
+}
+
+function renderQuickActions(role, organizationId) {
+    const list = document.querySelector("#quick-action-list"); list.replaceChildren();
+    const actions = [[role === "LIMITED_EMPLOYEE" ? "Open my rooms" : "Open Monitor", `/monitor.html?organizationId=${organizationId}`], ["Review alerts", `/alerts.html?organizationId=${organizationId}`], ["Monitoring sessions", "/monitoring-sessions.html"]];
+    if (currentAuth.has("users.manage")) actions.push(["Manage users & access", "/administration.html"]);
+    actions.forEach(([label, href]) => { const link = document.createElement("a"); link.className = "quick-action"; link.href = href; link.textContent = `${label} →`; list.append(link); });
+}
+
+function scopeLabel(membership) {
+    if (!membership) return "Global access";
+    return membership.scopeType === "ORGANIZATION" ? "Whole organization" : "Assigned resources";
 }
 
 async function refreshAnalytics() {
@@ -284,7 +391,6 @@ function hideMessage() {
     pageMessage.classList.add("hidden");
 }
 
-organizationSelect.addEventListener("change", () => loadAnalytics(organizationSelect.value));
 document.querySelectorAll(".analytics-tab").forEach(tab => {
     tab.addEventListener("click", async () => {
         document.querySelectorAll(".analytics-tab").forEach(item => item.classList.remove("active"));
