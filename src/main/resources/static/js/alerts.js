@@ -29,11 +29,19 @@ const detailsSummary = document.querySelector("#details-summary");
 const detailsTimeline = document.querySelector("#alert-timeline");
 const detailsActions = document.querySelector("#details-actions");
 const detailsError = document.querySelector("#details-error");
+const initialParameters = new URLSearchParams(window.location.search);
 let openDetailsAlertId = null;
 let detailsRefreshInProgress = false;
 
 async function request(url, options = {}) {
     return apiRequest(url, options);
+}
+
+if ([...statusFilter.options].some(option => option.value === initialParameters.get("status"))) {
+    statusFilter.value = initialParameters.get("status");
+}
+if ([...severityFilter.options].some(option => option.value === initialParameters.get("severity"))) {
+    severityFilter.value = initialParameters.get("severity");
 }
 
 async function loadAlerts({silent = false} = {}) {

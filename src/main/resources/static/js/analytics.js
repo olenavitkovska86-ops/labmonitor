@@ -101,11 +101,13 @@ function renderRoleDashboard(overview, data, organizationId) {
     const membership = currentAuth.membership(organizationId);
     const role = currentAuth.user.globalRole === "SUPER_ADMIN" ? "SUPER_ADMIN" : membership?.role || "LIMITED_EMPLOYEE";
     const openAlerts = data.alerts.filter(alert => alert.status !== "RESOLVED");
+    const monitorUrl = `/monitor.html?organizationId=${organizationId}`;
+    const alertsUrl = `/alerts.html?organizationId=${organizationId}`;
     const metrics = role === "SUPER_ADMIN"
-        ? [["Organizations", accessibleOrganizations.length], ["Labs", data.labs.length], ["Rooms", data.rooms.length], ["Sensors", data.sensors.length], ["Open alerts", openAlerts.length, true]]
+        ? [["Organizations", accessibleOrganizations.length, false, "/organizations.html"], ["Labs", data.labs.length, false, `/labs.html?organizationId=${organizationId}`], ["Rooms", data.rooms.length, false, monitorUrl], ["Sensors", data.sensors.length, false, monitorUrl], ["Open alerts", openAlerts.length, true, alertsUrl]]
         : role === "LAB_ADMIN"
-            ? [["Labs", data.labs.length], ["Rooms", data.rooms.length], ["Sensors", data.sensors.length], ["Open alerts", openAlerts.length, true], ["My role", "Lab admin"]]
-            : [["My rooms", data.rooms.length], ["My sensors", data.sensors.length], ["Open alerts", openAlerts.length, true], ["My access", scopeLabel(membership)]];
+            ? [["Labs", data.labs.length, false, `/labs.html?organizationId=${organizationId}`], ["Rooms", data.rooms.length, false, monitorUrl], ["Sensors", data.sensors.length, false, monitorUrl], ["Open alerts", openAlerts.length, true, alertsUrl], ["My role", "Lab admin"]]
+            : [["My rooms", data.rooms.length, false, monitorUrl], ["My sensors", data.sensors.length, false, monitorUrl], ["Open alerts", openAlerts.length, true, alertsUrl], ["My access", scopeLabel(membership)]];
     renderMetricCards(metrics);
     renderSessions(data.sessions.filter(session => session.status === "ACTIVE").slice(0, 4));
     renderRecentActivity(data.alerts.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 4), data);
@@ -116,9 +118,14 @@ function renderRoleDashboard(overview, data, organizationId) {
 function renderMetricCards(metrics) {
     const grid = document.querySelector("#role-metric-grid");
     grid.replaceChildren();
-    metrics.forEach(([label, value, attention]) => {
-        const card = document.createElement("article");
+    metrics.forEach(([label, value, attention, href]) => {
+        const card = document.createElement(href ? "a" : "article");
         card.className = `dashboard-summary-card${attention ? " dashboard-summary-attention" : ""}`;
+        if (href) {
+            card.classList.add("dashboard-summary-link");
+            card.href = href;
+            card.setAttribute("aria-label", `${label}: ${value}`);
+        }
         if (typeof value === "string") card.classList.add("dashboard-summary-text");
         const name = document.createElement("span"); name.textContent = label;
         const count = document.createElement("strong"); count.textContent = value;
@@ -130,7 +137,7 @@ function renderMetricCards(metrics) {
 function renderSessions(sessions) {
     const list = document.querySelector("#active-session-list"); list.replaceChildren();
     if (!sessions.length) { list.innerHTML = '<p class="dashboard-empty">No active monitoring sessions.</p>'; return; }
-    sessions.forEach(session => list.append(createDashboardRow(session.name, session.roomName || `Room ${session.roomId}`, "Active", "/monitoring-sessions.html")));
+    sessions.forEach(session => list.append(createDashboardRow(session.name, session.roomName || `Room ${session.roomId}`, "Active", `/monitoring-sessions.html?sessionId=${session.id}`)));
 }
 
 function renderRecentActivity(alerts, data) {
@@ -162,12 +169,13 @@ function renderStatusPanel(role, overview, membership, data) {
         addStatus("Accessible rooms", data.rooms.length);
     } else {
         title.textContent = "System status";
-        addStatus("Offline sensors", overview.offlineSensors, overview.offlineSensors > 0);
-        addStatus("Critical alerts", overview.criticalAlerts, overview.criticalAlerts > 0);
-        addStatus("Rooms healthy", Math.max(0, overview.totalRooms - overview.roomsRequiringAttention));
+        addStatus("Offline sensors", overview.offlineSensors, overview.offlineSensors > 0, `/monitor.html?organizationId=${data.organizationId || selectedOrganizationId}&sensorStatus=OFFLINE`);
+        addStatus("Critical alerts", overview.criticalAlerts, overview.criticalAlerts > 0, `/alerts.html?organizationId=${data.organizationId || selectedOrganizationId}&severity=CRITICAL`);
+        addStatus("Rooms healthy", Math.max(0, overview.totalRooms - overview.roomsRequiringAttention), false, `/monitor.html?organizationId=${data.organizationId || selectedOrganizationId}`);
     }
-    function addStatus(label, value, attention = false) {
-        const row = document.createElement("div"); row.className = "status-list-row";
+    function addStatus(label, value, attention = false, href) {
+        const row = document.createElement(href ? "a" : "div"); row.className = `status-list-row${href ? " status-list-link" : ""}`;
+        if (href) row.href = href;
         const name = document.createElement("span"); name.textContent = label;
         const result = document.createElement("strong"); result.textContent = value; result.classList.toggle("status-value-attention", attention);
         row.append(name, result); content.append(row);
@@ -230,6 +238,10 @@ function renderOverview(overview) {
     setText("#critical-alerts", overview.criticalAlerts);
     setText("#offline-sensors", overview.offlineSensors);
     setText("#updated-at", `Updated ${formatUpdatedDate(overview.generatedAt)}`);
+    document.querySelector("#rooms-attention-link").href = `/monitor.html?organizationId=${selectedOrganizationId}`;
+    document.querySelector("#unacknowledged-alerts-link").href = `/alerts.html?organizationId=${selectedOrganizationId}&status=ACTIVE`;
+    document.querySelector("#critical-alerts-link").href = `/alerts.html?organizationId=${selectedOrganizationId}&severity=CRITICAL`;
+    document.querySelector("#offline-sensors-link").href = `/monitor.html?organizationId=${selectedOrganizationId}&sensorStatus=OFFLINE`;
 }
 
 function renderProblemRooms(rooms) {
@@ -239,6 +251,16 @@ function renderProblemRooms(rooms) {
     for (const room of rooms) {
         const article = document.createElement("article");
         article.className = `problem-card priority-${room.attentionLevel.toLowerCase()}`;
+        article.tabIndex = 0;
+        article.setAttribute("role", "link");
+        article.setAttribute("aria-label", `Review alerts for ${room.roomName}`);
+        const alertsHref = `/alerts.html?roomId=${room.roomId}`;
+        article.addEventListener("click", event => {
+            if (!event.target.closest("a, button")) window.location.assign(alertsHref);
+        });
+        article.addEventListener("keydown", event => {
+            if (event.key === "Enter") window.location.assign(alertsHref);
+        });
 
         const priority = document.createElement("span");
         priority.className = `priority-badge priority-${room.attentionLevel.toLowerCase()}`;
@@ -272,7 +294,7 @@ function renderProblemRooms(rooms) {
 
         const action = document.createElement("a");
         action.className = "button button-secondary button-small";
-        action.href = `/alerts.html?roomId=${room.roomId}`;
+        action.href = alertsHref;
         action.textContent = "Review alerts";
 
         article.append(priority, location, issue, age, action);

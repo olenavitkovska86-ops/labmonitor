@@ -51,12 +51,12 @@
                     <button class="analytics-tab" type="button" data-view="history" data-period="LAST_30_DAYS">30d</button>
                 </div>
             </div>
-            <dl id="current-view" class="compact-status">
-                <div><dd id="rooms-attention">0</dd><dt id="rooms-context">Rooms requiring attention</dt></div>
-                <div><dd id="unacknowledged-alerts">0</dd><dt>Unacknowledged alerts</dt></div>
-                <div><dd id="critical-alerts">0</dd><dt>Critical alerts</dt></div>
-                <div><dd id="offline-sensors">0</dd><dt>Offline sensors</dt></div>
-            </dl>
+            <div id="current-view" class="compact-status">
+                <a id="rooms-attention-link"><strong id="rooms-attention">0</strong><span id="rooms-context">Rooms requiring attention</span></a>
+                <a id="unacknowledged-alerts-link"><strong id="unacknowledged-alerts">0</strong><span>Unacknowledged alerts</span></a>
+                <a id="critical-alerts-link"><strong id="critical-alerts">0</strong><span>Critical alerts</span></a>
+                <a id="offline-sensors-link"><strong id="offline-sensors">0</strong><span>Offline sensors</span></a>
+            </div>
             <div id="history-view" class="hidden">
                 <section class="metric-grid history-summary-grid">
                     <article class="metric-card"><span class="metric-label">Alerts created</span><strong id="history-created" class="metric-value">0</strong></article>

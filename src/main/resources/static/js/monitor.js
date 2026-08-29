@@ -3,6 +3,8 @@ const monitorLoading = document.querySelector("#monitor-loading");
 const monitorWorkspace = document.querySelector("#monitor-workspace");
 const monitorMessage = document.querySelector("#monitor-message");
 let monitorAuth;
+const expansionState = new Map();
+let expandFilteredTree = false;
 
 async function loadResourceTree() {
     monitorLoading.classList.remove("hidden");
@@ -20,8 +22,12 @@ async function loadResourceTree() {
         const visibleOrganizations = requestedId
             ? organizations.filter(item => String(item.id) === requestedId)
             : organizations;
-        const trees = visibleOrganizations.map(organization => loadOrganization(organization, labs, rooms, sensors));
-        trees.forEach(tree => resourceTree.append(renderOrganization(tree)));
+        const requestedSensorStatus = new URLSearchParams(window.location.search).get("sensorStatus");
+        expandFilteredTree = Boolean(requestedSensorStatus);
+        const trees = visibleOrganizations
+            .map(organization => loadOrganization(organization, labs, rooms, sensors, requestedSensorStatus))
+            .filter(tree => !requestedSensorStatus || tree.labs.length);
+        trees.forEach((tree, index) => resourceTree.append(renderOrganization(tree, index === 0)));
         if (!trees.length) resourceTree.innerHTML = '<p class="dashboard-empty">No accessible resources.</p>';
     } catch (error) {
         monitorMessage.textContent = error.message;
@@ -32,33 +38,72 @@ async function loadResourceTree() {
     }
 }
 
-function loadOrganization(organization, allLabs, allRooms, allSensors) {
+function loadOrganization(organization, allLabs, allRooms, allSensors, sensorStatus) {
     const labs = allLabs.filter(lab => lab.organizationId === organization.id);
-    return {organization, labs: labs.map(lab => ({
+    const labTrees = labs.map(lab => ({
         lab,
         rooms: allRooms.filter(room => room.labId === lab.id).map(room => ({
             room,
-            sensors: allSensors.filter(sensor => sensor.roomId === room.id)
-        }))
-    }))};
+            sensors: allSensors.filter(sensor => sensor.roomId === room.id && (!sensorStatus || sensor.status === sensorStatus))
+        })).filter(roomTree => !sensorStatus || roomTree.sensors.length)
+    })).filter(labTree => !sensorStatus || labTree.rooms.length);
+    return {organization, labs: labTrees};
 }
 
-function renderOrganization(tree) {
-    const group = document.createElement("div"); group.className = "resource-tree-group";
-    group.append(createResourceButton("organization", tree.organization.name, `${tree.labs.length} labs`, () => showOrganization(tree)));
+function renderOrganization(tree, defaultExpanded) {
     const labs = document.createElement("div"); labs.className = "resource-tree-children";
-    tree.labs.forEach(labTree => {
-        labs.append(createResourceButton("lab", labTree.lab.name, `${labTree.rooms.length} rooms`, () => showLab(tree.organization, labTree)));
+    tree.labs.forEach((labTree, index) => {
         const rooms = document.createElement("div"); rooms.className = "resource-tree-children";
         labTree.rooms.forEach(roomTree => {
-            rooms.append(createResourceButton("room", roomTree.room.name, `${roomTree.sensors.length} sensors`, () => showRoom(tree.organization, labTree.lab, roomTree)));
             const sensors = document.createElement("div"); sensors.className = "resource-tree-children resource-tree-sensors";
             roomTree.sensors.forEach(sensor => sensors.append(createResourceButton("sensor", sensor.name, sensor.status, () => showSensor(tree.organization, labTree.lab, roomTree.room, sensor))));
-            rooms.append(sensors);
+            rooms.append(createTreeNode("room", roomTree.room, `${roomTree.sensors.length} sensors`, sensors,
+                () => showRoom(tree.organization, labTree.lab, roomTree), false));
         });
-        labs.append(rooms);
+        labs.append(createTreeNode("lab", labTree.lab, `${labTree.rooms.length} rooms`, rooms,
+            () => showLab(tree.organization, labTree), expandFilteredTree || defaultExpanded && index === 0));
     });
-    group.append(labs); return group;
+    return createTreeNode("organization", tree.organization, `${tree.labs.length} labs`, labs,
+        () => showOrganization(tree), defaultExpanded);
+}
+
+function createTreeNode(type, resource, meta, children, action, defaultExpanded) {
+    const node = document.createElement("div");
+    node.className = `resource-tree-node resource-tree-node-${type}`;
+    const row = document.createElement("div"); row.className = "resource-tree-row";
+    const button = createResourceButton(type, resource.name, meta, action);
+    const hasChildren = children.childElementCount > 0;
+    row.append(button);
+    if (hasChildren) {
+        const key = `${type}:${resource.id}`;
+        const expanded = expandFilteredTree || (expansionState.has(key) ? expansionState.get(key) : defaultExpanded);
+        const childrenId = `resource-tree-${type}-${resource.id}`;
+        children.id = childrenId;
+        const toggle = document.createElement("button");
+        toggle.className = "resource-tree-toggle";
+        toggle.type = "button";
+        toggle.setAttribute("aria-controls", childrenId);
+        toggle.setAttribute("aria-label", `${expanded ? "Collapse" : "Expand"} ${resource.name}`);
+        setExpanded(toggle, children, expanded);
+        toggle.addEventListener("click", () => {
+            const next = toggle.getAttribute("aria-expanded") !== "true";
+            expansionState.set(key, next);
+            setExpanded(toggle, children, next);
+            toggle.setAttribute("aria-label", `${next ? "Collapse" : "Expand"} ${resource.name}`);
+        });
+        row.prepend(toggle);
+    } else {
+        const spacer = document.createElement("span"); spacer.className = "resource-tree-toggle-spacer"; row.prepend(spacer);
+    }
+    node.append(row);
+    if (hasChildren) node.append(children);
+    return node;
+}
+
+function setExpanded(toggle, children, expanded) {
+    toggle.setAttribute("aria-expanded", String(expanded));
+    toggle.textContent = expanded ? "▾" : "▸";
+    children.classList.toggle("hidden", !expanded);
 }
 
 function createResourceButton(type, name, meta, action) {
