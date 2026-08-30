@@ -1,5 +1,6 @@
 package com.olena.labmonitor.sensor;
 
+import com.olena.labmonitor.device.Device;
 import com.olena.labmonitor.room.Room;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -19,7 +21,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sensors")
+@Table(name = "sensors", uniqueConstraints =
+        @UniqueConstraint(name = "uq_sensors_device_channel", columnNames = {"device_id", "channel_key"}))
 public class Sensor {
 
     @Id
@@ -29,6 +32,13 @@ public class Sensor {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "device_id")
+    private Device device;
+
+    @Column(name = "channel_key", length = 100)
+    private String channelKey;
 
     @Column(nullable = false, length = 150)
     private String name;
@@ -82,6 +92,10 @@ public class Sensor {
         return room;
     }
 
+    public Device getDevice() { return device; }
+
+    public String getChannelKey() { return channelKey; }
+
     public String getName() {
         return name;
     }
@@ -130,6 +144,16 @@ public class Sensor {
     public void updateSafeRange(BigDecimal minSafeValue, BigDecimal maxSafeValue) {
         this.minSafeValue = minSafeValue;
         this.maxSafeValue = maxSafeValue;
+    }
+
+    public void assignDeviceChannel(Device device, String channelKey) {
+        this.device = device;
+        this.channelKey = channelKey;
+    }
+
+    public void clearDeviceChannel() {
+        this.device = null;
+        this.channelKey = null;
     }
 
     public void recordReading(LocalDateTime measuredAt) {

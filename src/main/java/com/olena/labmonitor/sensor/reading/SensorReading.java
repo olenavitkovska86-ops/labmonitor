@@ -1,5 +1,6 @@
 package com.olena.labmonitor.sensor.reading;
 
+import com.olena.labmonitor.device.Device;
 import com.olena.labmonitor.room.Room;
 import com.olena.labmonitor.sensor.Sensor;
 import jakarta.persistence.Column;
@@ -13,13 +14,16 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "sensor_readings")
+@Table(name = "sensor_readings", uniqueConstraints =
+        @UniqueConstraint(name = "uq_sensor_readings_device_message",
+                columnNames = {"source_device_id", "message_id"}))
 public class SensorReading {
 
     @Id
@@ -33,6 +37,13 @@ public class SensorReading {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_device_id")
+    private Device sourceDevice;
+
+    @Column(name = "message_id", length = 100)
+    private String messageId;
 
     @Column(nullable = false, precision = 12, scale = 3)
     private BigDecimal value;
@@ -58,10 +69,17 @@ public class SensorReading {
     }
 
     public SensorReading(Sensor sensor, BigDecimal value, LocalDateTime measuredAt) {
+        this(sensor, value, measuredAt, null, null);
+    }
+
+    public SensorReading(Sensor sensor, BigDecimal value, LocalDateTime measuredAt,
+                         Device sourceDevice, String messageId) {
         this.sensor = sensor;
         this.room = sensor.getRoom();
         this.value = value;
         this.measuredAt = measuredAt;
+        this.sourceDevice = sourceDevice;
+        this.messageId = messageId;
         this.safeMin = sensor.getMinSafeValue();
         this.safeMax = sensor.getMaxSafeValue();
         this.status = isOutsideRange(value, safeMin, safeMax)
@@ -80,6 +98,10 @@ public class SensorReading {
     public Room getRoom() {
         return room;
     }
+
+    public Device getSourceDevice() { return sourceDevice; }
+
+    public String getMessageId() { return messageId; }
 
     public BigDecimal getValue() {
         return value;

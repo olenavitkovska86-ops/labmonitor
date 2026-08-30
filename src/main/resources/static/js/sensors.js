@@ -328,11 +328,17 @@ function createActionsCell(sensor) {
     if (canUpdateSettings) actions.append(rangeButton);
     if (window.labMonitorAuth?.has("system.read")) {
         actions.append(createActionLink("Data client", `/sensor-client.html?sensorId=${sensor.id}`));
-        actions.append(createActionLink("Connect iPhone", `/iphone-sensor.html?sensorId=${sensor.id}`));
+        if (supportsIPhoneClient(sensor)) {
+            actions.append(createActionLink("Connect iPhone", `/iphone-sensor.html?sensorId=${sensor.id}`));
+        }
     }
     if (canManage) actions.append(activityButton);
     cell.append(actions);
     return cell;
+}
+
+function supportsIPhoneClient(sensor) {
+    return sensor.type === "MOTION" || /\biphone\b/i.test(sensor.name || "");
 }
 
 function sensorReadingsUrl(sensor) {

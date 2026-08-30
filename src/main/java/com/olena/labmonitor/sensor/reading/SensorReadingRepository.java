@@ -11,6 +11,8 @@ import org.springframework.data.domain.Pageable;
 
 public interface SensorReadingRepository extends JpaRepository<SensorReading, Long> {
 
+    Optional<SensorReading> findBySourceDeviceIdAndMessageId(Long sourceDeviceId, String messageId);
+
     @Query("""
             select reading
             from SensorReading reading
