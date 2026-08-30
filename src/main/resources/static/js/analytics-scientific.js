@@ -105,13 +105,12 @@ function renderProblems(rooms, total) {
 }
 
 function renderSessions(sessions, organizationId) {
-    destroySessionCharts();
     const active = sessions.filter(item => item.status === "ACTIVE"), completed = sessions.filter(item => item.status === "COMPLETED" && item.startedAt);
     const choices = (active.length?active:completed).slice(0,4), isActive = active.length>0;
     const select = document.querySelector("#active-session-select"), state = document.querySelector("#active-session-state"), charts = document.querySelector("#active-session-charts"), dot = document.querySelector("#session-live-dot"), title = document.querySelector("#session-panel-title");
-    select.replaceChildren(); charts.replaceChildren(); dot.classList.toggle("inactive",!isActive);
+    select.replaceChildren(); dot.classList.toggle("inactive",!isActive);
     title.textContent = isActive?"LIVE MONITORING":choices.length?"LATEST COMPLETED SESSION":"LIVE MONITORING";
-    if (!choices.length) { select.classList.add("hidden"); state.classList.remove("hidden"); state.textContent="No session data yet. Start a monitoring session; its chart will appear after the first reading."; return; }
+    if (!choices.length) { destroySessionCharts(); charts.replaceChildren(); select.classList.add("hidden"); state.classList.remove("hidden"); state.textContent="No session data yet. Start a monitoring session; its chart will appear after the first reading."; return; }
     select.classList.toggle("hidden",choices.length===1); choices.forEach(item=>select.append(new Option(`${item.name} · ${item.roomName}`,item.id)));
     const selected = choices.find(item=>String(item.id)===String(selectedSessionId))||choices[0]; selectedSessionId=selected.id; select.value=selected.id;
     select.onchange=()=>{selectedSessionId=Number(select.value); const session=choices.find(item=>item.id===selectedSessionId); if(session)loadSessionTimeline(session);};
@@ -119,9 +118,11 @@ function renderSessions(sessions, organizationId) {
 }
 
 async function loadSessionTimeline(session) {
-    const state=document.querySelector("#active-session-state"),container=document.querySelector("#active-session-charts"); destroySessionCharts(); container.replaceChildren(); state.classList.remove("hidden"); state.textContent="Loading session readings…";
+    const state=document.querySelector("#active-session-state"),container=document.querySelector("#active-session-charts");
+    if (!sessionCharts.length) { state.classList.remove("hidden"); state.textContent="Loading session readings…"; }
     try { const timeline=await request(`/api/monitoring-sessions/${session.id}/timeline`); if(String(selectedSessionId)!==String(session.id))return;
-        if(!timeline.readings.length){state.textContent="No sensor readings were recorded during this session.";return;} state.classList.add("hidden");
+        destroySessionCharts(); container.replaceChildren();
+        if(!timeline.readings.length){state.classList.remove("hidden");state.textContent="No sensor readings were recorded during this session.";return;} state.classList.add("hidden");
         const groups=new Map(); timeline.readings.forEach(reading=>{const unit=reading.unit||"Value";if(!groups.has(unit))groups.set(unit,[]);groups.get(unit).push(reading);});
         groups.forEach((readings,unit)=>{const section=document.createElement("section");section.className="scientific-session-chart";const heading=document.createElement("h3");heading.textContent=unit==="Value"?"Sensor values":unit;const holder=document.createElement("div");holder.className="scientific-session-canvas";const canvas=document.createElement("canvas");holder.append(canvas);section.append(heading,holder);container.append(section);const count=new Set(readings.map(item=>item.sensorId)).size;sessionCharts.push(LabMonitorSessionChart.create(canvas,timeline,readings,{showLegend:count>1}));});
     } catch(error){state.textContent=error.message;}
