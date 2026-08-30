@@ -1,74 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Overview | LabMonitor</title>
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-<header class="topbar"><a class="brand" href="/">LabMonitor</a><span class="subtitle">Overview</span></header>
-<main class="page dashboard-page">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Overview | LabMonitor</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/analytics-scientific.css"></head>
+<body class="scientific-overview-page has-app-sidebar">
+<header class="topbar"><a class="brand" href="/analytics.html">LabMonitor</a><span class="subtitle">Overview</span></header>
+<main class="page dashboard-page scientific-overview">
     <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
-    <section class="dashboard-heading">
-        <div><p class="eyebrow">Overview</p><h1 id="overview-title">Laboratory overview</h1><p id="overview-intro" class="intro">Operational status across your accessible laboratory resources.</p></div>
-        <span id="updated-at" class="updated-at"></span>
-    </section>
-    <div id="page-message" class="message hidden" role="alert"></div>
-    <p id="loading-state" class="state">Loading overview...</p>
+    <section class="scientific-page-heading"><div><h1 id="overview-title">Overview</h1><p id="overview-intro">Operational overview of your monitored environments</p></div><div class="scientific-heading-meta"><span id="updated-at">Updated —</span><button id="refresh-overview" class="scientific-refresh" type="button" aria-label="Refresh overview">↻</button></div></section>
+    <div id="page-message" class="message hidden" role="alert"></div><p id="loading-state" class="state scientific-loading">Loading operational overview...</p>
     <div id="analytics-content" class="hidden">
-        <section id="role-metric-grid" class="dashboard-summary-grid" aria-label="Operational summary"></section>
-        <div class="dashboard-grid">
-            <section id="attention-section" class="panel dashboard-panel dashboard-panel-wide">
-                <div class="panel-heading"><div><p class="panel-kicker">Operations</p><h2>Needs attention</h2></div><a class="text-link" href="/alerts.html">View all alerts</a></div>
-                <div id="healthy-state" class="healthy-state hidden"><strong>Everything looks healthy</strong><span>No unresolved room alerts require action.</span></div>
-                <div id="problem-list" class="problem-list dashboard-problem-list"></div>
-            </section>
-            <section class="panel dashboard-panel">
-                <div class="panel-heading"><div><p class="panel-kicker">Live work</p><h2>Active sessions</h2></div><a class="text-link" href="/monitoring-sessions.html">View all</a></div>
-                <div id="active-session-list" class="dashboard-list"><p class="state">Loading sessions...</p></div>
-            </section>
-            <section class="panel dashboard-panel">
-                <div class="panel-heading"><div><p class="panel-kicker">Latest</p><h2>Recent activity</h2></div><a class="text-link" href="/history.html">History</a></div>
-                <div id="recent-activity-list" class="dashboard-list"><p class="state">Loading activity...</p></div>
-            </section>
-            <section id="status-panel" class="panel dashboard-panel">
-                <div class="panel-heading"><div><p class="panel-kicker">Environment</p><h2 id="status-panel-title">System status</h2></div></div>
-                <div id="status-panel-content" class="status-list"></div>
-            </section>
-            <section class="panel dashboard-panel">
-                <div class="panel-heading"><div><p class="panel-kicker">Shortcuts</p><h2 id="quick-actions-title">Quick actions</h2></div></div>
-                <div id="quick-action-list" class="quick-action-list"></div>
-            </section>
-        </div>
-
-        <section class="panel dashboard-history-panel">
-            <div class="panel-heading"><div><p class="panel-kicker">Trends</p><h2>Alert history</h2></div>
-                <div class="analytics-tabs" role="tablist" aria-label="Analytics period">
-                    <button class="analytics-tab active" type="button" data-view="current">Now</button>
-                    <button class="analytics-tab" type="button" data-view="history" data-period="LAST_24_HOURS">24h</button>
-                    <button class="analytics-tab" type="button" data-view="history" data-period="LAST_7_DAYS">7d</button>
-                    <button class="analytics-tab" type="button" data-view="history" data-period="LAST_30_DAYS">30d</button>
-                </div>
-            </div>
-            <div id="current-view" class="compact-status">
-                <a id="rooms-attention-link"><strong id="rooms-attention">0</strong><span id="rooms-context">Rooms requiring attention</span></a>
-                <a id="unacknowledged-alerts-link"><strong id="unacknowledged-alerts">0</strong><span>Unacknowledged alerts</span></a>
-                <a id="critical-alerts-link"><strong id="critical-alerts">0</strong><span>Critical alerts</span></a>
-                <a id="offline-sensors-link"><strong id="offline-sensors">0</strong><span>Offline sensors</span></a>
-            </div>
-            <div id="history-view" class="hidden">
-                <section class="metric-grid history-summary-grid">
-                    <article class="metric-card"><span class="metric-label">Alerts created</span><strong id="history-created" class="metric-value">0</strong></article>
-                    <article class="metric-card"><span class="metric-label">Critical</span><strong id="history-critical" class="metric-value">0</strong></article>
-                    <article class="metric-card"><span class="metric-label">Average response</span><strong id="average-response" class="metric-value metric-time">—</strong></article>
-                    <article class="metric-card"><span class="metric-label">Average resolution</span><strong id="average-resolution" class="metric-value metric-time">—</strong></article>
-                </section>
-                <div class="history-grid"><section><h3>Alerts over time</h3><div id="history-chart" class="history-chart"></div></section><section><h3>Most problematic rooms</h3><p id="history-empty" class="state hidden">No alerts in this period.</p><div id="history-room-list" class="history-room-list"></div></section></div>
-            </div>
+        <section class="scientific-panel scientific-status-panel" aria-labelledby="system-status-title"><div class="scientific-section-title"><h2 id="system-status-title">SYSTEM STATUS</h2><span class="scientific-info" title="Current state of resources available in the selected organization">i</span></div><div id="scientific-status-grid" class="scientific-status-grid"></div></section>
+        <section class="scientific-panel scientific-live-panel">
+            <div class="scientific-panel-heading"><div class="scientific-heading-left"><span id="session-live-dot" class="scientific-live-dot"></span><h2 id="session-panel-title">LIVE MONITORING</h2></div><div class="scientific-session-controls"><select id="active-session-select" aria-label="Monitoring session"></select><a id="sessions-link" href="/monitoring-sessions.html">View all sessions →</a></div></div>
+            <p id="active-session-state" class="state">Loading monitoring sessions…</p><div id="active-session-charts" class="scientific-session-charts"></div>
         </section>
+        <section id="attention-section" class="scientific-panel scientific-attention hidden"><div class="scientific-attention-heading"><div><span class="scientific-warning-icon">△</span><h2>ATTENTION REQUIRED</h2></div><a id="all-alerts-link" href="#">View all alerts →</a></div><div id="problem-list" class="scientific-problem-list"></div><a id="more-problems-link" class="scientific-more-link hidden" href="#"></a></section>
+        <section id="healthy-section" class="scientific-panel scientific-healthy hidden"><div class="scientific-healthy-icon">✓</div><div><p class="scientific-panel-kicker">CURRENT STATE</p><h2>ALL SYSTEMS NORMAL</h2><p>All monitored rooms are within their configured operating ranges and all accessible sensors are reporting normally.</p></div><a id="healthy-monitor-link" class="button button-primary" href="#">Open Monitor →</a></section>
+        <section id="empty-section" class="scientific-panel scientific-empty hidden"><div class="scientific-empty-icon">○</div><div><p class="scientific-panel-kicker">MONITORING</p><h2>NO MONITORED RESOURCES</h2><p>No accessible rooms or sensors are currently available for monitoring.</p></div></section>
+        <section class="scientific-lower-grid">
+            <section class="scientific-panel scientific-activity-panel"><div class="scientific-panel-heading"><h2>RECENT ACTIVITY</h2><a id="history-link" href="/history.html">View all →</a></div><div id="recent-activity-list" class="scientific-activity-list"></div></section>
+            <section class="scientific-panel scientific-trend-panel"><div class="scientific-trend-heading"><h2>ALERT TREND</h2><div class="scientific-tabs" role="tablist" aria-label="Alert trend period"><button class="scientific-tab active" type="button" data-period="LAST_24_HOURS">24h</button><button class="scientific-tab" type="button" data-period="LAST_7_DAYS">7d</button><button class="scientific-tab" type="button" data-period="LAST_30_DAYS">30d</button></div></div><p id="history-loading-state" class="state hidden">Loading alert trend…</p><div id="trend-content"><div class="scientific-trend-metrics"><div><strong id="history-created">0</strong><span>Created</span></div><div><strong id="average-response">—</strong><span>Avg response</span></div><div><strong id="average-resolution">—</strong><span>Avg resolution</span></div></div><div id="history-chart" class="scientific-chart" aria-label="Alerts over time"></div><p class="scientific-trend-note">Trend shows historical activity only, not current status.</p></div></section>
+        </section>
+        <footer class="scientific-footer"><span>© 2026 LabMonitor</span><span>All times shown in your local time zone</span></footer>
     </div>
 </main>
-<script src="/js/breadcrumbs.js"></script><script src="/js/api-client.js"></script><script src="/js/auth-context.js"></script><script src="/js/app-shell.js"></script><script src="/js/analytics.js"></script><script src="/js/alert-notifications.js"></script>
-</body>
-</html>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script><script src="/js/breadcrumbs.js"></script><script src="/js/api-client.js"></script><script src="/js/auth-context.js"></script><script src="/js/app-shell.js"></script><script src="/js/session-timeline-chart.js"></script><script src="/js/analytics-scientific.js"></script><script src="/js/alert-notifications.js"></script>
+</body></html>

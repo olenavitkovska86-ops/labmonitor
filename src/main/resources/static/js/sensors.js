@@ -38,6 +38,7 @@ const sensorTypeLabels = {
     CO2: "CO₂",
     SMOKE: "Smoke",
     MOTION: "Motion",
+    VIBRATION: "Vibration",
     DOOR: "Door",
     PRESSURE: "Pressure",
     LIGHT: "Light",
@@ -46,6 +47,26 @@ const sensorTypeLabels = {
     OCCUPANCY: "Occupancy",
     OTHER: "Other"
 };
+
+const defaultUnitsBySensorType = {
+    TEMPERATURE: "°C",
+    HUMIDITY: "%",
+    CO2: "ppm",
+    VIBRATION: "m/s²",
+    PRESSURE: "hPa",
+    LIGHT: "lx",
+    NOISE: "dB",
+    ENERGY: "kWh",
+    OCCUPANCY: "people"
+};
+
+function updateDefaultUnit() {
+    const previousDefault = defaultUnitsBySensorType[typeInput.dataset.previousType] || "";
+    if (!unitInput.value.trim() || unitInput.value === previousDefault) {
+        unitInput.value = defaultUnitsBySensorType[typeInput.value] || "";
+    }
+    typeInput.dataset.previousType = typeInput.value;
+}
 
 let roomsById = new Map();
 let labsById = new Map();
@@ -205,7 +226,7 @@ function createSensorLinkCell(sensor) {
     const cell = document.createElement("td");
     const link = document.createElement("a");
     link.className = "table-link";
-    link.href = `/sensor-readings.html?sensorId=${sensor.id}`;
+    link.href = sensorReadingsUrl(sensor);
     link.textContent = sensor.name;
     cell.append(link);
     return cell;
@@ -307,6 +328,8 @@ function createActionsCell(sensor) {
     const actions = document.createElement("div");
     actions.className = "row-actions";
 
+    actions.append(createActionLink("Readings", sensorReadingsUrl(sensor)));
+
     const editButton = createButton("Edit", "button button-secondary button-small");
     editButton.addEventListener("click", () => openEditForm(sensor));
 
@@ -326,11 +349,24 @@ function createActionsCell(sensor) {
     if (canUpdateSettings) actions.append(rangeButton);
     if (window.labMonitorAuth?.has("system.read")) {
         actions.append(createActionLink("Data client", `/sensor-client.html?sensorId=${sensor.id}`));
-        actions.append(createActionLink("Connect iPhone", `/iphone-sensor.html?sensorId=${sensor.id}`));
+        if (supportsMotionClient(sensor)) {
+            actions.append(createActionLink("Open motion client", `/motion-client.html?sensorId=${sensor.id}`));
+        }
     }
     if (canManage) actions.append(activityButton);
     cell.append(actions);
     return cell;
+}
+
+function supportsMotionClient(sensor) {
+    return sensor.type === "MOTION" || sensor.type === "VIBRATION"
+        || /\b(motion|accelerometer|vibration)\b/i.test(sensor.name || "");
+}
+
+function sensorReadingsUrl(sensor) {
+    const parameters = new URLSearchParams({sensorId: sensor.id});
+    if (sensor.organizationId) parameters.set("organizationId", sensor.organizationId);
+    return `/sensor-readings.html?${parameters}`;
 }
 
 function createActionLink(label, href) {
@@ -351,6 +387,7 @@ function createButton(label, className) {
 
 function openCreateForm() {
     form.reset();
+    typeInput.dataset.previousType = "";
     idInput.value = "";
     roomInput.disabled = false;
     typeInput.disabled = false;
@@ -368,6 +405,7 @@ function openEditForm(sensor) {
     roomInput.disabled = true;
     nameInput.value = sensor.name;
     typeInput.value = sensor.type;
+    typeInput.dataset.previousType = sensor.type;
     typeInput.disabled = true;
     unitInput.value = sensor.unit || "";
     formTitle.textContent = "Edit sensor";
@@ -578,6 +616,7 @@ roomFilter.addEventListener("change", () => {
     loadSensors();
 });
 exportRoomReadingsButton.addEventListener("click", exportRoomReadings);
+typeInput.addEventListener("change", updateDefaultUnit);
 form.addEventListener("submit", saveSensor);
 safeRangeForm.addEventListener("submit", saveSafeRange);
 

@@ -3,17 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect iPhone | LabMonitor</title>
+    <title>Motion client | LabMonitor</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<header class="topbar"><a class="brand" href="/">LabMonitor</a><span class="subtitle">iPhone accelerometer</span></header>
+<header class="topbar"><a class="brand" href="/">LabMonitor</a><span class="subtitle">Motion client</span></header>
 <main class="page acquisition-page">
     <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
-    <section class="dashboard-heading"><div><p class="eyebrow">External data source</p><h1 id="iphone-title">Connect iPhone</h1><p class="intro">Send an aggregated acceleration value through the existing SensorReading flow.</p></div></section>
+    <section class="dashboard-heading"><div><p class="eyebrow">External data source</p><h1 id="iphone-title">Connect motion client</h1><p id="iphone-intro" class="intro">Send an aggregated acceleration value to LabMonitor.</p></div></section>
     <div id="iphone-message" class="message hidden" role="alert"></div>
     <p id="iphone-loading" class="state">Loading sensor...</p>
     <section id="iphone-content" class="panel acquisition-panel hidden">
+        <div id="iphone-device-setup" class="form-panel hidden">
+            <label for="iphone-device-token">Device credential</label>
+            <input id="iphone-device-token" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="lmdev_…">
+            <p class="state">Paste the credential issued on the Devices page. It is kept only in this browser tab.</p>
+        </div>
         <div class="acquisition-facts">
             <div><span>Connection</span><strong id="iphone-state">Stopped</strong></div>
             <div><span>Current acceleration</span><strong id="iphone-current">—</strong></div>
@@ -27,6 +32,6 @@
         <p class="state">Keep this page open while collecting data. Values are RMS acceleration over 500 ms and are sent twice per second.</p>
     </section>
 </main>
-<script src="/js/breadcrumbs.js"></script><script src="/js/api-client.js"></script><script src="/js/auth-context.js"></script><script src="/js/app-shell.js"></script><script src="/js/iphone-sensor.js"></script><script src="/js/alert-notifications.js"></script>
+<script src="/js/breadcrumbs.js"></script><script src="/js/api-client.js"></script><script src="/js/motion-client.js"></script>
 </body>
 </html>

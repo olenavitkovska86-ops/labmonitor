@@ -4,6 +4,7 @@ const roomsApiUrl = "/api/rooms";
 const labsApiUrl = "/api/labs";
 const organizationsApiUrl = "/api/organizations";
 const sensorId = new URLSearchParams(window.location.search).get("sensorId");
+const requestedHours = Number(new URLSearchParams(window.location.search).get("hours"));
 
 const sensorTitle = document.querySelector("#sensor-title");
 const sensorDescription = document.querySelector("#sensor-description");
@@ -54,7 +55,9 @@ async function initializePage() {
     try {
         const configuration = await request("/api/config/monitoring");
         historyLimit = configuration.historyMaxResults;
-        selectedHours = configuration.defaultHistoryHours;
+        selectedHours = configuration.historyPeriodsHours.includes(requestedHours)
+            ? requestedHours
+            : configuration.defaultHistoryHours;
         renderHistoryPeriods(configuration.historyPeriodsHours);
         sensor = await request(`${sensorsApiUrl}/${sensorId}`);
         [room, lab, organization] = await Promise.all([

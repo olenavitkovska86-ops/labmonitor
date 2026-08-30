@@ -217,6 +217,7 @@ CREATE TABLE sensors (
                                              'CO2',
                                              'SMOKE',
                                              'MOTION',
+                                             'VIBRATION',
                                              'DOOR',
                                              'PRESSURE',
                                              'LIGHT',

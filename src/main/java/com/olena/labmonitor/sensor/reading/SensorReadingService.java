@@ -2,6 +2,7 @@ package com.olena.labmonitor.sensor.reading;
 
 import com.olena.labmonitor.alert.AlertService;
 import com.olena.labmonitor.common.exception.InvalidOperationException;
+import com.olena.labmonitor.device.Device;
 import com.olena.labmonitor.sensor.Sensor;
 import com.olena.labmonitor.sensor.SensorService;
 import com.olena.labmonitor.sensor.reading.dto.CreateSensorReadingRequest;
@@ -49,7 +50,33 @@ public class SensorReadingService {
                 ? LocalDateTime.now()
                 : request.measuredAt();
 
-        SensorReading reading = new SensorReading(sensor, request.value(), measuredAt);
+        return createForSensor(sensor, request.value(), measuredAt, null, null);
+    }
+
+    public SensorReadingResponse createFromDevice(
+            Sensor sensor,
+            java.math.BigDecimal value,
+            LocalDateTime measuredAt,
+            Device device,
+            String messageId
+    ) {
+        if (!sensor.isActive()) {
+            throw new InvalidOperationException(
+                    "Inactive sensor with id " + sensor.getId() + " cannot accept readings"
+            );
+        }
+        sensorService.requireOperationalParents(sensor, "accept a reading for sensor with id " + sensor.getId());
+        return createForSensor(sensor, value, measuredAt, device, messageId);
+    }
+
+    private SensorReadingResponse createForSensor(
+            Sensor sensor,
+            java.math.BigDecimal value,
+            LocalDateTime measuredAt,
+            Device device,
+            String messageId
+    ) {
+        SensorReading reading = new SensorReading(sensor, value, measuredAt, device, messageId);
         SensorReading savedReading = sensorReadingRepository.saveAndFlush(reading);
         LocalDateTime receivedAt = savedReading.getCreatedAt();
         // Every received packet proves liveness, but historical measurements must not rewrite current threshold state.

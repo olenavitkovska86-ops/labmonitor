@@ -9,6 +9,7 @@ import com.olena.labmonitor.organization.Organization;
 import com.olena.labmonitor.user.dto.CreateUserRequest;
 import com.olena.labmonitor.user.dto.UpdateUserRequest;
 import com.olena.labmonitor.user.dto.UserResponse;
+import com.olena.labmonitor.user.dto.ManagedUserResponse;
 import com.olena.labmonitor.user.dto.DemoteRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -57,18 +58,24 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserResponse> findAll(Long organizationId, String search) {
+        return findUsers(organizationId, search).stream().map(userMapper::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ManagedUserResponse> findAllManaged(Long organizationId, String search) {
+        return findUsers(organizationId, search).stream().map(ManagedUserResponse::forSuperAdmin).toList();
+    }
+
+    private List<User> findUsers(Long organizationId, String search) {
         boolean hasSearch = search != null && !search.isBlank();
-        List<User> users;
         if (organizationId != null && hasSearch) {
-            users = userRepository.searchByOrganizationId(organizationId, search.trim());
+            return userRepository.searchByOrganizationId(organizationId, search.trim());
         } else if (organizationId != null) {
-            users = userRepository.findByOrganizationId(organizationId);
+            return userRepository.findByOrganizationId(organizationId);
         } else if (hasSearch) {
-            users = userRepository.search(search.trim());
-        } else {
-            users = userRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+            return userRepository.search(search.trim());
         }
-        return users.stream().map(userMapper::toResponse).toList();
+        return userRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
     }
 
     public UserResponse promoteToSuperAdmin(Long userId) {

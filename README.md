@@ -44,14 +44,54 @@ A `SUPER_ADMIN` can open a data client for an individual sensor from the
 Sensors page and submit generated numeric measurements every five seconds or
 every minute. The page must remain open while readings are being sent.
 
-An experimental iPhone client is available from the same sensor actions. It
-uses browser motion data, calculates RMS acceleration over 500 ms, and submits
-the result through the standard reading endpoint. Motion access normally
-requires opening the application over HTTPS on the iPhone.
+An experimental motion client is available from `MOTION` sensors, explicitly
+named motion sensors (which may use the generic `OTHER` type), and channels of
+registered `DATA_CLIENT` devices. It uses browser motion data and calculates RMS
+acceleration over 500 ms. A sensor-launched client submits through the standard
+user-authenticated reading endpoint. A device-launched client accepts the
+one-time provisioned credential and submits through device ingestion. The token
+is held only in the open browser tab. Motion access requires opening the
+application over HTTPS on a mobile device.
 
 Both pages are ordinary API clients. The backend does not classify readings as
 generated, virtual, or physical: every accepted value follows the same
 `SensorReading` validation, storage, liveness, threshold, and alert flow.
+
+## Device ingestion
+
+Device ingestion can be configured by a `SUPER_ADMIN` from the **Devices** page.
+Existing browser data clients and demonstrations do not need to switch to device
+credentials; the current user-authenticated sensor ingestion flow remains unchanged.
+
+A `SUPER_ADMIN` can register a device, assign its channel keys to sensors, and
+provision a device credential. The raw credential is returned only when it is
+provisioned or rotated; only its BCrypt hash is stored. Devices submit readings
+with `Authorization: Device <token>` to:
+
+```text
+POST /api/device/readings
+```
+
+The request contains `channel`, `value`, `measuredAt`, and a device-scoped
+`messageId`. Repeating the same `messageId` for one device returns the original
+reading as `already_processed` instead of storing a duplicate. User-authenticated
+ingestion through `POST /api/sensor-readings` remains available.
+
+Device administration endpoints are restricted to `SUPER_ADMIN`:
+
+```text
+POST /api/devices
+GET  /api/devices
+GET  /api/devices/{deviceId}
+PATCH /api/devices/{deviceId}/status
+PUT  /api/devices/{deviceId}/sensors/{sensorId}
+GET  /api/devices/{deviceId}/channels
+DELETE /api/devices/{deviceId}/sensors/{sensorId}
+GET  /api/devices/{deviceId}/credentials
+POST /api/devices/{deviceId}/credentials/provision
+POST /api/devices/{deviceId}/credentials/rotate
+POST /api/devices/{deviceId}/credentials/{credentialId}/revoke
+```
 
 Active sensors are checked for missing readings every 10 seconds. A sensor that
 has not reported for two minutes is marked offline and creates one

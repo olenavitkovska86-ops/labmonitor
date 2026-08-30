@@ -135,11 +135,9 @@ SUPER_ADMIN = LAB_ADMIN + system structure and user management
 
 ## NEW — proposed LAB_ADMIN responsibility model (2026-08-29)
 
-> **Status: PROPOSED / NOT FULLY IMPLEMENTED.** This section records a new
-> product and authorization decision for team review. Items marked
-> `IMPLEMENTED` describe the current application. Items marked `PROPOSED`
-> require separate backend and frontend work before they can be treated as
-> available functionality.
+> **Status: PARTIALLY IMPLEMENTED.** Scoped team access is available to
+> organization `LAB_ADMIN` memberships. Structural and metadata configuration
+> remains a `SUPER_ADMIN` responsibility.
 
 ### Role purpose
 
@@ -172,12 +170,12 @@ The current application does not allow a `LAB_ADMIN` to:
 The following capabilities are considered appropriate for this role but are
 not yet implemented:
 
-- edit non-structural lab and room metadata, such as description or location,
-  inside the granted scope — `PROPOSED`
+- editing lab and room metadata remains restricted to `SUPER_ADMIN`
 - view the members of their own organization without access to global user
-  administration — `PROPOSED`
+  administration; scoped admins see only limited employees whose access
+  intersects their own — `IMPLEMENTED`
 - assign existing organization members to labs or rooms inside the admin's
-  scope, without creating users or changing global roles — `PROPOSED`
+  scope, without creating users or changing roles — `IMPLEMENTED`
 
 Creating or deleting structural resources, inviting or disabling users,
 changing global roles, and managing other organizations remain
@@ -190,10 +188,8 @@ navigation:
 
 - `Users & access` — visible only to `SUPER_ADMIN`
 - `Sensor settings` — visible to `SUPER_ADMIN` and `LAB_ADMIN`
-- `Lab configuration` — visible to `LAB_ADMIN` only after the proposed
-  metadata permissions are implemented
-- `Team access` — visible only after scoped organization-member management is
-  implemented
+- `Users & access` — shared role-aware page: global administration for
+  `SUPER_ADMIN`, scoped team assignments for `LAB_ADMIN`
 
 The contextual `Sensor settings` action in Monitor should remain available;
 the administration entry is an additional discovery path, not a replacement.

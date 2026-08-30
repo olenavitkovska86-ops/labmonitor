@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devices | LabMonitor</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar"><a class="brand" href="/">LabMonitor</a><span class="subtitle">Device administration</span></header>
+<main class="page">
+    <nav class="breadcrumbs" aria-label="Breadcrumb"><a class="breadcrumb-link" href="/">Home</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Devices</span></nav>
+    <section class="hero">
+        <div><p class="eyebrow">Administration</p><h1>Devices</h1><p class="intro">Connect gateways, physical sensors, and data clients to LabMonitor.</p></div>
+        <button id="show-device-form" class="button button-primary" type="button">Add device</button>
+    </section>
+    <div id="device-message" class="message hidden" role="status"></div>
+
+    <section id="device-form-panel" class="panel form-panel hidden">
+        <div class="panel-heading"><h2>New device</h2><button id="close-device-form" class="icon-button" type="button" aria-label="Close">&times;</button></div>
+        <form id="device-form">
+            <div class="form-grid">
+                <div><label for="device-name">Name</label><input id="device-name" maxlength="150" required></div>
+                <div><label for="device-organization">Organization</label><select id="device-organization" required></select></div>
+                <div><label for="device-lab">Laboratory</label><select id="device-lab" required></select></div>
+                <div><label for="device-room">Room</label><select id="device-room" required></select></div>
+                <div><label for="device-type">Device type</label><select id="device-type"><option value="PHYSICAL_SENSOR">Physical sensor</option><option value="GATEWAY">Gateway</option><option value="DATA_CLIENT">Data client</option><option value="BROWSER_SIMULATOR">Browser simulator</option><option value="CLI_SIMULATOR">CLI simulator</option></select><p class="state">What sends the readings. A data client can be any phone or browser-based collector.</p></div>
+            </div>
+            <div id="device-form-error" class="message message-error hidden" role="alert"></div>
+            <div class="form-actions"><button class="button button-primary" type="submit">Create device</button><button id="cancel-device-form" class="button button-secondary" type="button">Cancel</button></div>
+        </form>
+    </section>
+
+    <section id="device-details" class="panel hidden">
+        <div class="panel-heading"><div><p class="eyebrow">Device configuration</p><h2 id="device-details-title"></h2></div><button id="close-device-details" class="icon-button" type="button" aria-label="Close">&times;</button></div>
+        <div id="device-summary" class="manage-user-summary"></div>
+        <div class="form-actions"><button id="toggle-device-status" class="button button-secondary button-small" type="button"></button><button id="provision-credential" class="button button-primary button-small" type="button">Provision credential</button><button id="rotate-credential" class="button button-secondary button-small hidden" type="button">Rotate credential</button></div>
+
+        <div id="credential-token-panel" class="message hidden" role="status">
+            <strong>Copy this token now. It will not be shown again.</strong>
+            <div class="device-token-row"><code id="credential-token"></code><button id="copy-credential-token" class="button button-secondary button-small" type="button">Copy</button></div>
+        </div>
+
+        <div class="panel-heading"><h3>Sensor channels</h3><button id="show-sensor-channel-form" class="button button-secondary button-small" type="button">Add sensor channel</button></div>
+        <form id="channel-form" class="toolbar">
+            <label><span>Sensor</span><select id="channel-sensor" required></select></label>
+            <label><span>Channel key</span><input id="channel-key" maxlength="100" placeholder="Generated automatically" required><small class="field-hint">Technical identifier used by the device when sending data.</small></label>
+            <button class="button button-primary" type="submit">Assign channel</button>
+        </form>
+        <form id="sensor-channel-form" class="form-panel hidden">
+            <h3>New sensor channel</h3>
+            <p class="state">The sensor will be created directly in this device's room and assigned immediately.</p>
+            <div class="form-grid">
+                <div><label for="new-sensor-name">Sensor name</label><input id="new-sensor-name" maxlength="150" required></div>
+                <div><label for="new-sensor-type">Sensor type</label><select id="new-sensor-type" required><option value="TEMPERATURE">Temperature</option><option value="HUMIDITY">Humidity</option><option value="MOTION">Motion</option><option value="VIBRATION">Vibration</option><option value="CO2">CO₂</option><option value="PRESSURE">Pressure</option><option value="LIGHT">Light</option><option value="NOISE">Noise</option><option value="ENERGY">Energy</option><option value="OCCUPANCY">Occupancy</option><option value="DOOR">Door</option><option value="SMOKE">Smoke</option><option value="OTHER">Other</option></select></div>
+                <div><label for="new-sensor-unit">Unit</label><input id="new-sensor-unit" maxlength="30" placeholder="°C"></div>
+                <div><label for="new-sensor-channel">Channel key</label><input id="new-sensor-channel" maxlength="100" placeholder="Generated automatically" required><small class="field-hint">Generated from the sensor type; edit only if your device requires another key.</small></div>
+                <div><label for="new-sensor-min">Safe minimum</label><input id="new-sensor-min" type="number" step="any"></div>
+                <div><label for="new-sensor-max">Safe maximum</label><input id="new-sensor-max" type="number" step="any"></div>
+            </div>
+            <div class="form-actions"><button class="button button-primary" type="submit">Create and assign</button><button id="cancel-sensor-channel-form" class="button button-secondary" type="button">Cancel</button></div>
+        </form>
+        <p id="channels-empty" class="state">No channels assigned.</p>
+        <div id="channels-table" class="table-wrapper hidden"><table><thead><tr><th>Channel</th><th>Sensor</th><th>Room</th><th>Action</th></tr></thead><tbody id="channel-rows"></tbody></table></div>
+
+        <h3>Credentials</h3>
+        <p id="credentials-empty" class="state">No credentials issued.</p>
+        <div id="credentials-table" class="table-wrapper hidden"><table><thead><tr><th>ID</th><th>Status</th><th>Issued</th><th>Last used</th><th>Action</th></tr></thead><tbody id="credential-rows"></tbody></table></div>
+    </section>
+
+    <section class="panel">
+        <form id="device-filters" class="toolbar"><label><span>Organization</span><select id="device-filter-organization"><option value="">All organizations</option></select></label><label><span>Status</span><select id="device-filter-status"><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="DISABLED">Disabled</option></select></label></form>
+        <p id="devices-loading" class="state">Loading devices…</p><p id="devices-empty" class="state hidden">No devices found.</p>
+        <div id="devices-table" class="table-wrapper hidden"><table><thead><tr><th>Device</th><th>Organization</th><th>Laboratory / Room</th><th>Type</th><th>Status</th><th>Last seen</th><th>Action</th></tr></thead><tbody id="device-rows"></tbody></table></div>
+    </section>
+</main>
+<script src="/js/api-client.js"></script><script src="/js/auth-context.js"></script><script src="/js/app-shell.js"></script><script src="/js/devices.js"></script><script src="/js/alert-notifications.js"></script>
+</body>
+</html>

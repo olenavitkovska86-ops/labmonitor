@@ -1,5 +1,6 @@
 package com.olena.labmonitor.security;
 
+import com.olena.labmonitor.device.security.DeviceAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -31,16 +32,18 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final DeviceAuthenticationFilter deviceAuthenticationFilter;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, DeviceAuthenticationFilter deviceAuthenticationFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.deviceAuthenticationFilter = deviceAuthenticationFilter;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/auth/login")
+                        .ignoringRequestMatchers("/auth/login", "/api/device/**")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -51,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/login").permitAll()
                         .requestMatchers("/auth/logout").authenticated()
                         .requestMatchers("/auth/change-password").authenticated()
+                        .requestMatchers("/api/device/**").hasAuthority("DEVICE_INGEST")
                         .requestMatchers(HttpMethod.POST,"/admin/users").hasRole("SUPER_ADMIN")
                         .requestMatchers("/admin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/").permitAll()
@@ -60,12 +64,13 @@ public class SecurityConfig {
                         .requestMatchers("/**/*.html").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(deviceAuthenticationFilter, JwtAuthFilter.class);
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public static PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
     }
 

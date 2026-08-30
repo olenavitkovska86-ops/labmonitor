@@ -4,6 +4,7 @@ import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.common.exception.InvalidOperationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -40,6 +41,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleIllegalArgument(
             IllegalArgumentException ex){
         return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException exception) {
+        return buildError(HttpStatus.UNAUTHORIZED, "Invalid device credential", List.of());
     }
 
     private ResponseEntity<ApiError> buildError(HttpStatus status, String message, List<String> details) {
