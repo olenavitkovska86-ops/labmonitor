@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface DeviceCredentialRepository extends JpaRepository<DeviceCredential, Long> {
     List<DeviceCredential> findByDeviceIdAndStatus(Long deviceId, DeviceCredentialStatus status);
+    List<DeviceCredential> findByDeviceIdOrderByIssuedAtDesc(Long deviceId);
 }

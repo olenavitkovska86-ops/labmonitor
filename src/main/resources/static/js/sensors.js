@@ -38,6 +38,7 @@ const sensorTypeLabels = {
     CO2: "CO₂",
     SMOKE: "Smoke",
     MOTION: "Motion",
+    VIBRATION: "Vibration",
     DOOR: "Door",
     PRESSURE: "Pressure",
     LIGHT: "Light",
@@ -46,6 +47,26 @@ const sensorTypeLabels = {
     OCCUPANCY: "Occupancy",
     OTHER: "Other"
 };
+
+const defaultUnitsBySensorType = {
+    TEMPERATURE: "°C",
+    HUMIDITY: "%",
+    CO2: "ppm",
+    VIBRATION: "m/s²",
+    PRESSURE: "hPa",
+    LIGHT: "lx",
+    NOISE: "dB",
+    ENERGY: "kWh",
+    OCCUPANCY: "people"
+};
+
+function updateDefaultUnit() {
+    const previousDefault = defaultUnitsBySensorType[typeInput.dataset.previousType] || "";
+    if (!unitInput.value.trim() || unitInput.value === previousDefault) {
+        unitInput.value = defaultUnitsBySensorType[typeInput.value] || "";
+    }
+    typeInput.dataset.previousType = typeInput.value;
+}
 
 let roomsById = new Map();
 let labsById = new Map();
@@ -328,8 +349,8 @@ function createActionsCell(sensor) {
     if (canUpdateSettings) actions.append(rangeButton);
     if (window.labMonitorAuth?.has("system.read")) {
         actions.append(createActionLink("Data client", `/sensor-client.html?sensorId=${sensor.id}`));
-        if (supportsIPhoneClient(sensor)) {
-            actions.append(createActionLink("Connect iPhone", `/iphone-sensor.html?sensorId=${sensor.id}`));
+        if (supportsMotionClient(sensor)) {
+            actions.append(createActionLink("Open motion client", `/motion-client.html?sensorId=${sensor.id}`));
         }
     }
     if (canManage) actions.append(activityButton);
@@ -337,8 +358,9 @@ function createActionsCell(sensor) {
     return cell;
 }
 
-function supportsIPhoneClient(sensor) {
-    return sensor.type === "MOTION" || /\biphone\b/i.test(sensor.name || "");
+function supportsMotionClient(sensor) {
+    return sensor.type === "MOTION" || sensor.type === "VIBRATION"
+        || /\b(motion|accelerometer|vibration)\b/i.test(sensor.name || "");
 }
 
 function sensorReadingsUrl(sensor) {
@@ -365,6 +387,7 @@ function createButton(label, className) {
 
 function openCreateForm() {
     form.reset();
+    typeInput.dataset.previousType = "";
     idInput.value = "";
     roomInput.disabled = false;
     typeInput.disabled = false;
@@ -382,6 +405,7 @@ function openEditForm(sensor) {
     roomInput.disabled = true;
     nameInput.value = sensor.name;
     typeInput.value = sensor.type;
+    typeInput.dataset.previousType = sensor.type;
     typeInput.disabled = true;
     unitInput.value = sensor.unit || "";
     formTitle.textContent = "Edit sensor";
@@ -592,6 +616,7 @@ roomFilter.addEventListener("change", () => {
     loadSensors();
 });
 exportRoomReadingsButton.addEventListener("click", exportRoomReadings);
+typeInput.addEventListener("change", updateDefaultUnit);
 form.addEventListener("submit", saveSensor);
 safeRangeForm.addEventListener("submit", saveSafeRange);
 

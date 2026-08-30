@@ -1,6 +1,6 @@
 package com.olena.labmonitor.device;
 
-import com.olena.labmonitor.organization.Organization;
+import com.olena.labmonitor.room.Room;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -16,8 +16,8 @@ public class Device {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "organization_id", nullable = false)
-    private Organization organization;
+    @JoinColumn(name = "room_id", nullable = false)
+    private Room room;
 
     @Column(nullable = false, length = 150)
     private String name;
@@ -44,14 +44,14 @@ public class Device {
     protected Device() {
     }
 
-    public Device(Organization organization, String name, DeviceType type) {
-        this.organization = organization;
+    public Device(Room room, String name, DeviceType type) {
+        this.room = room;
         this.name = name;
         this.type = type;
     }
 
     public Long getId() { return id; }
-    public Organization getOrganization() { return organization; }
+    public Room getRoom() { return room; }
     public String getName() { return name; }
     public DeviceType getType() { return type; }
     public DeviceStatus getStatus() { return status; }

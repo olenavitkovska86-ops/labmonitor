@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface SensorRepository extends JpaRepository<Sensor, Long> {
 
     Optional<Sensor> findByDeviceIdAndChannelKey(Long deviceId, String channelKey);
+    List<Sensor> findByDeviceId(Long deviceId);
 
     long countByRoomLabOrganizationIdAndActiveTrueAndStatus(Long organizationId, SensorStatus status);
 

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 
 @Service
 @Transactional
@@ -50,7 +50,7 @@ public class DeviceIngestionService {
             throw new BadCredentialsException("Device is disabled");
         }
 
-        LocalDateTime receivedAt = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime receivedAt = LocalDateTime.now();
         SensorReading existing = readingRepository
                 .findBySourceDeviceIdAndMessageId(device.getId(), request.messageId()).orElse(null);
         device.recordSeen(receivedAt);
@@ -64,7 +64,8 @@ public class DeviceIngestionService {
         Sensor sensor = sensorRepository.findByDeviceIdAndChannelKey(device.getId(), channel)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Channel '" + channel + "' is not configured for this device"));
-        LocalDateTime measuredAt = request.measuredAt().withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime();
+        LocalDateTime measuredAt = request.measuredAt()
+                .atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
         SensorReadingResponse reading = readingService.createFromDevice(
                 sensor, request.value(), measuredAt, device, request.messageId());
         return new DeviceReadingResponse("accepted", reading.id(), reading.sensorId(),

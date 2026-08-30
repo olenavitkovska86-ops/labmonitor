@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -85,6 +87,21 @@ class DeviceIngestionFlowTests {
         assertThat(readingRepository.findBySourceDeviceIdAndMessageId(
                 fixture.device.getId(), "same-message").orElseThrow().getValue())
                 .isEqualByComparingTo("22.1");
+    }
+
+    @Test
+    void offsetTimestampIsStoredInTheApplicationsLocalTimeline() throws Exception {
+        Fixture fixture = fixture("timezone", false);
+        String token = credentialService.provision(fixture.device.getId()).token();
+
+        mockMvc.perform(deviceReading(token, "temperature", "22.1", "timezone-message"))
+                .andExpect(status().isOk());
+
+        LocalDateTime measuredAt = readingRepository.findBySourceDeviceIdAndMessageId(
+                fixture.device.getId(), "timezone-message").orElseThrow().getMeasuredAt();
+        assertThat(measuredAt).isBetween(
+                LocalDateTime.now(ZoneId.systemDefault()).minusMinutes(2),
+                LocalDateTime.now(ZoneId.systemDefault()));
     }
 
     @Test
@@ -225,7 +242,7 @@ class DeviceIngestionFlowTests {
         Lab lab = labRepository.save(new Lab(organization, "Lab " + suffix, null, null));
         Room room = roomRepository.save(new Room(lab, "Room " + suffix,
                 RoomType.EXPERIMENT_ROOM, 1, BigDecimal.TEN));
-        Device device = deviceRepository.save(new Device(organization, "Device " + suffix,
+        Device device = deviceRepository.save(new Device(room, "Device " + suffix,
                 DeviceType.BROWSER_SIMULATOR));
         Sensor temperature = new Sensor(room, "Temperature " + suffix, SensorType.TEMPERATURE, "C");
         temperature.assignDeviceChannel(device, "temperature");

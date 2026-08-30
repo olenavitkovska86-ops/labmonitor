@@ -6,6 +6,7 @@ public enum SensorType {
     CO2,
     SMOKE,
     MOTION,
+    VIBRATION,
     DOOR,
     PRESSURE,
     LIGHT,

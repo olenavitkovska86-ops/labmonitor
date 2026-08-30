@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.List;
 
 @Service
 @Transactional
@@ -58,6 +59,13 @@ public class DeviceCredentialService {
         }
         credential.revoke(now());
         return DeviceCredentialResponse.from(credentialRepository.saveAndFlush(credential));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DeviceCredentialResponse> findAll(Long deviceId) {
+        deviceService.getExistingDevice(deviceId);
+        return credentialRepository.findByDeviceIdOrderByIssuedAtDesc(deviceId).stream()
+                .map(DeviceCredentialResponse::from).toList();
     }
 
     @Transactional(readOnly = true)

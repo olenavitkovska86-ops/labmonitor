@@ -30,12 +30,14 @@
     labAdministrationLink.classList.add("hidden");
     const roomAdministrationLink = createLink({label: "Rooms", icon: "□", href: "/rooms.html", paths: ["/rooms.html"]});
     roomAdministrationLink.classList.add("hidden");
-    const sensorAdministrationLink = createLink({label: "Sensors", icon: "⌁", href: "/sensors.html", paths: ["/sensors.html", "/sensor-client.html", "/iphone-sensor.html"]});
+    const sensorAdministrationLink = createLink({label: "Sensors", icon: "⌁", href: "/sensors.html", paths: ["/sensors.html", "/sensor-client.html", "/motion-client.html"]});
     sensorAdministrationLink.classList.add("hidden");
+    const deviceAdministrationLink = createLink({label: "Devices", icon: "◉", href: "/devices.html", paths: ["/devices.html"]});
+    deviceAdministrationLink.classList.add("hidden");
     const administrationLink = createLink({label: "Users & access", icon: "♙", href: "/administration.html", paths: ["/administration.html"]});
     administrationLink.classList.add("hidden");
     sidebar.append(brand, navigation, administrationLabel, organizationAdministrationLink,
-        labAdministrationLink, roomAdministrationLink, sensorAdministrationLink, administrationLink);
+        labAdministrationLink, roomAdministrationLink, sensorAdministrationLink, deviceAdministrationLink, administrationLink);
     topbar.insertAdjacentElement("afterend", sidebar);
     document.body.classList.add("has-app-sidebar");
 
@@ -66,6 +68,7 @@
         labAdministrationLink.classList.toggle("hidden", !canManageLabs);
         roomAdministrationLink.classList.toggle("hidden", !canManageRooms);
         sensorAdministrationLink.classList.toggle("hidden", !canAdministerSensors);
+        deviceAdministrationLink.classList.toggle("hidden", !canManageUsers);
         administrationLink.classList.toggle("hidden", !canManageUsers && !canManageTeam);
         if (!context) return;
         const organizations = await apiRequest("/api/organizations");
@@ -117,6 +120,7 @@
         roomAdministrationLink.classList.add("hidden");
         administrationLink.classList.add("hidden");
         sensorAdministrationLink.classList.add("hidden");
+        deviceAdministrationLink.classList.add("hidden");
     });
 
     function createLabel(text) {

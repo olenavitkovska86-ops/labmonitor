@@ -108,7 +108,7 @@ class DeviceConcurrencyTests {
             Room room = roomRepository.save(new Room(lab, "Concurrent Room " + suffix,
                     RoomType.EXPERIMENT_ROOM, 1, BigDecimal.TEN));
             Device device = deviceRepository.save(new Device(
-                    organization, "Concurrent Device " + suffix, DeviceType.GATEWAY));
+                    room, "Concurrent Device " + suffix, DeviceType.GATEWAY));
             Sensor sensor = new Sensor(room, "Concurrent Temperature " + suffix,
                     SensorType.TEMPERATURE, "C");
             sensor.assignDeviceChannel(device, "temperature");

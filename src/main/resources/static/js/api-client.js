@@ -3,6 +3,10 @@ async function apiFetch(url, options = {}) {
     const headers = new Headers(options.headers || {});
     if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
         const csrfResponse = await fetch("/api/csrf", {cache: "no-store"});
+        if (csrfResponse.status === 401) {
+            if (window.location.pathname !== "/login.html") window.location.href = "/login.html";
+            throw new Error("Your session has expired. Please sign in again.");
+        }
         if (!csrfResponse.ok) throw new Error("Unable to initialize request security.");
         const csrf = await csrfResponse.json();
         headers.set(csrf.headerName, csrf.token);

@@ -44,11 +44,14 @@ A `SUPER_ADMIN` can open a data client for an individual sensor from the
 Sensors page and submit generated numeric measurements every five seconds or
 every minute. The page must remain open while readings are being sent.
 
-An experimental iPhone client is available from `MOTION` sensors and explicitly
-named iPhone sensors (which may use the generic `OTHER` type). It
-uses browser motion data, calculates RMS acceleration over 500 ms, and submits
-the result through the standard reading endpoint. Motion access normally
-requires opening the application over HTTPS on the iPhone.
+An experimental motion client is available from `MOTION` sensors, explicitly
+named motion sensors (which may use the generic `OTHER` type), and channels of
+registered `DATA_CLIENT` devices. It uses browser motion data and calculates RMS
+acceleration over 500 ms. A sensor-launched client submits through the standard
+user-authenticated reading endpoint. A device-launched client accepts the
+one-time provisioned credential and submits through device ingestion. The token
+is held only in the open browser tab. Motion access requires opening the
+application over HTTPS on a mobile device.
 
 Both pages are ordinary API clients. The backend does not classify readings as
 generated, virtual, or physical: every accepted value follows the same
@@ -56,9 +59,9 @@ generated, virtual, or physical: every accepted value follows the same
 
 ## Device ingestion
 
-Device ingestion is currently under development. Existing browser data clients
-and demonstrations do not need to switch to device credentials yet; the current
-user-authenticated sensor ingestion flow remains unchanged.
+Device ingestion can be configured by a `SUPER_ADMIN` from the **Devices** page.
+Existing browser data clients and demonstrations do not need to switch to device
+credentials; the current user-authenticated sensor ingestion flow remains unchanged.
 
 A `SUPER_ADMIN` can register a device, assign its channel keys to sensors, and
 provision a device credential. The raw credential is returned only when it is
@@ -78,7 +81,13 @@ Device administration endpoints are restricted to `SUPER_ADMIN`:
 
 ```text
 POST /api/devices
+GET  /api/devices
+GET  /api/devices/{deviceId}
+PATCH /api/devices/{deviceId}/status
 PUT  /api/devices/{deviceId}/sensors/{sensorId}
+GET  /api/devices/{deviceId}/channels
+DELETE /api/devices/{deviceId}/sensors/{sensorId}
+GET  /api/devices/{deviceId}/credentials
 POST /api/devices/{deviceId}/credentials/provision
 POST /api/devices/{deviceId}/credentials/rotate
 POST /api/devices/{deviceId}/credentials/{credentialId}/revoke

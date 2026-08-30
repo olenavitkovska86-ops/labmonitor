@@ -1406,6 +1406,9 @@ html, body { max-width: 100%; overflow-x: hidden; }
 }
 
 .app-sidebar-navigation { display: flex; flex-direction: column; gap: 4px; }
+
+.device-token-row { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+.device-token-row code { flex: 1; min-width: 0; overflow-wrap: anywhere; user-select: all; }
 .app-sidebar-link {
     display: flex;
     align-items: center;
@@ -1661,4 +1664,11 @@ html, body { max-width: 100%; overflow-x: hidden; }
     .dashboard-problem-list .problem-issue,
     .dashboard-problem-list .problem-age,
     .dashboard-problem-list .problem-card .button { grid-column: 2; }
+}
+.field-hint {
+    display: block;
+    margin-top: 0.35rem;
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.35;
 }

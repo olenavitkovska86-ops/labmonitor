@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/devices/{deviceId}/credentials")
 @PreAuthorize("hasRole('SUPER_ADMIN')")
@@ -14,6 +16,11 @@ public class DeviceCredentialController {
 
     public DeviceCredentialController(DeviceCredentialService credentialService) {
         this.credentialService = credentialService;
+    }
+
+    @GetMapping
+    public List<DeviceCredentialResponse> findAll(@PathVariable Long deviceId) {
+        return credentialService.findAll(deviceId);
     }
 
     @PostMapping("/provision")

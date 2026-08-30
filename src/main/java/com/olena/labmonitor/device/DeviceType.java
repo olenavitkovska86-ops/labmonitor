@@ -1,7 +1,7 @@
 package com.olena.labmonitor.device;
 
 public enum DeviceType {
-    IPHONE,
+    DATA_CLIENT,
     BROWSER_SIMULATOR,
     CLI_SIMULATOR,
     PHYSICAL_SENSOR,

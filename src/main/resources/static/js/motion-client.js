@@ -1,4 +1,7 @@
-const iphoneSensorId = new URLSearchParams(window.location.search).get("sensorId");
+const iphoneParameters = new URLSearchParams(window.location.search);
+const iphoneSensorId = iphoneParameters.get("sensorId");
+const iphoneDeviceChannel = iphoneParameters.get("channel");
+const iphoneDeviceMode = Boolean(iphoneDeviceChannel);
 const iphoneMessage = document.querySelector("#iphone-message");
 const iphoneStart = document.querySelector("#start-iphone");
 const iphoneStop = document.querySelector("#stop-iphone");
@@ -8,26 +11,43 @@ let readingsSent = 0;
 let sendingReading = false;
 
 async function initializeIphoneSensor() {
-    if (!iphoneSensorId) return showIphoneMessage("Select a sensor from the Sensors page.", true);
+    if (!iphoneSensorId && !iphoneDeviceMode) return showIphoneMessage("Open this client from a sensor or data-client channel.", true);
     try {
-        const auth = await labMonitorAuthReady;
-        if (!auth.has("system.read")) throw new Error("SUPER_ADMIN access is required for experimental reading ingestion.");
+        if (iphoneDeviceMode) {
+            renderBreadcrumbs([{label: "LabMonitor", href: "/"}, {label: "Motion client"}]);
+            document.querySelector("#iphone-title").textContent = `Motion client · ${iphoneDeviceChannel}`;
+            document.querySelector("#iphone-intro").textContent = "Authenticate as a device and send motion readings through the configured channel.";
+            document.querySelector("#iphone-device-setup").classList.remove("hidden");
+            revealIphoneContent();
+            return validateMotionEnvironment();
+        }
         const sensor = await apiRequest(`/api/sensors/${iphoneSensorId}`);
         renderBreadcrumbs([{label: "Overview", href: "/analytics.html"}, {label: "Monitor", href: "/monitor.html"},
-            {label: "Sensors", href: `/sensors.html?roomId=${sensor.roomId}`}, {label: "Connect iPhone"}]);
-        document.querySelector("#iphone-title").textContent = `Connect iPhone to ${sensor.name}`;
-        document.querySelector("#iphone-loading").classList.add("hidden");
-        document.querySelector("#iphone-content").classList.remove("hidden");
-        if (!window.isSecureContext) showIphoneMessage("Motion access normally requires HTTPS on iPhone.", true);
-        if (!("DeviceMotionEvent" in window)) showIphoneMessage("Device motion is not available in this browser.", true);
+            {label: "Sensors", href: `/sensors.html?roomId=${sensor.roomId}`}, {label: "Motion client"}]);
+        document.querySelector("#iphone-title").textContent = `Connect motion client to ${sensor.name}`;
+        revealIphoneContent();
+        validateMotionEnvironment();
     } catch (error) {
         document.querySelector("#iphone-loading").classList.add("hidden");
         showIphoneMessage(error.message, true);
     }
 }
 
+function revealIphoneContent() {
+    document.querySelector("#iphone-loading").classList.add("hidden");
+    document.querySelector("#iphone-content").classList.remove("hidden");
+}
+
+function validateMotionEnvironment() {
+    if (!window.isSecureContext) showIphoneMessage("Motion access requires HTTPS on mobile devices.", true);
+    else if (!("DeviceMotionEvent" in window)) showIphoneMessage("Device motion is not available in this browser.", true);
+}
+
 async function startIphoneMotion() {
     try {
+        if (iphoneDeviceMode && !document.querySelector("#iphone-device-token").value.trim()) {
+            throw new Error("Paste the device credential before starting.");
+        }
         if (typeof window.DeviceMotionEvent?.requestPermission === "function") {
             const permission = await window.DeviceMotionEvent.requestPermission();
             if (permission !== "granted") throw new Error("Motion permission was not granted.");
@@ -57,7 +77,8 @@ async function sendMotionReading() {
     const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
     sendingReading = true;
     try {
-        await apiRequest("/api/sensor-readings", {method: "POST", body: JSON.stringify({sensorId: Number(iphoneSensorId), value: Number(rms.toFixed(3))})});
+        if (iphoneDeviceMode) await sendDeviceMotionReading(rms);
+        else await apiRequest("/api/sensor-readings", {method: "POST", body: JSON.stringify({sensorId: Number(iphoneSensorId), value: Number(rms.toFixed(3))})});
         readingsSent += 1;
         document.querySelector("#iphone-sent").textContent = `${rms.toFixed(3)} m/s²`;
         document.querySelector("#iphone-count").textContent = String(readingsSent);
@@ -65,6 +86,23 @@ async function sendMotionReading() {
         stopIphoneMotion();
         showIphoneMessage(error.message, true);
     } finally { sendingReading = false; }
+}
+
+async function sendDeviceMotionReading(rms) {
+    const token = document.querySelector("#iphone-device-token").value.trim();
+    const measuredAt = new Date().toISOString();
+    const messageId = typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `iphone-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const response = await fetch("/api/device/readings", {
+        method: "POST",
+        headers: {"Authorization": `Device ${token}`, "Content-Type": "application/json"},
+        body: JSON.stringify({channel: iphoneDeviceChannel, value: Number(rms.toFixed(3)), measuredAt, messageId})
+    });
+    if (response.ok) return response.json();
+    const error = await response.json().catch(() => ({}));
+    if (response.status === 401) throw new Error("The device credential is invalid, revoked, or the device is disabled.");
+    throw new Error(error.message || `Reading was rejected (${response.status}).`);
 }
 
 function stopIphoneMotion() {
