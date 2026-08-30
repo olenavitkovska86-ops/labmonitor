@@ -3,33 +3,30 @@ const analyticsContent = document.querySelector("#analytics-content");
 const pageMessage = document.querySelector("#page-message");
 const problemList = document.querySelector("#problem-list");
 const healthyState = document.querySelector("#healthy-state");
-const currentView = document.querySelector("#current-view");
 const historyView = document.querySelector("#history-view");
 let selectedOrganizationId;
-let selectedHistoryPeriod = null;
+let selectedHistoryPeriod = "LAST_24_HOURS";
 let analyticsRefreshInProgress = false;
 let currentAuth;
 let accessibleOrganizations = [];
+let selectedActiveSessionId = null;
+let dashboardSessionChartInstances = [];
 
 async function request(url) {
     return apiRequest(url);
 }
 
-async function initialize() {
+async function initialize(organization) {
     hideMessage();
+    if (!organization) {
+        loadingState.textContent = "No organizations are available for your account.";
+        return;
+    }
     try {
         currentAuth = await labMonitorAuthReady;
-        accessibleOrganizations = await request("/api/organizations");
-        if (accessibleOrganizations.length === 0) {
-            loadingState.textContent = "Create an organization to start monitoring laboratory operations.";
-            return;
-        }
-
-        const requestedId = new URLSearchParams(window.location.search).get("organizationId");
-        const selected = accessibleOrganizations.find(organization => String(organization.id) === requestedId)
-            || accessibleOrganizations[0];
-        configureRoleCopy(currentAuth, selected.id);
-        await loadAnalytics(selected.id);
+        accessibleOrganizations = window.labMonitorOrganizationContext?.organizations || [];
+        configureRoleCopy(currentAuth, organization.id);
+        await loadAnalytics(organization.id);
     } catch (error) {
         loadingState.classList.add("hidden");
         showMessage(error.message);
@@ -47,15 +44,17 @@ async function loadAnalytics(organizationId, {silent = false} = {}) {
 
     try {
         const baseUrl = `/api/analytics/organizations/${organizationId}`;
-        const [overview, problemRooms, dashboard] = await Promise.all([
+        const [overview, problemRooms, dashboard, history] = await Promise.all([
             request(`${baseUrl}/overview`),
             request(`${baseUrl}/problem-rooms`),
-            loadDashboardData(organizationId)
+            loadDashboardData(organizationId),
+            request(`${baseUrl}/history?period=${selectedHistoryPeriod}`)
         ]);
         if (String(selectedOrganizationId) !== String(organizationId)) return;
         renderOverview(overview);
         renderProblemRooms(problemRooms);
-        renderRoleDashboard(overview, dashboard, organizationId);
+        renderRoleDashboard(overview, dashboard, problemRooms, organizationId);
+        renderHistory(history);
         analyticsContent.classList.remove("hidden");
         updateUrl(organizationId);
     } catch (error) {
@@ -71,7 +70,7 @@ async function loadDashboardData(organizationId) {
         request("/api/rooms"),
         request("/api/sensors"),
         request(`/api/alerts?organizationId=${organizationId}`),
-        request("/api/monitoring-sessions?status=ACTIVE")
+        request("/api/monitoring-sessions")
     ]);
     const rooms = allRooms.filter(room => String(room.organizationId) === String(organizationId));
     const sensors = allSensors.filter(sensor => String(sensor.organizationId) === String(organizationId));
@@ -97,47 +96,136 @@ function configureRoleCopy(auth, organizationId) {
     setText("#overview-intro", copy[1]);
 }
 
-function renderRoleDashboard(overview, data, organizationId) {
+function renderRoleDashboard(overview, data, problemRooms, organizationId) {
     const membership = currentAuth.membership(organizationId);
     const role = currentAuth.user.globalRole === "SUPER_ADMIN" ? "SUPER_ADMIN" : membership?.role || "LIMITED_EMPLOYEE";
     const openAlerts = data.alerts.filter(alert => alert.status !== "RESOLVED");
     const monitorUrl = `/monitor.html?organizationId=${organizationId}`;
     const alertsUrl = `/alerts.html?organizationId=${organizationId}`;
-    const metrics = role === "SUPER_ADMIN"
-        ? [["Organizations", accessibleOrganizations.length, false, "/organizations.html"], ["Labs", data.labs.length, false, `/labs.html?organizationId=${organizationId}`], ["Rooms", data.rooms.length, false, monitorUrl], ["Sensors", data.sensors.length, false, monitorUrl], ["Open alerts", openAlerts.length, true, alertsUrl]]
-        : role === "LAB_ADMIN"
-            ? [["Labs", data.labs.length, false, `/labs.html?organizationId=${organizationId}`], ["Rooms", data.rooms.length, false, monitorUrl], ["Sensors", data.sensors.length, false, monitorUrl], ["Open alerts", openAlerts.length, true, alertsUrl], ["My role", "Lab admin"]]
-            : [["My rooms", data.rooms.length, false, monitorUrl], ["My sensors", data.sensors.length, false, monitorUrl], ["Open alerts", openAlerts.length, true, alertsUrl], ["My access", scopeLabel(membership)]];
-    renderMetricCards(metrics);
-    renderSessions(data.sessions.filter(session => session.status === "ACTIVE").slice(0, 4));
+    renderSystemStatus(overview, data, problemRooms, openAlerts, monitorUrl, alertsUrl, organizationId);
+    const activeSessions = data.sessions.filter(session => session.status === "ACTIVE");
+    const completedSessions = data.sessions.filter(session => session.status === "COMPLETED" && session.startedAt);
+    renderSessions((activeSessions.length ? activeSessions : completedSessions).slice(0, 4), organizationId,
+        activeSessions.length ? "active" : completedSessions.length ? "completed" : "empty");
     renderRecentActivity(data.alerts.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 4), data);
     renderStatusPanel(role, overview, membership, data);
     renderQuickActions(role, organizationId);
 }
 
-function renderMetricCards(metrics) {
+function renderSystemStatus(overview, data, problemRoomDetails, openAlerts, monitorUrl, alertsUrl, organizationId) {
     const grid = document.querySelector("#role-metric-grid");
     grid.replaceChildren();
-    metrics.forEach(([label, value, attention, href]) => {
-        const card = document.createElement(href ? "a" : "article");
-        card.className = `dashboard-summary-card${attention ? " dashboard-summary-attention" : ""}`;
-        if (href) {
-            card.classList.add("dashboard-summary-link");
-            card.href = href;
-            card.setAttribute("aria-label", `${label}: ${value}`);
-        }
-        if (typeof value === "string") card.classList.add("dashboard-summary-text");
-        const name = document.createElement("span"); name.textContent = label;
-        const count = document.createElement("strong"); count.textContent = value;
-        const detail = document.createElement("small"); detail.textContent = attention ? "Requires review" : typeof value === "string" ? "Current assignment" : "Accessible now";
-        card.append(name, count, detail); grid.append(card);
+    const problemRooms = Number(overview.roomsRequiringAttention || 0);
+    const offlineSensors = Number(overview.offlineSensors || 0);
+    const roomsHref = problemRooms === 1 && problemRoomDetails.length === 1
+        ? `/alerts.html?organizationId=${organizationId}&roomId=${problemRoomDetails[0].roomId}&openOnly=true`
+        : problemRooms > 0 ? `/alerts.html?organizationId=${organizationId}&openOnly=true` : monitorUrl;
+    const sensorsHref = offlineSensors > 0 ? `${monitorUrl}&sensorStatus=OFFLINE` : monitorUrl;
+    const openAlertsHref = openAlerts.length > 0 ? `${alertsUrl}&openOnly=true` : alertsUrl;
+    const items = [
+        {label: "ROOMS", icon: "□", value: problemRooms || data.rooms.length,
+            state: problemRooms ? "need attention" : data.rooms.length ? "healthy" : "none available",
+            secondary: data.rooms.length, context: "accessible", attention: problemRooms > 0, href: roomsHref},
+        {label: "SENSORS", icon: "⌁", value: offlineSensors || data.sensors.length,
+            state: offlineSensors ? "offline" : data.sensors.length ? "online" : "none available",
+            secondary: data.sensors.length, context: "accessible", attention: offlineSensors > 0, href: sensorsHref},
+        {label: "ALERTS", icon: "△", value: openAlerts.length,
+            state: openAlerts.length ? "open" : "no open alerts",
+            secondary: Number(overview.criticalAlerts || 0), context: "critical", attention: openAlerts.length > 0, href: openAlertsHref}
+    ];
+    items.forEach(item => {
+        const card = document.createElement("a"); card.className = `dashboard-status-item${item.attention ? " dashboard-status-attention" : ""}`;
+        card.href = item.href; card.setAttribute("aria-label", `${item.label}: ${item.value} ${item.state}`);
+        const icon = document.createElement("span"); icon.className = "dashboard-status-icon"; icon.textContent = item.icon; icon.setAttribute("aria-hidden", "true");
+        const copy = document.createElement("span"); copy.className = "dashboard-status-copy";
+        const label = document.createElement("span"); label.className = "dashboard-status-label"; label.textContent = item.label;
+        const value = document.createElement("strong"); value.className = "dashboard-status-value"; value.textContent = item.value;
+        const state = document.createElement("span"); state.className = "dashboard-status-state"; state.textContent = item.state;
+        const divider = document.createElement("span"); divider.className = "dashboard-status-divider";
+        const secondary = document.createElement("strong"); secondary.className = "dashboard-status-secondary"; secondary.textContent = item.secondary;
+        const context = document.createElement("span"); context.className = "dashboard-status-context"; context.textContent = item.context;
+        copy.append(label, value, state, divider, secondary, context); card.append(icon, copy); grid.append(card);
     });
 }
 
-function renderSessions(sessions) {
-    const list = document.querySelector("#active-session-list"); list.replaceChildren();
-    if (!sessions.length) { list.innerHTML = '<p class="dashboard-empty">No active monitoring sessions.</p>'; return; }
-    sessions.forEach(session => list.append(createDashboardRow(session.name, session.roomName || `Room ${session.roomId}`, "Active", `/monitoring-sessions.html?sessionId=${session.id}`)));
+function renderSessions(sessions, organizationId, mode) {
+    const select = document.querySelector("#active-session-select");
+    const state = document.querySelector("#active-session-state");
+    const charts = document.querySelector("#active-session-charts");
+    const link = document.querySelector("#active-session-link");
+    const title = document.querySelector("#session-panel-title");
+    const kicker = document.querySelector("#session-panel-kicker");
+    dashboardSessionChartInstances.forEach(chart => chart.destroy());
+    dashboardSessionChartInstances = [];
+    select.replaceChildren(); charts.replaceChildren();
+    if (!sessions.length) {
+        selectedActiveSessionId = null;
+        setSessionKicker(kicker, "Monitoring", false); title.textContent = "Live monitoring";
+        select.classList.add("hidden"); link.textContent = "Start a session";
+        link.href = `/monitoring-sessions.html?organizationId=${organizationId}`;
+        state.textContent = "No session data yet. Start a monitoring session; its chart will appear after the first sensor reading."; state.classList.remove("hidden");
+        return;
+    }
+    const isActive = mode === "active";
+    setSessionKicker(kicker, isActive ? "Current session" : "Recent session", isActive);
+    title.textContent = isActive ? "Live monitoring" : "Latest completed session";
+    select.classList.toggle("hidden", sessions.length === 1);
+    sessions.forEach(session => select.append(new Option(`${session.name} · ${session.roomName || `Room ${session.roomId}`}`, session.id)));
+    const selected = sessions.find(session => String(session.id) === String(selectedActiveSessionId)) || sessions[0];
+    selectedActiveSessionId = selected.id; select.value = selected.id;
+    select.onchange = () => { selectedActiveSessionId = Number(select.value); const session = sessions.find(item => item.id === selectedActiveSessionId); if (session) loadActiveSessionChart(session, organizationId, isActive); };
+    loadActiveSessionChart(selected, organizationId, isActive);
+}
+
+function setSessionKicker(element, text, live) {
+    element.replaceChildren();
+    if (live) { const dot = document.createElement("i"); dot.setAttribute("aria-hidden", "true"); element.append(dot); }
+    element.append(text);
+}
+
+async function loadActiveSessionChart(session, organizationId, isActive) {
+    const state = document.querySelector("#active-session-state");
+    const charts = document.querySelector("#active-session-charts");
+    const link = document.querySelector("#active-session-link");
+    charts.replaceChildren(); state.textContent = "Loading session readings…"; state.classList.remove("hidden");
+    link.textContent = "Open session";
+    link.href = `/monitoring-sessions.html?organizationId=${organizationId}&sessionId=${session.id}`;
+    try {
+        const timeline = await request(`/api/monitoring-sessions/${session.id}/timeline`);
+        if (String(selectedActiveSessionId) !== String(session.id)) return;
+        renderActiveSessionCharts(timeline, charts);
+        state.classList.toggle("hidden", timeline.readings.length > 0);
+        if (!timeline.readings.length) state.textContent = isActive
+            ? "This session is active, but no sensor readings have been recorded since it started."
+            : "The latest completed session contains no sensor readings.";
+    } catch (error) {
+        state.textContent = error.message;
+    }
+}
+
+function renderActiveSessionCharts(timeline, container) {
+    dashboardSessionChartInstances.forEach(chart => chart.destroy());
+    dashboardSessionChartInstances = [];
+    const groups = new Map();
+    timeline.readings.forEach(reading => {
+        const unit = reading.unit || "Value";
+        if (!groups.has(unit)) groups.set(unit, []);
+        groups.get(unit).push(reading);
+    });
+    groups.forEach((readings, unit) => container.append(createSessionUnitChart(timeline, unit, readings)));
+}
+
+function createSessionUnitChart(timeline, unit, readings) {
+    const section = document.createElement("section"); section.className = "dashboard-session-chart";
+    const heading = document.createElement("div"); heading.className = "dashboard-session-chart-heading";
+    const title = document.createElement("h3"); title.textContent = unit === "Value" ? "Sensor values" : unit;
+    heading.append(title);
+    const sensors = new Map(); readings.forEach(reading => { if (!sensors.has(reading.sensorId)) sensors.set(reading.sensorId, []); sensors.get(reading.sensorId).push(reading); });
+    const chart = document.createElement("div"); chart.className = "dashboard-session-chart-canvas";
+    const canvas = document.createElement("canvas"); canvas.setAttribute("role", "img"); canvas.setAttribute("aria-label", `Session readings in ${unit}`);
+    chart.append(canvas); section.append(heading, chart);
+    dashboardSessionChartInstances.push(LabMonitorSessionChart.create(canvas, timeline, readings, {showLegend: sensors.size > 1}));
+    return section;
 }
 
 function renderRecentActivity(alerts, data) {
@@ -147,7 +235,7 @@ function renderRecentActivity(alerts, data) {
     const sensorNames = new Map(data.sensors.map(sensor => [sensor.id, sensor.name]));
     alerts.forEach(alert => {
         const location = sensorNames.get(alert.sensorId) || roomNames.get(alert.roomId) || "Monitoring alert";
-        list.append(createDashboardRow(alert.title, location, formatDate(alert.createdAt), `/alerts.html?roomId=${alert.roomId}`));
+        list.append(createDashboardRow(alert.title, location, formatDate(alert.createdAt), `/alerts.html?organizationId=${selectedOrganizationId}&roomId=${alert.roomId}`));
     });
 }
 
@@ -161,7 +249,9 @@ function createDashboardRow(titleText, detailText, metaText, href) {
 
 function renderStatusPanel(role, overview, membership, data) {
     const title = document.querySelector("#status-panel-title");
-    const content = document.querySelector("#status-panel-content"); content.replaceChildren();
+    const content = document.querySelector("#status-panel-content");
+    if (!title || !content) return;
+    content.replaceChildren();
     if (role === "LIMITED_EMPLOYEE") {
         title.textContent = "Access information";
         addStatus("Organization role", membership?.role?.replaceAll("_", " ") || "Employee");
@@ -184,7 +274,7 @@ function renderStatusPanel(role, overview, membership, data) {
 
 function renderQuickActions(role, organizationId) {
     const list = document.querySelector("#quick-action-list"); list.replaceChildren();
-    const actions = [[role === "LIMITED_EMPLOYEE" ? "Open my rooms" : "Open Monitor", `/monitor.html?organizationId=${organizationId}`], ["Review alerts", `/alerts.html?organizationId=${organizationId}`], ["Monitoring sessions", "/monitoring-sessions.html"]];
+    const actions = [[role === "LIMITED_EMPLOYEE" ? "Open my rooms" : "Open Monitor", `/monitor.html?organizationId=${organizationId}`], ["Review alerts", `/alerts.html?organizationId=${organizationId}`], ["Monitoring sessions", `/monitoring-sessions.html?organizationId=${organizationId}`]];
     if (currentAuth.has("users.manage")) actions.push(["Manage users & access", "/administration.html"]);
     actions.forEach(([label, href]) => { const link = document.createElement("a"); link.className = "quick-action"; link.href = href; link.textContent = `${label} →`; list.append(link); });
 }
@@ -200,11 +290,7 @@ async function refreshAnalytics() {
             || document.visibilityState !== "visible") return;
     analyticsRefreshInProgress = true;
     try {
-        const refreshes = [loadAnalytics(selectedOrganizationId, {silent: true})];
-        if (selectedHistoryPeriod && !historyView.classList.contains("hidden")) {
-            refreshes.push(loadHistory(selectedHistoryPeriod, {silent: true}));
-        }
-        await Promise.all(refreshes);
+        await loadAnalytics(selectedOrganizationId, {silent: true});
     } finally {
         analyticsRefreshInProgress = false;
     }
@@ -212,9 +298,9 @@ async function refreshAnalytics() {
 
 async function loadHistory(period, {silent = false} = {}) {
     selectedHistoryPeriod = period;
+    const panelLoading = document.querySelector("#history-loading-state");
     if (!silent) {
-        loadingState.textContent = "Loading alert history...";
-        loadingState.classList.remove("hidden");
+        panelLoading.classList.remove("hidden");
         historyView.classList.add("hidden");
         hideMessage();
     }
@@ -227,26 +313,18 @@ async function loadHistory(period, {silent = false} = {}) {
     } catch (error) {
         if (!silent) showMessage(error.message);
     } finally {
-        if (!silent) loadingState.classList.add("hidden");
+        if (!silent) panelLoading.classList.add("hidden");
     }
 }
 
 function renderOverview(overview) {
-    setText("#rooms-attention", overview.roomsRequiringAttention);
-    setText("#rooms-context", `of ${overview.totalRooms} rooms`);
-    setText("#unacknowledged-alerts", overview.unacknowledgedAlerts);
-    setText("#critical-alerts", overview.criticalAlerts);
-    setText("#offline-sensors", overview.offlineSensors);
     setText("#updated-at", `Updated ${formatUpdatedDate(overview.generatedAt)}`);
-    document.querySelector("#rooms-attention-link").href = `/monitor.html?organizationId=${selectedOrganizationId}`;
-    document.querySelector("#unacknowledged-alerts-link").href = `/alerts.html?organizationId=${selectedOrganizationId}&status=ACTIVE`;
-    document.querySelector("#critical-alerts-link").href = `/alerts.html?organizationId=${selectedOrganizationId}&severity=CRITICAL`;
-    document.querySelector("#offline-sensors-link").href = `/monitor.html?organizationId=${selectedOrganizationId}&sensorStatus=OFFLINE`;
 }
 
 function renderProblemRooms(rooms) {
     problemList.replaceChildren();
     healthyState.classList.toggle("hidden", rooms.length !== 0);
+    document.querySelector("#attention-section").classList.toggle("dashboard-attention-healthy", rooms.length === 0);
 
     for (const room of rooms) {
         const article = document.createElement("article");
@@ -254,7 +332,7 @@ function renderProblemRooms(rooms) {
         article.tabIndex = 0;
         article.setAttribute("role", "link");
         article.setAttribute("aria-label", `Review alerts for ${room.roomName}`);
-        const alertsHref = `/alerts.html?roomId=${room.roomId}`;
+        const alertsHref = `/alerts.html?organizationId=${selectedOrganizationId}&roomId=${room.roomId}`;
         article.addEventListener("click", event => {
             if (!event.target.closest("a, button")) window.location.assign(alertsHref);
         });
@@ -270,7 +348,7 @@ function renderProblemRooms(rooms) {
         location.className = "problem-location";
         const roomLink = document.createElement("a");
         roomLink.className = "problem-room-link";
-        roomLink.href = `/rooms.html?labId=${room.labId}`;
+        roomLink.href = `/rooms.html?organizationId=${selectedOrganizationId}&labId=${room.labId}`;
         roomLink.textContent = room.roomName;
         const labName = document.createElement("span");
         labName.textContent = room.labName;
@@ -344,7 +422,7 @@ function renderHistoryRooms(rooms) {
     for (const room of rooms) {
         const item = document.createElement("a");
         item.className = "history-room";
-        item.href = `/alerts.html?roomId=${room.roomId}`;
+        item.href = `/alerts.html?organizationId=${selectedOrganizationId}&roomId=${room.roomId}`;
         const identity = document.createElement("span");
         const name = document.createElement("strong");
         name.textContent = room.roomName;
@@ -417,17 +495,20 @@ document.querySelectorAll(".analytics-tab").forEach(tab => {
     tab.addEventListener("click", async () => {
         document.querySelectorAll(".analytics-tab").forEach(item => item.classList.remove("active"));
         tab.classList.add("active");
-        const isHistory = tab.dataset.view === "history";
-        currentView.classList.toggle("hidden", isHistory);
         historyView.classList.add("hidden");
-        if (isHistory) {
-            await loadHistory(tab.dataset.period);
-        } else {
-            selectedHistoryPeriod = null;
-            currentView.classList.remove("hidden");
-        }
+        await loadHistory(tab.dataset.period);
     });
 });
 renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Operational overview"}]);
-initialize();
+if (window.labMonitorOrganizationContext) {
+    initialize(window.labMonitorOrganizationContext.selected);
+} else {
+    document.addEventListener("labmonitor:organization-ready", event => initialize(event.detail), {once: true});
+}
 document.addEventListener("labmonitor:refresh", refreshAnalytics);
+document.querySelector("#refresh-overview").addEventListener("click", async event => {
+    if (analyticsRefreshInProgress) return;
+    event.currentTarget.classList.add("is-refreshing");
+    await refreshAnalytics();
+    event.currentTarget.classList.remove("is-refreshing");
+});

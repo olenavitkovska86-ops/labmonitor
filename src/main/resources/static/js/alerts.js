@@ -9,6 +9,7 @@ const filterForm = document.querySelector("#filter-form");
 const statusFilter = document.querySelector("#status-filter");
 const severityFilter = document.querySelector("#severity-filter");
 const alertsUpdatedAt = document.querySelector("#alerts-updated-at");
+const alertsContext = document.querySelector("#alerts-context");
 const resolutionPanel = document.querySelector("#resolution-panel");
 const resolutionForm = document.querySelector("#resolution-form");
 const resolutionAlertId = document.querySelector("#resolution-alert-id");
@@ -32,6 +33,8 @@ const detailsError = document.querySelector("#details-error");
 const initialParameters = new URLSearchParams(window.location.search);
 let openDetailsAlertId = null;
 let detailsRefreshInProgress = false;
+let selectedOrganizationId = null;
+let visibleAlertIds = new Set();
 
 async function request(url, options = {}) {
     return apiRequest(url, options);
@@ -54,7 +57,7 @@ async function loadAlerts({silent = false} = {}) {
 
     const parameters = new URLSearchParams();
     const pageParameters = new URLSearchParams(window.location.search);
-    if (pageParameters.get("organizationId")) parameters.set("organizationId", pageParameters.get("organizationId"));
+    if (selectedOrganizationId) parameters.set("organizationId", selectedOrganizationId);
     if (pageParameters.get("roomId")) parameters.set("roomId", pageParameters.get("roomId"));
     if (statusFilter.value) parameters.set("status", statusFilter.value);
     if (severityFilter.value) parameters.set("severity", severityFilter.value);
@@ -62,7 +65,11 @@ async function loadAlerts({silent = false} = {}) {
     try {
         const queryString = parameters.toString();
         const url = queryString ? `${alertsApiUrl}?${queryString}` : alertsApiUrl;
-        renderAlerts(await request(url));
+        const alerts = await request(url);
+        updateAlertsContext(alerts);
+        renderAlerts(pageParameters.get("openOnly") === "true" && !statusFilter.value
+            ? alerts.filter(alert => alert.status !== "RESOLVED")
+            : alerts);
         alertsUpdatedAt.textContent = `Auto-refresh on · Updated ${formatUpdateTime(new Date())}`;
     } catch (error) {
         showMessage(error.message, true);
@@ -71,8 +78,23 @@ async function loadAlerts({silent = false} = {}) {
     }
 }
 
+function updateAlertsContext(alerts) {
+    const requestedRoomId = Number(initialParameters.get("roomId"));
+    if (requestedRoomId) {
+        const roomAlert = alerts.find(alert => alert.roomId === requestedRoomId);
+        const roomName = roomAlert?.roomName || `Room ${requestedRoomId}`;
+        alertsContext.textContent = `Showing alerts for ${roomName}. Review, acknowledge and resolve issues in this room.`;
+        renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Alerts", href: `/alerts.html?organizationId=${selectedOrganizationId}`}, {label: roomName}]);
+    } else if (initialParameters.get("openOnly") === "true") {
+        alertsContext.textContent = "Showing unresolved alerts that still require monitoring or action.";
+    } else {
+        alertsContext.textContent = "Review, acknowledge and resolve laboratory alerts.";
+    }
+}
+
 function renderAlerts(alerts) {
     rows.replaceChildren();
+    visibleAlertIds = new Set(alerts.map(alert => alert.id));
 
     if (alerts.length === 0) {
         tableWrapper.classList.add("hidden");
@@ -89,6 +111,7 @@ function renderAlerts(alerts) {
             createCell(formatDate(alert.createdAt)),
             createBadgeCell(alert.severity, severityClass(alert.severity)),
             createBadgeCell(alert.status, statusClass(alert.status)),
+            createLocationCell(alert),
             createAlertCell(alert),
             createSensorCell(alert),
             createHandlingCell(alert),
@@ -98,6 +121,16 @@ function renderAlerts(alerts) {
     }
 
     tableWrapper.classList.remove("hidden");
+}
+
+function createLocationCell(alert) {
+    const cell = document.createElement("td");
+    const room = document.createElement("a"); room.className = "table-link";
+    room.href = `/alerts.html?organizationId=${selectedOrganizationId}&roomId=${alert.roomId}`;
+    room.textContent = alert.roomName || `Room ${alert.roomId}`;
+    const lab = document.createElement("div"); lab.className = "table-description";
+    lab.textContent = alert.labName || `Lab ${alert.labId}`;
+    cell.append(room, lab); return cell;
 }
 
 function createCell(value) {
@@ -134,8 +167,8 @@ function createSensorCell(alert) {
     }
     const link = document.createElement("a");
     link.className = "table-link";
-    link.href = `/sensor-readings.html?sensorId=${alert.sensorId}`;
-    link.textContent = `Sensor ${alert.sensorId}`;
+    link.href = `/sensor-readings.html?organizationId=${selectedOrganizationId}&sensorId=${alert.sensorId}`;
+    link.textContent = alert.sensorName || `Sensor ${alert.sensorId}`;
     cell.append(link);
     return cell;
 }
@@ -241,7 +274,7 @@ function renderAlertDetails(alert, history) {
     detailsSummary.replaceChildren(
         createDetailItem("Status", alert.status),
         createDetailItem("Severity", alert.severity),
-        createDetailItem("Location", `Lab ${alert.labId} · Room ${alert.roomId}`),
+        createDetailItem("Location", `${alert.labName || `Lab ${alert.labId}`} · ${alert.roomName || `Room ${alert.roomId}`}`),
         createDetailItem("Sensor", alert.sensorId == null ? "—" : `Sensor ${alert.sensorId}`),
         createDetailItem("Initial value", alert.initialValue ?? "—"),
         createDetailItem("Latest / most extreme", `${alert.latestValue ?? "—"} / ${alert.mostExtremeValue ?? "—"}`)
@@ -543,10 +576,22 @@ detailsDialog.addEventListener("close", () => {
 });
 
 renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Alerts"}]);
-loadAlerts().then(() => {
-    const requestedAlertId = new URLSearchParams(window.location.search).get("alertId");
-    if (requestedAlertId) openAlertDetails(requestedAlertId);
-});
+async function initializeAlerts(organization) {
+    if (!organization) {
+        loadingState.textContent = "No organizations are available for your account.";
+        return;
+    }
+    selectedOrganizationId = organization.id;
+    await loadAlerts();
+    const requestedAlertId = Number(new URLSearchParams(window.location.search).get("alertId"));
+    if (requestedAlertId && visibleAlertIds.has(requestedAlertId)) openAlertDetails(requestedAlertId);
+}
+
+if (window.labMonitorOrganizationContext) {
+    initializeAlerts(window.labMonitorOrganizationContext.selected);
+} else {
+    document.addEventListener("labmonitor:organization-ready", event => initializeAlerts(event.detail), {once: true});
+}
 
 document.addEventListener("labmonitor:refresh", () => {
     loadAlerts({silent: true});
