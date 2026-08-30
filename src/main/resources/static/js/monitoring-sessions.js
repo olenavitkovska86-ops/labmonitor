@@ -40,6 +40,8 @@ const timelineChart = document.querySelector("#timeline-chart");
 const timelineCanvas = document.querySelector("#timeline-canvas");
 
 let roomsById = new Map();
+let sessionsById = new Map();
+let selectedOrganizationId = null;
 let openSessionId = null;
 let timelineRefreshTimer = null;
 let timelineChartInstance = null;
@@ -64,16 +66,22 @@ async function request(url, options = {}) {
     return apiRequest(url, options);
 }
 
-async function initializePage() {
+async function initializePage(organization) {
     renderBreadcrumbs([{label: "Home", href: "/"}, {label: "Monitoring sessions"}]);
+    if (!organization) {
+        loadingState.textContent = "No organizations are available for your account.";
+        return;
+    }
+    selectedOrganizationId = organization.id;
     try {
-        const rooms = await request(roomsApiUrl);
+        const rooms = (await request(roomsApiUrl))
+            .filter(room => String(room.organizationId) === String(selectedOrganizationId));
         roomsById = new Map(rooms.map(room => [room.id, room]));
         renderRoomOptions(rooms);
         applyRoomFromUrl();
         await loadSessions();
         const requestedSessionId = new URLSearchParams(window.location.search).get("sessionId");
-        if (requestedSessionId) await openDetails(requestedSessionId);
+        if (requestedSessionId && sessionsById.has(Number(requestedSessionId))) await openDetails(Number(requestedSessionId));
     } catch (error) {
         loadingState.classList.add("hidden");
         showMessage(pageMessage, error.message, true);
@@ -81,6 +89,8 @@ async function initializePage() {
 }
 
 function renderRoomOptions(rooms) {
+    roomFilter.replaceChildren(createOption("", "All rooms"));
+    sessionRoom.replaceChildren(createOption("", "Select an active room"));
     for (const room of rooms) {
         roomFilter.append(createOption(room.id, room.name));
         if (room.active) sessionRoom.append(createOption(room.id, room.name));
@@ -108,11 +118,14 @@ async function loadSessions() {
     tableWrapper.classList.add("hidden");
     hideMessage(pageMessage);
     const parameters = new URLSearchParams();
-    if (roomFilter.value) parameters.set("roomId", roomFilter.value);
     if (statusFilter.value) parameters.set("status", statusFilter.value);
     try {
         const query = parameters.toString();
-        renderSessions(await request(query ? `${sessionsApiUrl}?${query}` : sessionsApiUrl));
+        const sessions = (await request(query ? `${sessionsApiUrl}?${query}` : sessionsApiUrl))
+            .filter(session => String(session.organizationId) === String(selectedOrganizationId))
+            .filter(session => !roomFilter.value || String(session.roomId) === roomFilter.value);
+        sessionsById = new Map(sessions.map(session => [session.id, session]));
+        renderSessions(sessions);
     } catch (error) {
         showMessage(pageMessage, error.message, true);
     } finally {
@@ -216,6 +229,7 @@ async function changeSessionStatus(id, action) {
 }
 
 async function openDetails(id) {
+    if (!sessionsById.has(Number(id))) return;
     openSessionId = id;
     timelineSensor.replaceChildren();
     detailsDialog.showModal();
@@ -357,88 +371,8 @@ function renderTimeline(timeline, sensorId) {
 }
 
 function drawTimelineChart(timeline, readings) {
-    const from = new Date(timeline.from).getTime();
-    const to = Math.max(new Date(timeline.to).getTime(), from + 1000);
-    const values = readings.flatMap(reading => [reading.value, reading.safeMin, reading.safeMax])
-        .filter(value => value != null).map(Number);
-    let minimum = Math.min(...values), maximum = Math.max(...values);
-    if (minimum === maximum) { minimum -= 1; maximum += 1; }
-    const padding = (maximum - minimum) * 0.08;
-    minimum -= padding; maximum += padding;
-    const readingData = readings.map(reading => ({x: new Date(reading.measuredAt).getTime(), y: Number(reading.value), reading}));
-    const datasets = [{
-        label: readings[0].sensorName,
-        data: readingData,
-        parsing: false,
-        borderColor: "#16778f",
-        borderWidth: 2.5,
-        pointBackgroundColor: readingData.map(point => point.reading.status === "OUTSIDE_RANGE" ? "#b42318" : "#16778f"),
-        pointBorderColor: readingData.map(point => point.reading.status === "OUTSIDE_RANGE" ? "#ffffff" : "#16778f"),
-        pointBorderWidth: readingData.map(point => point.reading.status === "OUTSIDE_RANGE" ? 1.5 : 0),
-        pointRadius: readingData.map(point => point.reading.status === "OUTSIDE_RANGE" ? 4 : 2.5),
-        pointHoverRadius: 6,
-        tension: 0,
-        fill: false,
-        timelineKind: "reading"
-    }];
-
-    for (const event of timeline.events) {
-        datasets.push(markerDataset(event.occurredAt, minimum, maximum, "#d97706", [5, 4],
-            `${categoryLabels[event.category] || event.category}: ${event.title}`, from, to));
-    }
-    for (const alert of timeline.alerts.filter(alert => alert.sensorId == null || alert.sensorId === readings[0].sensorId)) {
-        const originalMarkerTime = alert.violationStartedAt || alert.createdAt;
-        const markerTime = new Date(originalMarkerTime).getTime() < from ? timeline.from : originalMarkerTime;
-        datasets.push(markerDataset(markerTime, minimum, maximum, "#b42318", [2, 3],
-            `${alert.severity}: ${alert.title}`, from, to));
-    }
-
     destroyTimelineChart();
-    timelineChartInstance = new Chart(timelineCanvas, {
-        type: "line",
-        data: {datasets},
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            interaction: {mode: "nearest", intersect: false},
-            scales: {
-                x: {
-                    type: "linear", min: from, max: to,
-                    grid: {color: "#e5eaed"},
-                    ticks: {callback: value => new Date(value).toLocaleTimeString()}
-                },
-                y: {min: minimum, max: maximum, grid: {color: "#e5eaed"}}
-            },
-            plugins: {
-                legend: {display: false},
-                tooltip: {callbacks: {
-                    title: items => items.length ? formatDate(new Date(items[0].parsed.x).toISOString()) : "",
-                    label: item => item.dataset.timelineKind === "marker"
-                        ? item.dataset.markerLabel
-                        : `${item.parsed.y}${item.raw.reading.unit ? ` ${item.raw.reading.unit}` : ""}${item.raw.reading.status === "OUTSIDE_RANGE" ? " · Outside safe range" : ""}`
-                }}
-            }
-        }
-    });
-}
-
-function markerDataset(time, minimum, maximum, color, borderDash, label, from, to) {
-    const timestamp = new Date(time).getTime();
-    if (timestamp < from || timestamp > to) return {data: [], timelineKind: "marker"};
-    return {
-        label,
-        data: [{x: timestamp, y: minimum}, {x: timestamp, y: maximum}],
-        parsing: false,
-        borderColor: color,
-        borderWidth: 2,
-        borderDash,
-        pointRadius: [0, 4],
-        pointHoverRadius: [0, 6],
-        fill: false,
-        timelineKind: "marker",
-        markerLabel: label
-    };
+    timelineChartInstance = LabMonitorSessionChart.create(timelineCanvas, timeline, readings);
 }
 
 function destroyTimelineChart() {
@@ -491,6 +425,10 @@ function renderEvents(events) {
 sessionForm.addEventListener("submit", async event => {
     event.preventDefault();
     hideMessage(sessionFormError);
+    if (!roomsById.has(Number(sessionRoom.value))) {
+        showMessage(sessionFormError, "Select a room from the current organization.", true);
+        return;
+    }
     try {
         await request(sessionsApiUrl, {
             method: "POST",
@@ -545,4 +483,8 @@ document.querySelector("#clear-filters").addEventListener("click", () => {
     roomFilter.value = ""; statusFilter.value = ""; loadSessions();
 });
 
-initializePage();
+if (window.labMonitorOrganizationContext) {
+    initializePage(window.labMonitorOrganizationContext.selected);
+} else {
+    document.addEventListener("labmonitor:organization-ready", event => initializePage(event.detail), {once: true});
+}

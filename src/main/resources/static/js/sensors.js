@@ -205,7 +205,7 @@ function createSensorLinkCell(sensor) {
     const cell = document.createElement("td");
     const link = document.createElement("a");
     link.className = "table-link";
-    link.href = `/sensor-readings.html?sensorId=${sensor.id}`;
+    link.href = sensorReadingsUrl(sensor);
     link.textContent = sensor.name;
     cell.append(link);
     return cell;
@@ -307,6 +307,8 @@ function createActionsCell(sensor) {
     const actions = document.createElement("div");
     actions.className = "row-actions";
 
+    actions.append(createActionLink("Readings", sensorReadingsUrl(sensor)));
+
     const editButton = createButton("Edit", "button button-secondary button-small");
     editButton.addEventListener("click", () => openEditForm(sensor));
 
@@ -331,6 +333,12 @@ function createActionsCell(sensor) {
     if (canManage) actions.append(activityButton);
     cell.append(actions);
     return cell;
+}
+
+function sensorReadingsUrl(sensor) {
+    const parameters = new URLSearchParams({sensorId: sensor.id});
+    if (sensor.organizationId) parameters.set("organizationId", sensor.organizationId);
+    return `/sensor-readings.html?${parameters}`;
 }
 
 function createActionLink(label, href) {
