@@ -1,4 +1,3 @@
-const historyOrganization = document.querySelector("#history-organization");
 const exportRoom = document.querySelector("#export-room");
 const exportSensor = document.querySelector("#export-sensor");
 const historyMessage = document.querySelector("#history-message");
@@ -6,20 +5,17 @@ const historyLoading = document.querySelector("#history-loading");
 let selectedPeriod = "LAST_7_DAYS";
 let roomsById = new Map();
 let organizationAlerts = null;
+let selectedOrganizationId = null;
 
-async function initializeHistory() {
+async function initializeHistory(organization) {
     setDefaultRange();
+    if (!organization) {
+        historyLoading.textContent = "No organizations are available for your account.";
+        return;
+    }
+    selectedOrganizationId = organization.id;
+    document.querySelector("#history-sessions-link").href = `/monitoring-sessions.html?organizationId=${selectedOrganizationId}`;
     try {
-        await labMonitorAuthReady;
-        const organizations = await apiRequest("/api/organizations");
-        historyOrganization.replaceChildren(...organizations.map(item => option(item.id, item.name)));
-        if (!organizations.length) {
-            historyLoading.textContent = "No organizations are available for your account.";
-            return;
-        }
-        const requestedId = new URLSearchParams(window.location.search).get("organizationId");
-        if (organizations.some(item => String(item.id) === requestedId)) historyOrganization.value = requestedId;
-        historyOrganization.disabled = organizations.length === 1;
         await loadOrganization();
     } catch (error) { showHistoryMessage(error.message, true); }
 }
@@ -28,7 +24,7 @@ async function loadOrganization() {
     historyLoading.classList.remove("hidden");
     hideHistoryMessage();
     try {
-        const organizationId = historyOrganization.value;
+        const organizationId = selectedOrganizationId;
         organizationAlerts = null;
         closeSelectedDay();
         const labs = await apiRequest(`/api/labs?organizationId=${organizationId}`);
@@ -48,7 +44,7 @@ async function loadOrganization() {
 }
 
 async function loadAlertHistory() {
-    const history = await apiRequest(`/api/analytics/organizations/${historyOrganization.value}/history?period=${selectedPeriod}`);
+    const history = await apiRequest(`/api/analytics/organizations/${selectedOrganizationId}/history?period=${selectedPeriod}`);
     renderStatus(history);
     renderHistoryChart(history.dailyAlerts);
     renderHistoryRooms(history.mostProblematicRooms);
@@ -97,7 +93,7 @@ async function showDayAlerts(date, selectedBar) {
     list.replaceChildren();
     document.querySelector("#selected-day-empty").classList.add("hidden");
     try {
-        organizationAlerts ||= await apiRequest(`/api/alerts?organizationId=${historyOrganization.value}`);
+        organizationAlerts ||= await apiRequest(`/api/alerts?organizationId=${selectedOrganizationId}`);
         const alerts = organizationAlerts
             .filter(alert => alert.createdAt?.slice(0, 10) === date)
             .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
@@ -129,7 +125,7 @@ function renderDayAlert(alert) {
     issue.append(title, status);
     const link = document.createElement("a");
     link.className = "button button-secondary button-small";
-    link.href = `/alerts.html?alertId=${alert.id}`;
+    link.href = `/alerts.html?organizationId=${selectedOrganizationId}&alertId=${alert.id}`;
     link.textContent = "View alert";
     row.append(identity, severity, issue, link);
     return row;
@@ -144,7 +140,7 @@ function renderHistoryRooms(rooms) {
     const list = document.querySelector("#history-room-list");
     document.querySelector("#history-empty").classList.toggle("hidden", rooms.length !== 0);
     list.replaceChildren(...rooms.map(room => {
-        const link = document.createElement("a"); link.className = "history-room"; link.href = `/alerts.html?roomId=${room.roomId}`;
+        const link = document.createElement("a"); link.className = "history-room"; link.href = `/alerts.html?organizationId=${selectedOrganizationId}&roomId=${room.roomId}`;
         const identity = document.createElement("span");
         const name = document.createElement("strong"); name.textContent = room.roomName;
         const lab = document.createElement("small"); lab.textContent = room.labName;
@@ -200,7 +196,6 @@ function option(value, label) { const item = document.createElement("option"); i
 function showHistoryMessage(text, error = false) { historyMessage.textContent = text; historyMessage.className = `message ${error ? "message-error" : "message-success"}`; }
 function hideHistoryMessage() { historyMessage.classList.add("hidden"); }
 
-historyOrganization.addEventListener("change", loadOrganization);
 exportRoom.addEventListener("change", loadSensors);
 document.querySelector("#reading-export-form").addEventListener("submit", downloadReadings);
 document.querySelector("#close-selected-day").addEventListener("click", closeSelectedDay);
@@ -209,4 +204,8 @@ document.querySelectorAll("[data-period]").forEach(button => button.addEventList
     button.classList.add("active"); selectedPeriod = button.dataset.period; closeSelectedDay();
     try { await loadAlertHistory(); } catch (error) { showHistoryMessage(error.message, true); }
 }));
-initializeHistory();
+if (window.labMonitorOrganizationContext) {
+    initializeHistory(window.labMonitorOrganizationContext.selected);
+} else {
+    document.addEventListener("labmonitor:organization-ready", event => initializeHistory(event.detail), {once: true});
+}

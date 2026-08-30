@@ -3,6 +3,7 @@ package com.olena.labmonitor.user;
 import com.olena.labmonitor.user.dto.CreateUserRequest;
 import com.olena.labmonitor.user.dto.UpdateUserRequest;
 import com.olena.labmonitor.user.dto.UserResponse;
+import com.olena.labmonitor.user.dto.ManagedUserResponse;
 import com.olena.labmonitor.user.dto.UpdateUserStatusRequest;
 import com.olena.labmonitor.user.dto.UpdateNotificationPreferenceRequest;
 import com.olena.labmonitor.user.dto.DemoteRequest;
@@ -25,6 +26,14 @@ public class UserController {
             @RequestParam(required = false) Long organizationId,
             @RequestParam(required = false) String search) {
         return userService.findAll(organizationId, search);
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @GetMapping("/managed")
+    public java.util.List<ManagedUserResponse> findAllManaged(
+            @RequestParam(required = false) Long organizationId,
+            @RequestParam(required = false) String search) {
+        return userService.findAllManaged(organizationId, search);
     }
 
     @PreAuthorize("hasRole('SUPER_ADMIN')")

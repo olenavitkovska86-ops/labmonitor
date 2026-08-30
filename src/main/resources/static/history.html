@@ -12,7 +12,6 @@
     <nav class="breadcrumbs" aria-label="Breadcrumb"><a class="breadcrumb-link" href="/">Home</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">History &amp; exports</span></nav>
     <section class="history-header">
         <div><p class="eyebrow">Monitoring data</p><h1>History &amp; exports</h1><p class="intro">Review alert history or download accessible sensor readings for analysis.</p></div>
-        <label class="organization-picker" for="history-organization"><span>Organization</span><select id="history-organization" disabled><option>Loading organizations...</option></select></label>
     </section>
     <div id="history-message" class="message hidden" role="status"></div>
     <p id="history-loading" class="state">Loading history...</p>
@@ -50,7 +49,7 @@
             <section><h3>Rooms with most alerts</h3><p id="history-empty" class="state hidden">No alerts in this period.</p><div id="history-room-list" class="history-room-list"></div></section>
         </div>
     </section>
-    <section class="panel export-destination"><div><p class="eyebrow">Session archive</p><h2>Session ZIP exports</h2><p class="section-description">A started session can be downloaded with session, readings, events and alerts CSV files.</p></div><a class="button button-secondary" href="/monitoring-sessions.html">Open sessions</a></section>
+    <section class="panel export-destination"><div><p class="eyebrow">Session archive</p><h2>Session ZIP exports</h2><p class="section-description">A started session can be downloaded with session, readings, events and alerts CSV files.</p></div><a id="history-sessions-link" class="button button-secondary" href="/monitoring-sessions.html">Open sessions</a></section>
 </main>
 <script src="/js/api-client.js"></script>
 <script src="/js/auth-context.js"></script>

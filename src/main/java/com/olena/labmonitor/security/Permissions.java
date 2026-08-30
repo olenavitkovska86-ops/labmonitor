@@ -9,7 +9,8 @@ public final class Permissions {
             "profile.read", "profile.update", "password.change");
     private static final List<String> EMPLOYEE = List.of(
             "resources.read", "alerts.manage", "sessions.manage", "exports.read");
-    private static final List<String> LAB_ADMIN = List.of("sensors.settings.update");
+    private static final List<String> LAB_ADMIN = List.of(
+            "sensors.settings.update", "team.access.manage");
     private static final List<String> SUPER_ADMIN = List.of(
             "organizations.manage", "labs.manage", "rooms.manage", "sensors.manage",
             "users.manage", "memberships.manage", "system.read");

@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +84,56 @@ class AccessPolicyTests {
 
         assertThat(access.canManageSensor(1L, 10L, 20L)).isTrue();
         assertThat(access.canManageSensor(1L, 11L, 21L)).isFalse();
+    }
+
+    @Test
+    void membershipsInTwoOrganizationsRemainIsolatedToTheirOwnResources() {
+        User user = user("multi-org@example.com");
+        Organization firstOrganization = organization(1L);
+        Organization secondOrganization = organization(2L);
+        Lab firstLab = lab(10L, firstOrganization);
+        Lab secondLab = lab(20L, secondOrganization);
+        Room firstRoom = room(11L, firstLab);
+        Room secondRoom = room(21L, secondLab);
+
+        Membership firstMembership = new Membership(firstOrganization, user, "LIMITED_EMPLOYEE");
+        firstMembership.updateAccess("LIMITED_EMPLOYEE", MembershipScopeType.SPECIFIC,
+                Set.of(), Set.of(firstRoom));
+        Membership secondMembership = new Membership(secondOrganization, user, "LIMITED_EMPLOYEE");
+        secondMembership.updateAccess("LIMITED_EMPLOYEE", MembershipScopeType.SPECIFIC,
+                Set.of(secondLab), Set.of());
+        user.getMemberships().addAll(Set.of(firstMembership, secondMembership));
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        var access = policy.forAuthentication(authentication(user));
+
+        assertThat(access.canViewRoom(1L, 10L, 11L)).isTrue();
+        assertThat(access.canViewRoom(1L, 10L, 12L)).isFalse();
+        assertThat(access.canViewRoom(2L, 20L, 21L)).isTrue();
+        assertThat(access.canViewRoom(2L, 10L, 11L)).isFalse();
+        assertThat(access.canViewRoom(1L, 20L, 21L)).isFalse();
+    }
+
+    @Test
+    void manuallyRequestedInaccessibleOrganizationAndRoomAreDenied() {
+        User user = user("scoped@example.com");
+        Organization organization = organization(1L);
+        Lab lab = lab(10L, organization);
+        Room allowedRoom = room(20L, lab);
+        Membership membership = new Membership(organization, user, "LIMITED_EMPLOYEE");
+        membership.updateAccess("LIMITED_EMPLOYEE", MembershipScopeType.SPECIFIC,
+                Set.of(), Set.of(allowedRoom));
+        user.getMemberships().add(membership);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+
+        var access = policy.forAuthentication(authentication(user));
+
+        assertThatThrownBy(() -> access.requireViewOrganization(2L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        assertThatThrownBy(() -> access.requireViewRoom(1L, 10L, 21L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        assertThatThrownBy(() -> access.requireViewRoom(2L, 10L, 20L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     private static UsernamePasswordAuthenticationToken authentication(User user) {
