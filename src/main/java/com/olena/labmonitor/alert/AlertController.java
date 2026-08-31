@@ -65,7 +65,7 @@ public class AlertController {
     @PostMapping("/{id}/acknowledge")
     public AlertResponse acknowledge(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails,
                                      Authentication authentication) {
-        requireAlertAccess(id, authentication);
+        requireAlertManagement(id, authentication);
         return alertService.acknowledge(id, userDetails.getUsername());
     }
 
@@ -76,7 +76,7 @@ public class AlertController {
             @Valid @RequestBody ResolveAlertRequest request,
             Authentication authentication
     ) {
-        requireAlertAccess(id, authentication);
+        requireAlertManagement(id, authentication);
         return alertService.resolve(id, userDetails.getUsername(), request);
     }
 
@@ -87,7 +87,7 @@ public class AlertController {
             @Valid @RequestBody ReopenAlertRequest request,
             Authentication authentication
     ) {
-        requireAlertAccess(id, authentication);
+        requireAlertManagement(id, authentication);
         return alertService.reopen(id, userDetails.getUsername(), request);
     }
 
@@ -95,6 +95,13 @@ public class AlertController {
         AlertResponse alert = alertService.findById(id);
         accessPolicy.forAuthentication(authentication)
                 .requireViewRoom(alert.organizationId(), alert.labId(), alert.roomId());
+        return alert;
+    }
+
+    private AlertResponse requireAlertManagement(Long id, Authentication authentication) {
+        AlertResponse alert = alertService.findById(id);
+        accessPolicy.forAuthentication(authentication)
+                .requireManageAlert(alert.organizationId(), alert.labId(), alert.roomId());
         return alert;
     }
 }

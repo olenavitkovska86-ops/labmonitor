@@ -35,6 +35,8 @@ class AccessPolicyTests {
         assertThat(access.canViewOrganization(999L)).isTrue();
         assertThat(access.canViewRoom(999L, 888L, 777L)).isTrue();
         assertThat(access.canManageSensor(999L, 888L, 777L)).isTrue();
+        assertThat(access.canManageAlert(999L, 888L, 777L)).isTrue();
+        assertThat(access.canManageSession(999L, 888L, 777L)).isTrue();
     }
 
     @Test
@@ -50,6 +52,10 @@ class AccessPolicyTests {
         assertThat(access.canViewOrganization(2L)).isFalse();
         assertThat(access.canViewRoom(2L, 10L, 20L)).isFalse();
         assertThat(access.canManageSensor(1L, 10L, 20L)).isFalse();
+        assertThat(access.canManageAlert(1L, 10L, 20L)).isTrue();
+        assertThat(access.canManageSession(1L, 10L, 20L)).isTrue();
+        assertThat(access.canManageAlert(2L, 10L, 20L)).isFalse();
+        assertThat(access.canManageSession(2L, 10L, 20L)).isFalse();
     }
 
     @Test
@@ -68,6 +74,10 @@ class AccessPolicyTests {
         assertThat(access.canViewLab(1L, 10L)).isTrue();
         assertThat(access.canViewRoom(1L, 10L, 20L)).isTrue();
         assertThat(access.canViewRoom(1L, 10L, 21L)).isFalse();
+        assertThat(access.canManageAlert(1L, 10L, 20L)).isTrue();
+        assertThat(access.canManageSession(1L, 10L, 20L)).isTrue();
+        assertThat(access.canManageAlert(1L, 10L, 21L)).isFalse();
+        assertThat(access.canManageSession(1L, 10L, 21L)).isFalse();
     }
 
     @Test
