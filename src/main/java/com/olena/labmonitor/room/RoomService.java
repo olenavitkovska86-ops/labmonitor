@@ -50,6 +50,16 @@ public class RoomService {
         return RoomResponse.from(room);
     }
 
+    /** Loads the scalar resource identifiers needed by authorization while the persistence context is open. */
+    @Transactional(readOnly = true)
+    public RoomAccessContext getAccessContext(Long id) {
+        Room room = getRoom(id);
+        return new RoomAccessContext(room.getId(), room.getLab().getId(),
+                room.getLab().getOrganization().getId());
+    }
+
+    public record RoomAccessContext(Long roomId, Long labId, Long organizationId) { }
+
     public RoomResponse update(Long id, UpdateRoomRequest request) {
         Room room = getRoom(id);
         room.update(request.name(), request.type(), request.floor(), request.area());
