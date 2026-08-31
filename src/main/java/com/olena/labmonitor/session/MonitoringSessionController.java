@@ -108,8 +108,8 @@ public class MonitoringSessionController {
     }
 
     private void requireRoomManagement(Long roomId, Authentication authentication) {
-        var room = service.getRoom(roomId);
+        var room = service.getRoomAccessContext(roomId);
         accessPolicy.forAuthentication(authentication).requireManageSession(
-                room.getLab().getOrganization().getId(), room.getLab().getId(), room.getId());
+                room.organizationId(), room.labId(), room.roomId());
     }
 }

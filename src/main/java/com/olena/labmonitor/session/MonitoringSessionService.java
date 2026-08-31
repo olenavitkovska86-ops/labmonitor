@@ -41,6 +41,10 @@ public class MonitoringSessionService {
         return MonitoringSessionResponse.from(repository.saveAndFlush(session));
     }
 
+    public RoomService.RoomAccessContext getRoomAccessContext(Long roomId) {
+        return roomService.getAccessContext(roomId);
+    }
+
     @Transactional(readOnly = true)
     public List<MonitoringSessionResponse> findAll(Long roomId, MonitoringSessionStatus status) {
         Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
