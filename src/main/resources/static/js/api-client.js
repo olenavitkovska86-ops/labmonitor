@@ -1,12 +1,21 @@
 let csrfTokenPromise;
+let csrfCookieSnapshot;
 let sessionRefreshPromise;
 
 async function csrfToken(force = false) {
-    if (force) csrfTokenPromise = null;
+    if (force) { csrfTokenPromise = null; csrfCookieSnapshot = null; }
+    const currentCookie = readXsrfCookie();
+    if (csrfTokenPromise && currentCookie !== csrfCookieSnapshot) {
+        csrfTokenPromise = null;
+        csrfCookieSnapshot = null;
+    }
     if (!csrfTokenPromise) {
+        const requestedCookie = currentCookie;
         csrfTokenPromise = authenticatedFetch("/api/csrf", {cache: "no-store"}).then(async response => {
             if (!response.ok) throw new Error("Unable to initialize request security.");
-            return response.json();
+            const value = await response.json();
+            csrfCookieSnapshot = readXsrfCookie() || requestedCookie;
+            return value;
         }).catch(error => {
             csrfTokenPromise = null;
             throw error;
@@ -17,34 +26,51 @@ async function csrfToken(force = false) {
 
 async function apiFetch(url, options = {}) {
     const method = (options.method || "GET").toUpperCase();
-    const headers = new Headers(options.headers || {});
-    if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
-        const csrf = await csrfToken();
-        headers.set(csrf.headerName, csrf.token);
+    const unsafe = !["GET", "HEAD", "OPTIONS", "TRACE"].includes(method);
+    let headers;
+    try { headers = await requestHeaders(options, unsafe); }
+    catch (error) {
+        if (unsafe && await refreshSession()) { csrfTokenPromise = null; headers = await requestHeaders(options, unsafe); }
+        else { redirectToLogin(); throw error; }
     }
-
     let response = await authenticatedFetch(url, {...options, headers});
+    if (response.status === 401) {
+        const refreshed = await refreshSession();
+        if (refreshed) {
+            csrfTokenPromise = null;
+            response = await authenticatedFetch(url, {...options, headers: await requestHeaders(options, unsafe)});
+        } else { redirectToLogin(); return response; }
+    }
+    if (response.status === 401) {
+        redirectToLogin();
+    }
     const requestMethod = (options.method || "GET").toUpperCase();
-    if (response.status === 403 && ["PUT", "PATCH", "DELETE"].includes(requestMethod)) {
+    const errorPayload = response.status === 403 ? await response.clone().json().catch(() => ({})) : {};
+    if (response.status === 403 && errorPayload.code === "CSRF_FAILURE" && ["PUT", "PATCH", "DELETE"].includes(requestMethod)) {
         const freshCsrf = await csrfToken(true);
+        const headers = new Headers(options.headers || {});
         headers.set(freshCsrf.headerName, freshCsrf.token);
-        response = await authenticatedFetch(url, {...options, headers});
+        response = await authenticatedFetch(url, {...options, headers}, true);
     }
     return response;
 }
 
+async function requestHeaders(options, unsafe) {
+    const headers = new Headers(options.headers || {});
+    if (unsafe) {
+        const csrf = await csrfToken();
+        headers.set(csrf.headerName, csrf.token);
+    }
+    return headers;
+}
+
+function readXsrfCookie() {
+    const entry = document.cookie.split("; ").find(item => item.startsWith("XSRF-TOKEN="));
+    return entry ? decodeURIComponent(entry.substring("XSRF-TOKEN=".length)) : null;
+}
+
 async function authenticatedFetch(url, options = {}) {
-    let response = await fetch(url, options);
-    if (response.status === 401) {
-        csrfTokenPromise = null;
-        const refreshed = await refreshSession();
-        if (refreshed) response = await fetch(url, options);
-    }
-    if (response.status === 401) {
-        redirectToLogin();
-        throw new Error("Your session has expired. Please sign in again.");
-    }
-    return response;
+    return fetch(url, options);
 }
 
 async function refreshSession() {
