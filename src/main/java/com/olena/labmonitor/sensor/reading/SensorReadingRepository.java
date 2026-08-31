@@ -13,14 +13,6 @@ public interface SensorReadingRepository extends JpaRepository<SensorReading, Lo
 
     Optional<SensorReading> findBySourceDeviceIdAndMessageId(Long sourceDeviceId, String messageId);
 
-    @Query("""
-            select reading
-            from SensorReading reading
-            where reading.sensor.id = :sensorId
-            order by reading.measuredAt desc, reading.id desc
-            """)
-    List<SensorReading> findHistoryBySensorId(@Param("sensorId") Long sensorId);
-
     Optional<SensorReading> findFirstBySensorIdOrderByMeasuredAtDescIdDesc(Long sensorId);
 
     List<SensorReading> findBySensorIdAndMeasuredAtBetweenOrderByMeasuredAtDescIdDesc(

@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -33,7 +34,7 @@ class SensorAvailabilityMonitorTests {
         MonitoringProperties properties = new MonitoringProperties();
         properties.getSensors().setOfflineAfter(Duration.ofMinutes(2));
         SensorAvailabilityMonitor monitor = new SensorAvailabilityMonitor(
-                sensorRepository, alertService, properties
+                sensorRepository, alertService, properties, Clock.systemUTC()
         );
         Sensor sensor = sensor();
         sensor.recordReading(LocalDateTime.of(2026, 8, 20, 11, 55));

@@ -13,8 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.List;
@@ -26,13 +26,15 @@ public class DeviceCredentialService {
     private final DeviceCredentialRepository credentialRepository;
     private final DeviceService deviceService;
     private final PasswordEncoder passwordEncoder;
+    private final Clock clock;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public DeviceCredentialService(DeviceCredentialRepository credentialRepository,
-                                   DeviceService deviceService, PasswordEncoder passwordEncoder) {
+                                   DeviceService deviceService, PasswordEncoder passwordEncoder, Clock clock) {
         this.credentialRepository = credentialRepository;
         this.deviceService = deviceService;
         this.passwordEncoder = passwordEncoder;
+        this.clock = clock;
     }
 
     public ProvisionedDeviceCredentialResponse provision(Long deviceId) {
@@ -108,6 +110,6 @@ public class DeviceCredentialService {
         }
     }
 
-    private LocalDateTime now() { return LocalDateTime.now(ZoneOffset.UTC); }
+    private LocalDateTime now() { return LocalDateTime.now(clock); }
     private record ParsedToken(Long credentialId, String secret) {}
 }

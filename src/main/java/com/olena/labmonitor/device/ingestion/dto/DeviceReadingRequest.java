@@ -7,6 +7,6 @@ import java.time.OffsetDateTime;
 public record DeviceReadingRequest(
         @NotBlank @Size(max = 100) String channel,
         @NotNull @Digits(integer = 9, fraction = 3) BigDecimal value,
-        @NotNull @PastOrPresent OffsetDateTime measuredAt,
+        @NotNull OffsetDateTime measuredAt,
         @NotBlank @Size(max = 100) String messageId
 ) {}

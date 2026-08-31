@@ -15,7 +15,6 @@ import com.olena.labmonitor.organization.OrganizationRepository;
 import com.olena.labmonitor.room.RoomRepository;
 import com.olena.labmonitor.sensor.SensorRepository;
 import com.olena.labmonitor.sensor.SensorStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,17 +42,7 @@ public class AnalyticsService {
     private final AlertRepository alertRepository;
     private final Clock clock;
 
-    @Autowired
     public AnalyticsService(
-            OrganizationRepository organizationRepository,
-            RoomRepository roomRepository,
-            SensorRepository sensorRepository,
-            AlertRepository alertRepository
-    ) {
-        this(organizationRepository, roomRepository, sensorRepository, alertRepository, Clock.systemDefaultZone());
-    }
-
-    AnalyticsService(
             OrganizationRepository organizationRepository,
             RoomRepository roomRepository,
             SensorRepository sensorRepository,

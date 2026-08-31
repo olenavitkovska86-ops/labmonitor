@@ -16,11 +16,13 @@ public class MonitoringProperties {
     private final Readings readings = new Readings();
     private final Sensors sensors = new Sensors();
     private final Exports exports = new Exports();
+    private final DeviceIngestion deviceIngestion = new DeviceIngestion();
 
     public Alerts getAlerts() { return alerts; }
     public Readings getReadings() { return readings; }
     public Sensors getSensors() { return sensors; }
     public Exports getExports() { return exports; }
+    public DeviceIngestion getDeviceIngestion() { return deviceIngestion; }
 
     public static class Alerts {
         private BigDecimal lowMaxPercent = new BigDecimal("5");
@@ -73,5 +75,15 @@ public class MonitoringProperties {
         public void setMaxPeriod(Duration value) { maxPeriod = value; }
         public int getMaxRows() { return maxRows; }
         public void setMaxRows(int value) { maxRows = value; }
+    }
+
+    public static class DeviceIngestion {
+        private Duration maxPastAge = Duration.ofMinutes(5);
+        private Duration maxFutureSkew = Duration.ofMinutes(1);
+
+        public Duration getMaxPastAge() { return maxPastAge; }
+        public void setMaxPastAge(Duration value) { maxPastAge = value; }
+        public Duration getMaxFutureSkew() { return maxFutureSkew; }
+        public void setMaxFutureSkew(Duration value) { maxFutureSkew = value; }
     }
 }

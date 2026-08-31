@@ -48,7 +48,7 @@ public class SensorService {
     }
 
     public SensorResponse update(Long id, UpdateSensorRequest request) {
-        Sensor sensor = getSensor(id);
+        Sensor sensor = getSensorForUpdate(id);
         sensor.update(request.name(), request.unit());
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
 
@@ -56,7 +56,7 @@ public class SensorService {
     }
 
     public SensorResponse updateSafeRange(Long id, UpdateSensorSafeRangeRequest request) {
-        Sensor sensor = getSensor(id);
+        Sensor sensor = getSensorForUpdate(id);
         sensor.updateSafeRange(request.minSafeValue(), request.maxSafeValue());
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
 
@@ -64,7 +64,7 @@ public class SensorService {
     }
 
     public SensorResponse deactivate(Long id) {
-        Sensor sensor = getSensor(id);
+        Sensor sensor = getSensorForUpdate(id);
         sensor.deactivate();
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
 
@@ -72,7 +72,7 @@ public class SensorService {
     }
 
     public SensorResponse activate(Long id) {
-        Sensor sensor = getSensor(id);
+        Sensor sensor = getSensorForUpdate(id);
         requireActiveParents(sensor.getRoom(), "activate sensor with id " + id);
         sensor.activate();
         Sensor savedSensor = sensorRepository.saveAndFlush(sensor);
@@ -105,6 +105,15 @@ public class SensorService {
 
     public Sensor getExistingSensor(Long id) {
         return getSensor(id);
+    }
+
+    public Sensor getExistingSensorForUpdate(Long id) {
+        return getSensorForUpdate(id);
+    }
+
+    private Sensor getSensorForUpdate(Long id) {
+        return sensorRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Sensor with id " + id + " was not found"));
     }
 
     public void requireOperationalParents(Sensor sensor, String operation) {

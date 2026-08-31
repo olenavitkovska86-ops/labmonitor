@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 @Component
@@ -14,15 +15,18 @@ public class SensorAvailabilityMonitor {
     private final SensorRepository sensorRepository;
     private final AlertService alertService;
     private final MonitoringProperties monitoringProperties;
+    private final Clock clock;
 
     public SensorAvailabilityMonitor(
             SensorRepository sensorRepository,
             AlertService alertService,
-            MonitoringProperties monitoringProperties
+            MonitoringProperties monitoringProperties,
+            Clock clock
     ) {
         this.sensorRepository = sensorRepository;
         this.alertService = alertService;
         this.monitoringProperties = monitoringProperties;
+        this.clock = clock;
     }
 
     @Scheduled(
@@ -31,7 +35,7 @@ public class SensorAvailabilityMonitor {
     )
     @Transactional
     public void checkSensors() {
-        checkSensorsAt(LocalDateTime.now());
+        checkSensorsAt(LocalDateTime.now(clock));
     }
 
     void checkSensorsAt(LocalDateTime now) {

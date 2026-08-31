@@ -19,7 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,12 +30,14 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class SessionTimelineServiceTests {
+    private static final Clock CLOCK = Clock.fixed(
+            Instant.parse("2026-08-25T10:00:00Z"), ZoneId.of("Europe/Warsaw"));
     private final MonitoringSessionService sessionService = mock(MonitoringSessionService.class);
     private final SensorReadingRepository readingRepository = mock(SensorReadingRepository.class);
     private final SessionEventRepository eventRepository = mock(SessionEventRepository.class);
     private final AlertRepository alertRepository = mock(AlertRepository.class);
     private final SessionTimelineService service = new SessionTimelineService(
-            sessionService, readingRepository, eventRepository, alertRepository);
+            sessionService, readingRepository, eventRepository, alertRepository, CLOCK);
 
     @Test
     void returnsReadingsEventsAndAlertsInsideCompletedSessionWindow() {

@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -43,13 +44,14 @@ class SensorReadingServiceTests {
 
     @BeforeEach
     void setUp() {
-        service = new SensorReadingService(repository, sensorService, alertService, new MonitoringProperties());
+        service = new SensorReadingService(
+                repository, sensorService, alertService, new MonitoringProperties(), Clock.systemUTC());
         Room room = new Room(new Lab(new Organization("Test organization", null), "Test lab", null, null),
                 "Test room", RoomType.EXPERIMENT_ROOM, null, null);
         sensor = new Sensor(room, "Temperature", SensorType.TEMPERATURE, "C");
         sensor.updateSafeRange(new BigDecimal("18"), new BigDecimal("25"));
         ReflectionTestUtils.setField(sensor, "id", 3L);
-        when(sensorService.getExistingSensor(3L)).thenReturn(sensor);
+        when(sensorService.getExistingSensorForUpdate(3L)).thenReturn(sensor);
     }
 
     @Test

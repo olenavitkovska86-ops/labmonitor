@@ -9,7 +9,6 @@ import com.olena.labmonitor.session.event.dto.SessionEventResponse;
 import com.olena.labmonitor.user.User;
 import com.olena.labmonitor.user.UserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -24,14 +23,8 @@ public class SessionEventService {
     private final UserRepository userRepository;
     private final Clock clock;
 
-    @Autowired
     public SessionEventService(SessionEventRepository repository, MonitoringSessionService sessionService,
-                               UserRepository userRepository) {
-        this(repository, sessionService, userRepository, Clock.systemDefaultZone());
-    }
-
-    SessionEventService(SessionEventRepository repository, MonitoringSessionService sessionService,
-                        UserRepository userRepository, Clock clock) {
+                               UserRepository userRepository, Clock clock) {
         this.repository = repository;
         this.sessionService = sessionService;
         this.userRepository = userRepository;
