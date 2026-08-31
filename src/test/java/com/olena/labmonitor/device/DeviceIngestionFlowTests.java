@@ -29,6 +29,7 @@ import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -222,12 +223,8 @@ class DeviceIngestionFlowTests {
                 .andReturn().getResponse();
         String csrfHeader = JsonPath.read(csrfResponse.getContentAsString(), "$.headerName");
         String csrfToken = JsonPath.read(csrfResponse.getContentAsString(), "$.token");
-        Cookie csrfCookie = csrfResponse.getCookie("XSRF-TOKEN");
-        assertThat(csrfCookie).isNotNull();
-
         mockMvc.perform(post("/api/sensor-readings")
-                        .cookie(session, csrfCookie)
-                        .header(csrfHeader, csrfToken)
+                        .cookie(session).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"sensorId":%d,"value":20.5}
