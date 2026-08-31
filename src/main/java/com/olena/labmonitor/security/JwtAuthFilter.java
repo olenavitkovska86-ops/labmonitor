@@ -25,10 +25,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsServiceImpl;
 
-    public JwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService, UserDetailsService userDetailsServiceImpl) {
+    public JwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsServiceImpl) {
         this.jwtService = jwtService;
         this.userDetailsServiceImpl = userDetailsServiceImpl;
-//        this.userDetailsService = userDetailsService;
     }
 
     @Override
@@ -76,7 +75,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 .orElse(null);
     }
 }
-
 
 
 

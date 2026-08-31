@@ -14,6 +14,9 @@ audit logs are outside the current MVP and remain possible future work.
 
 1. Copy `.env.example` to `.env` and adjust values if needed.
 
+The local `.env` file is loaded by Spring Boot and is ignored by Git. It must
+contain a unique `JWT_SECRET` of at least 32 bytes; never reuse the example value.
+
 2. Start MySQL with Docker Compose:
 
 ```bash
@@ -37,6 +40,23 @@ DB_PASSWORD=your_local_password
 Monitoring rules have documented defaults in `application.properties` and can
 be changed with environment variables such as `ALERT_AUTO_RECOVERY_MAX_DURATION`
 or `READING_HISTORY_MAX_RESULTS`, without rebuilding the application.
+
+For a production deployment, activate the `prod` profile and provide
+`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, and `JWT_SECRET` through the deployment
+environment or secret manager:
+
+```text
+SPRING_PROFILES_ACTIVE=prod
+```
+
+The production profile requires explicit database settings, enables secure JWT
+cookies, honors reverse-proxy forwarding headers, disables SQL logging, and
+does not baseline an unknown schema.
+
+For a brand-new empty database only, the first super-admin may be created by
+setting `BOOTSTRAP_ADMIN_ENABLED=true` together with
+`BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`. Disable bootstrap again
+immediately after the account is created. It is disabled by default.
 
 ## Sensor data clients
 
@@ -189,11 +209,12 @@ starts. Migration files are stored in:
 src/main/resources/db/migration
 ```
 
-For an existing database created with the former manual schema, Flyway records
-version 1 as the baseline and applies migrations starting with version 2. Team
-members therefore only need to pull the code and start the application. The
-files under `src/main/resources/db/manual` are retained for reference and should
-not normally be run by hand.
+For an existing database created with the former manual schema, set
+`FLYWAY_BASELINE_ON_MIGRATE=true` only for the reviewed, one-time baseline run.
+Disable it again afterwards. New databases and databases already managed by
+Flyway must keep the default value `false`. The files under
+`src/main/resources/db/manual` are retained for reference and should not
+normally be run by hand.
 
 ## Reading export
 
