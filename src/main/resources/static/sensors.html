@@ -15,7 +15,7 @@
 <main class="page">
     <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
 
-    <section class="hero">
+    <section class="admin-page-header">
         <div>
             <p class="eyebrow">Administration</p>
             <h1>Sensor administration</h1>
@@ -98,48 +98,50 @@
     </section>
 
     <section class="panel">
-        <form id="search-form" class="toolbar">
-            <label class="search">
+        <form id="search-form" class="admin-toolbar sensor-filter-toolbar">
+            <label class="admin-toolbar-field">
                 <span>Organization</span>
                 <select id="organization-filter"><option value="">All organizations</option></select>
             </label>
 
-            <label class="search">
+            <label class="admin-toolbar-field">
                 <span>Laboratory</span>
                 <select id="lab-filter"><option value="">All laboratories</option></select>
             </label>
 
-            <label class="search">
+            <label class="admin-toolbar-field">
                 <span>Room</span>
                 <select id="room-filter"><option value="">All rooms</option></select>
             </label>
 
-            <label class="search">
+            <label class="admin-toolbar-field sensor-search-field">
                 <span>Search</span>
                 <input id="search-input" type="search" placeholder="Sensor name">
             </label>
 
-            <button class="button button-secondary" type="submit">Search</button>
-            <button id="clear-search" class="button button-link" type="button">Clear</button>
+            <button id="clear-search" class="button button-link admin-toolbar-clear" type="button">Clear</button>
 
-            <label class="search">
-                <span>Export period</span>
-                <select id="room-export-period">
-                    <option value="24">24 hours</option>
-                    <option value="168">7 days</option>
-                    <option value="720">30 days</option>
-                </select>
-            </label>
-
-            <button id="export-room-readings" class="button button-secondary" type="button" disabled
-                    title="Select a room to export its readings">
-                Export room CSV
-            </button>
         </form>
+
+        <div class="admin-results-header">
+            <h2>Results</h2>
+            <div class="admin-results-actions">
+                <label class="admin-toolbar-field admin-results-period" for="room-export-period">
+                    <span>Export period</span>
+                    <select id="room-export-period">
+                        <option value="24">24 hours</option>
+                        <option value="168">7 days</option>
+                        <option value="720">30 days</option>
+                    </select>
+                </label>
+                <button id="export-room-readings" class="button button-secondary" type="button" disabled
+                        title="Select a room to export its readings">Export room CSV</button>
+            </div>
+        </div>
 
         <div id="page-message" class="message hidden" role="status"></div>
         <p id="loading-state" class="state">Loading sensors...</p>
-        <p id="empty-state" class="state hidden">No sensors found for the selected filters.</p>
+        <p id="empty-state" class="state admin-empty-state hidden">No sensors found for the selected filters.</p>
 
         <div id="table-wrapper" class="table-wrapper hidden">
             <table>

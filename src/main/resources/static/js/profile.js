@@ -27,11 +27,18 @@ function renderProfile(user) {
         const details = document.createElement("p");
         const scope = membership.scopeType === "ORGANIZATION"
             ? "All labs and rooms"
-            : `${membership.labIds.length} lab(s), ${membership.roomIds.length} room(s)`;
+            : formatScope(membership);
         details.textContent = `${formatRole(membership.role)} · ${scope}`;
         item.append(title, details);
         list.append(item);
     });
+}
+
+function formatScope(membership) {
+    const parts = [];
+    if (membership.labNames?.length) parts.push(`Lab: ${membership.labNames.join(", ")} (all rooms)`);
+    if (membership.roomNames?.length) parts.push(`Room: ${membership.roomNames.join(", ")}`);
+    return parts.join(", ") || "No specific resources";
 }
 
 profileForm.addEventListener("submit", async event => {

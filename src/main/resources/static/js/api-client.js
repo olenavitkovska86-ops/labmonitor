@@ -1,7 +1,8 @@
 let csrfTokenPromise;
 let sessionRefreshPromise;
 
-async function csrfToken() {
+async function csrfToken(force = false) {
+    if (force) csrfTokenPromise = null;
     if (!csrfTokenPromise) {
         csrfTokenPromise = authenticatedFetch("/api/csrf", {cache: "no-store"}).then(async response => {
             if (!response.ok) throw new Error("Unable to initialize request security.");
@@ -22,7 +23,14 @@ async function apiFetch(url, options = {}) {
         headers.set(csrf.headerName, csrf.token);
     }
 
-    return authenticatedFetch(url, {...options, headers});
+    let response = await authenticatedFetch(url, {...options, headers});
+    const requestMethod = (options.method || "GET").toUpperCase();
+    if (response.status === 403 && ["PUT", "PATCH", "DELETE"].includes(requestMethod)) {
+        const freshCsrf = await csrfToken(true);
+        headers.set(freshCsrf.headerName, freshCsrf.token);
+        response = await authenticatedFetch(url, {...options, headers});
+    }
+    return response;
 }
 
 async function authenticatedFetch(url, options = {}) {

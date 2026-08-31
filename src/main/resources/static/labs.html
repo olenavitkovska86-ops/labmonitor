@@ -15,7 +15,7 @@
 <main class="page">
     <nav id="breadcrumbs" class="breadcrumbs" aria-label="Breadcrumb"></nav>
 
-    <section class="hero">
+    <section class="admin-page-header">
         <div>
             <p class="eyebrow">Administration</p>
             <h1>Labs</h1>
@@ -58,8 +58,8 @@
         </form>
     </section>
 
-    <section class="panel">
-        <form id="search-form" class="toolbar">
+    <section class="panel admin-results-panel">
+        <form id="search-form" class="admin-toolbar">
             <label class="search">
                 <span>Search</span>
                 <input id="search-input" type="search" placeholder="Lab name">
@@ -72,13 +72,14 @@
                 </select>
             </label>
 
-            <button class="button button-secondary" type="submit">Search</button>
-            <button id="clear-search" class="button button-link" type="button">Clear</button>
+            <button class="button button-secondary admin-toolbar-submit" type="submit">Search</button>
+            <button id="clear-search" class="button button-link admin-toolbar-clear" type="button">Clear</button>
         </form>
+        <div class="admin-results-header"><h2>Results</h2></div>
 
         <div id="page-message" class="message hidden" role="status"></div>
         <p id="loading-state" class="state">Loading labs...</p>
-        <p id="empty-state" class="state hidden">No labs found.</p>
+        <p id="empty-state" class="state admin-empty-state hidden">No labs found.</p>
 
         <div id="table-wrapper" class="table-wrapper hidden">
             <table>

@@ -10,7 +10,7 @@
 <header class="topbar"><a class="brand" href="/">LabMonitor</a><span class="subtitle">Administration</span></header>
 <main class="page">
     <nav class="breadcrumbs" aria-label="Breadcrumb"><a class="breadcrumb-link" href="/">Home</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Administration</span></nav>
-    <section class="hero">
+    <section class="admin-page-header">
         <div><p id="administration-eyebrow" class="eyebrow">System administration</p><h1>Users and access</h1><p id="administration-intro" class="intro">Accounts and memberships stored by LabMonitor.</p></div>
         <button id="show-user-form" class="button button-primary" type="button">Create user</button>
     </section>
@@ -53,9 +53,20 @@
             <div class="form-actions"><button id="membership-submit" class="button button-primary" type="submit">Add selected access</button><button id="cancel-membership-form" class="button button-secondary" type="button">Close</button></div>
         </form>
     </section>
-    <section class="panel">
+    <section class="panel admin-results-panel">
+        <form id="user-filters" class="admin-toolbar">
+            <label id="user-filter-organization-field" class="admin-toolbar-field"><span>Organization</span><select id="user-filter-organization"><option value="">All organizations</option></select></label>
+            <label class="admin-toolbar-field"><span>Role</span><select id="user-filter-role"><option value="">All roles</option><option value="SUPER_ADMIN">Super administrator</option><option value="LAB_ADMIN">Lab administrator</option><option value="LIMITED_EMPLOYEE">Limited employee</option></select></label>
+            <label class="admin-toolbar-field"><span>Status</span><select id="user-filter-status"><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="DISABLED">Disabled</option></select></label>
+            <label class="admin-toolbar-field"><span>Laboratory</span><select id="user-filter-lab"><option value="">All laboratories</option></select></label>
+            <label class="admin-toolbar-field"><span>Room</span><select id="user-filter-room"><option value="">All rooms</option></select></label>
+            <label class="admin-toolbar-field"><span>Search users</span><input id="user-filter-search" type="search" placeholder="Name or email"></label>
+            <button id="user-filter-clear" class="button button-link admin-toolbar-clear" type="button">Clear</button>
+        </form>
+        <div class="admin-results-header"><h2>Results</h2></div>
         <div class="panel-heading"><h2 id="users-heading">Users</h2></div>
         <p id="users-loading" class="state">Loading users...</p>
+        <p id="users-empty" class="state admin-empty-state hidden">No users found.<br><span>There are no users matching the selected filters.</span></p>
         <div id="users-table" class="table-wrapper hidden"><table><thead><tr><th>User</th><th id="role-column-heading">Global role</th><th id="access-column-heading">Memberships</th><th>Status</th><th>Actions</th></tr></thead><tbody id="user-rows"></tbody></table></div>
     </section>
 </main>
