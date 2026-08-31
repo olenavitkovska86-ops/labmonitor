@@ -124,7 +124,12 @@ Configure `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` in your IDE run configurati
 4. The application runs on port `8080`.
 
 Open `/login.html` and sign in before using the protected API or application
-pages. Authentication is stateless and uses the JWT returned by `/auth/login`.
+pages. API authentication uses the JWT issued by `/auth/login`.
+The browser receives a 15-minute access JWT in the `LABMONITOR_SESSION` HttpOnly
+cookie and a rotating 14-day opaque refresh token in `LABMONITOR_REFRESH`. The
+refresh token is stored only as a SHA-256 hash in the database, is replaced by
+`POST /auth/refresh`, and is revoked on logout or password change. The frontend
+automatically refreshes once and retries the original request after a `401`.
 
 Open the web interface in a browser:
 

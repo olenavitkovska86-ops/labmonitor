@@ -1,12 +1,9 @@
 let csrfTokenPromise;
+let sessionRefreshPromise;
 
 async function csrfToken() {
     if (!csrfTokenPromise) {
-        csrfTokenPromise = fetch("/api/csrf", {cache: "no-store"}).then(async response => {
-            if (response.status === 401) {
-                redirectToLogin();
-                throw new Error("Your session has expired. Please sign in again.");
-            }
+        csrfTokenPromise = authenticatedFetch("/api/csrf", {cache: "no-store"}).then(async response => {
             if (!response.ok) throw new Error("Unable to initialize request security.");
             return response.json();
         }).catch(error => {
@@ -25,13 +22,31 @@ async function apiFetch(url, options = {}) {
         headers.set(csrf.headerName, csrf.token);
     }
 
-    const response = await fetch(url, {...options, headers});
+    return authenticatedFetch(url, {...options, headers});
+}
+
+async function authenticatedFetch(url, options = {}) {
+    let response = await fetch(url, options);
     if (response.status === 401) {
         csrfTokenPromise = null;
+        const refreshed = await refreshSession();
+        if (refreshed) response = await fetch(url, options);
+    }
+    if (response.status === 401) {
         redirectToLogin();
-        throw new Error("Authentication is required.");
+        throw new Error("Your session has expired. Please sign in again.");
     }
     return response;
+}
+
+async function refreshSession() {
+    if (!sessionRefreshPromise) {
+        sessionRefreshPromise = fetch("/auth/refresh", {method: "POST"})
+            .then(response => response.ok)
+            .catch(() => false)
+            .finally(() => { sessionRefreshPromise = null; });
+    }
+    return sessionRefreshPromise;
 }
 
 async function apiRequest(url, options = {}) {

@@ -7,6 +7,7 @@ import com.olena.labmonitor.security.JwtProperties;
 import com.olena.labmonitor.user.User;
 import com.olena.labmonitor.user.UserRepository;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,26 +26,38 @@ public class AuthController {
     private final AuthService authService;
     private final boolean secureCookie;
     private final long jwtExpirationMillis;
+    private final long refreshExpirationMillis;
 
     public AuthController(UserRepository userRepository, AuthService authService, JwtProperties jwtProperties) {
         this.userRepository = userRepository;
         this.authService = authService;
         this.secureCookie = jwtProperties.cookieSecure();
         this.jwtExpirationMillis = jwtProperties.expiration();
+        this.refreshExpirationMillis = jwtProperties.refreshExpiration();
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Void> login(@Valid @RequestBody LoginDto login){
-        String token = authService.login(login);
-        return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, sessionCookie(token, jwtExpirationMillis / 1000).toString())
-                .build();
+    public ResponseEntity<Void> login(@Valid @RequestBody LoginDto login, HttpServletRequest request){
+        AuthTokens tokens = authService.login(login, request.getHeader(HttpHeaders.USER_AGENT), request.getRemoteAddr());
+        return tokenResponse(tokens);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Void> refresh(@org.springframework.web.bind.annotation.CookieValue(
+            name = "LABMONITOR_REFRESH", required = false) String refreshToken,
+                                        HttpServletRequest request) {
+        AuthTokens tokens = authService.refresh(refreshToken, request.getHeader(HttpHeaders.USER_AGENT),
+                request.getRemoteAddr());
+        return tokenResponse(tokens);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
+    public ResponseEntity<Void> logout(@org.springframework.web.bind.annotation.CookieValue(
+            name = "LABMONITOR_REFRESH", required = false) String refreshToken) {
+        authService.logout(refreshToken);
         return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, sessionCookie("", 0).toString())
+                .header(HttpHeaders.SET_COOKIE, accessCookie("", 0).toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie("", 0).toString())
                 .build();
     }
 
@@ -57,12 +70,29 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    private ResponseCookie sessionCookie(String value, long maxAgeSeconds) {
+    private ResponseEntity<Void> tokenResponse(AuthTokens tokens) {
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, accessCookie(tokens.accessToken(), jwtExpirationMillis / 1000).toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie(tokens.refreshToken(), refreshExpirationMillis / 1000).toString())
+                .build();
+    }
+
+    private ResponseCookie accessCookie(String value, long maxAgeSeconds) {
         return ResponseCookie.from("LABMONITOR_SESSION", value)
                 .httpOnly(true)
                 .secure(secureCookie)
                 .sameSite("Strict")
                 .path("/")
+                .maxAge(maxAgeSeconds)
+                .build();
+    }
+
+    private ResponseCookie refreshCookie(String value, long maxAgeSeconds) {
+        return ResponseCookie.from("LABMONITOR_REFRESH", value)
+                .httpOnly(true)
+                .secure(secureCookie)
+                .sameSite("Strict")
+                .path("/auth")
                 .maxAge(maxAgeSeconds)
                 .build();
     }

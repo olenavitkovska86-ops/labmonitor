@@ -1,5 +1,6 @@
 package com.olena.labmonitor.common.error;
 
+import com.olena.labmonitor.auth.InvalidRefreshTokenException;
 import com.olena.labmonitor.common.exception.ResourceNotFoundException;
 import com.olena.labmonitor.common.exception.InvalidOperationException;
 import com.olena.labmonitor.device.security.InvalidDeviceCredentialException;
@@ -60,6 +61,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiError> handleBadCredentials(BadCredentialsException exception) {
         return buildError(HttpStatus.UNAUTHORIZED, "Invalid email or password", List.of());
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidRefreshToken(InvalidRefreshTokenException exception) {
+        return buildError(HttpStatus.UNAUTHORIZED, exception.getMessage(), List.of());
     }
 
     @ExceptionHandler(AccessDeniedException.class)

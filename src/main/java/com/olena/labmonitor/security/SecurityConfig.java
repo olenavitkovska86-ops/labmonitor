@@ -45,7 +45,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/auth/login", "/api/device/**")
+                        .ignoringRequestMatchers("/auth/login", "/auth/refresh", "/api/device/**")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -55,7 +55,7 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, exception) ->
                                 writeSecurityError(response, HttpStatus.FORBIDDEN, "Access denied")))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/login").permitAll()
+                        .requestMatchers("/auth/login", "/auth/refresh", "/login").permitAll()
                         .requestMatchers("/auth/logout").authenticated()
                         .requestMatchers("/auth/change-password").authenticated()
                         .requestMatchers("/api/device/**").hasAuthority("DEVICE_INGEST")
