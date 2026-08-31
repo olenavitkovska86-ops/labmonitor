@@ -72,12 +72,14 @@ public class TeamAccessService {
 
     private Membership requireLabAdmin(Long organizationId, String email) {
         var actor = users.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if ("SUPER_ADMIN".equals(actor.getGlobalRole())) return null;
         return memberships.findByUserIdAndOrganizationId(actor.getId(), organizationId)
                 .filter(item -> "LAB_ADMIN".equals(item.getRole()))
                 .orElseThrow(() -> new AccessDeniedException("LAB_ADMIN access is required in this organization"));
     }
 
     private boolean intersects(Membership actor, Membership target) {
+        if (actor == null) return true;
         if (actor.getScopeType() == MembershipScopeType.ORGANIZATION) return true;
         if (target.getScopeType() == MembershipScopeType.ORGANIZATION) return false;
         return target.getAccessibleLabs().stream().anyMatch(lab -> includesLab(actor, lab.getId()))
@@ -85,6 +87,7 @@ public class TeamAccessService {
     }
 
     private ManagedUserResponse scopedResponse(Membership actor, Membership target) {
+        if (actor == null) return ManagedUserResponse.forSuperAdmin(target.getUser());
         if (actor.getScopeType() == MembershipScopeType.ORGANIZATION) {
             return ManagedUserResponse.forLabAdmin(target.getUser(), AccessAssignmentResponse.from(target));
         }
@@ -96,6 +99,7 @@ public class TeamAccessService {
     }
 
     private void requireWithinActorScope(Membership actor, MembershipScopeType type, Selection selection) {
+        if (actor == null) return;
         if (type == MembershipScopeType.ORGANIZATION) {
             if (actor.getScopeType() != MembershipScopeType.ORGANIZATION) {
                 throw new AccessDeniedException("Cannot grant organization-wide access outside your scope");
