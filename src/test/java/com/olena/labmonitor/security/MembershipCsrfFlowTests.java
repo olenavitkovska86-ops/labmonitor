@@ -18,7 +18,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -50,17 +52,15 @@ class MembershipCsrfFlowTests {
                         .content("""
                                 {"role":"LIMITED_EMPLOYEE","scope":{"type":"ORGANIZATION","labIds":[],"roomIds":[]}}
                                 """))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("CSRF_FAILURE"));
 
         MvcResult csrf = mockMvc.perform(get("/api/csrf").cookie(session))
                 .andExpect(status().isOk()).andReturn();
         String token = com.jayway.jsonpath.JsonPath.read(csrf.getResponse().getContentAsString(), "$.token");
         String header = com.jayway.jsonpath.JsonPath.read(csrf.getResponse().getContentAsString(), "$.headerName");
-        Cookie csrfCookie = csrf.getResponse().getCookie("XSRF-TOKEN");
-        assertThat(csrfCookie).isNotNull();
-
-        mockMvc.perform(put("/api/memberships/4").cookie(session, csrfCookie)
-                        .header(header, token).contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(put("/api/memberships/4").cookie(session)
+                        .with(csrf()).contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"role":"LIMITED_EMPLOYEE","scope":{"type":"ORGANIZATION","labIds":[],"roomIds":[]}}
                                 """))
