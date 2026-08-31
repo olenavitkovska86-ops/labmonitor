@@ -37,6 +37,10 @@ class AccessPolicyTests {
         assertThat(access.canManageSensor(999L, 888L, 777L)).isTrue();
         assertThat(access.canManageAlert(999L, 888L, 777L)).isTrue();
         assertThat(access.canManageSession(999L, 888L, 777L)).isTrue();
+        policy.require(authentication(user), PermissionCatalog.USERS_MANAGE);
+        policy.requireOrganization(authentication(user), PermissionCatalog.TEAM_ACCESS_MANAGE, 999L);
+        policy.requireLab(authentication(user), PermissionCatalog.SENSORS_MANAGE, 999L, 888L);
+        policy.requireRoom(authentication(user), PermissionCatalog.SENSORS_MANAGE, 999L, 888L, 777L);
     }
 
     @Test
@@ -94,6 +98,24 @@ class AccessPolicyTests {
 
         assertThat(access.canManageSensor(1L, 10L, 20L)).isTrue();
         assertThat(access.canManageSensor(1L, 11L, 21L)).isFalse();
+        policy.requireLab(authentication(user), PermissionCatalog.SENSORS_SETTINGS_UPDATE, 1L, 10L);
+        assertThatThrownBy(() -> policy.requireLab(authentication(user), PermissionCatalog.SENSORS_SETTINGS_UPDATE, 1L, 11L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+    }
+
+    @Test
+    void sessionsPermissionFollowsOrganizationAndRoomScope() {
+        User user = user("session-admin@example.com");
+        Organization organization = organization(1L);
+        Lab lab = lab(10L, organization);
+        Room room = room(20L, lab);
+        Membership membership = new Membership(organization, user, "LAB_ADMIN");
+        membership.updateAccess("LAB_ADMIN", MembershipScopeType.SPECIFIC, Set.of(lab), Set.of());
+        user.getMemberships().add(membership);
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        policy.requireRoom(authentication(user), PermissionCatalog.SESSIONS_MANAGE, 1L, 10L, 20L);
+        assertThatThrownBy(() -> policy.requireRoom(authentication(user), PermissionCatalog.SESSIONS_MANAGE, 2L, 10L, 20L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     @Test

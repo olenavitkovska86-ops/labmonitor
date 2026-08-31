@@ -19,6 +19,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.csrf.CsrfException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -52,8 +54,13 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) ->
                                 writeSecurityError(response, HttpStatus.UNAUTHORIZED, "Authentication required"))
-                        .accessDeniedHandler((request, response, exception) ->
-                                writeSecurityError(response, HttpStatus.FORBIDDEN, "Access denied")))
+                        .accessDeniedHandler((request, response, exception) -> {
+                            if (exception instanceof CsrfException) {
+                                csrfAccessDeniedHandler().handle(request, response, exception);
+                            } else {
+                                writeSecurityError(response, HttpStatus.FORBIDDEN, "Access denied");
+                            }
+                        }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login", "/auth/refresh", "/login").permitAll()
                         .requestMatchers("/auth/logout").authenticated()
@@ -78,6 +85,20 @@ public class SecurityConfig {
         response.setStatus(status.value());
         response.setContentType("application/json");
         objectMapper.writeValue(response.getOutputStream(), errorFactory.create(status, message, List.of()));
+    }
+
+    private AccessDeniedHandler csrfAccessDeniedHandler() {
+        return (request, response, exception) -> {
+            if (exception instanceof CsrfException) {
+                response.setStatus(HttpStatus.FORBIDDEN.value());
+                response.setContentType("application/json");
+                objectMapper.writeValue(response.getOutputStream(),
+                        java.util.Map.of("status", 403, "error", "Forbidden", "code", "CSRF_FAILURE",
+                                "message", "CSRF token invalid or missing", "details", List.of()));
+                return;
+            }
+            writeSecurityError(response, HttpStatus.FORBIDDEN, "Access denied");
+        };
     }
 
     @Bean
