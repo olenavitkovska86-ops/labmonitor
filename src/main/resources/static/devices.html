@@ -10,7 +10,7 @@
 <header class="topbar"><a class="brand" href="/">LabMonitor</a><span class="subtitle">Device administration</span></header>
 <main class="page">
     <nav class="breadcrumbs" aria-label="Breadcrumb"><a class="breadcrumb-link" href="/">Home</a><span class="breadcrumb-separator">›</span><span class="breadcrumb-current">Devices</span></nav>
-    <section class="hero">
+    <section class="admin-page-header">
         <div><p class="eyebrow">Administration</p><h1>Devices</h1><p class="intro">Connect gateways, physical sensors, and data clients to LabMonitor.</p></div>
         <button id="show-device-form" class="button button-primary" type="button">Add device</button>
     </section>
@@ -68,9 +68,10 @@
         <div id="credentials-table" class="table-wrapper hidden"><table><thead><tr><th>ID</th><th>Status</th><th>Issued</th><th>Last used</th><th>Action</th></tr></thead><tbody id="credential-rows"></tbody></table></div>
     </section>
 
-    <section class="panel">
-        <form id="device-filters" class="toolbar"><label><span>Organization</span><select id="device-filter-organization"><option value="">All organizations</option></select></label><label><span>Status</span><select id="device-filter-status"><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="DISABLED">Disabled</option></select></label></form>
-        <p id="devices-loading" class="state">Loading devices…</p><p id="devices-empty" class="state hidden">No devices found.</p>
+    <section class="panel admin-results-panel">
+        <form id="device-filters" class="admin-toolbar"><label class="admin-toolbar-field"><span>Organization</span><select id="device-filter-organization"><option value="">All organizations</option></select></label><label class="admin-toolbar-field"><span>Status</span><select id="device-filter-status"><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="DISABLED">Disabled</option></select></label></form>
+        <div class="admin-results-header"><h2>Results</h2></div>
+        <p id="devices-loading" class="state">Loading devices…</p><p id="devices-empty" class="state admin-empty-state hidden">No devices found.</p>
         <div id="devices-table" class="table-wrapper hidden"><table><thead><tr><th>Device</th><th>Organization</th><th>Laboratory / Room</th><th>Type</th><th>Status</th><th>Last seen</th><th>Action</th></tr></thead><tbody id="device-rows"></tbody></table></div>
     </section>
 </main>
