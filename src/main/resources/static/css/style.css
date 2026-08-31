@@ -407,6 +407,66 @@ a.module-card:hover {
     margin-bottom: 22px;
 }
 
+/* Sensor filters need room for real organization, lab, and room names. */
+.sensor-filter-toolbar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: end;
+    gap: 14px;
+}
+
+.sensor-filter-toolbar .search {
+    min-width: 0;
+    display: grid;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.sensor-filter-toolbar .search span {
+    color: #526674;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sensor-filter-toolbar select,
+.sensor-filter-toolbar input {
+    min-width: 0;
+    height: 44px;
+}
+
+.sensor-filter-toolbar > .button {
+    height: 44px;
+    white-space: nowrap;
+}
+
+.sensor-filter-toolbar > .button:nth-of-type(1) { grid-column: 1; }
+.sensor-filter-toolbar > .button:nth-of-type(2) { grid-column: 2; }
+.sensor-filter-toolbar > #room-export-period { grid-column: 3; }
+.sensor-filter-toolbar > #export-room-readings { grid-column: 4; }
+
+.sensor-filter-toolbar #room-export-period {
+    min-width: 0;
+}
+
+@media (max-width: 1120px) and (min-width: 701px) {
+    .sensor-filter-toolbar {
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+    }
+
+    .sensor-filter-toolbar > .button {
+        justify-self: start;
+    }
+
+    .sensor-filter-toolbar > .button:nth-of-type(1),
+    .sensor-filter-toolbar > .button:nth-of-type(2),
+    .sensor-filter-toolbar > #room-export-period,
+    .sensor-filter-toolbar > #export-room-readings {
+        grid-column: auto;
+    }
+}
+
 .auto-refresh-status {
     margin-left: auto;
     white-space: nowrap;
@@ -1261,6 +1321,23 @@ th {
         flex-direction: column;
     }
 
+    .sensor-filter-toolbar {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .sensor-filter-toolbar > .button {
+        width: 100%;
+    }
+
+    .sensor-filter-toolbar > .button:nth-of-type(1),
+    .sensor-filter-toolbar > .button:nth-of-type(2),
+    .sensor-filter-toolbar > #room-export-period,
+    .sensor-filter-toolbar > #export-room-readings {
+        grid-column: auto;
+    }
+
     .module-grid {
         grid-template-columns: 1fr;
     }
@@ -1422,6 +1499,7 @@ html, body { max-width: 100%; overflow-x: hidden; }
     text-decoration: none;
     transition: 140ms ease;
 }
+.app-sidebar .app-sidebar-link.hidden { display: none; }
 .app-sidebar-icon { width: 19px; color: #81a3af; font-size: 1.08rem; text-align: center; }
 .app-sidebar-link:hover { color: #fff; background: rgb(255 255 255 / 7%); }
 .app-sidebar-link-active { color: #fff; background: #1b4b5b; box-shadow: inset 3px 0 #69c6d5; }

@@ -488,8 +488,10 @@ function formatRole(role) { return role === "LAB_ADMIN" ? "Lab admin" : "Limited
 function formatScope(item) {
     if (item.scopeType === "ORGANIZATION") return "all resources";
     const parts = [];
-    if (item.labIds.length) parts.push(`${item.labIds.length} ${item.labIds.length === 1 ? "lab" : "labs"} (all rooms)`);
-    if (item.roomIds.length) parts.push(`${item.roomIds.length} individual ${item.roomIds.length === 1 ? "room" : "rooms"}`);
+    const labNames = (item.labIds || []).map(id => administrationLabs.find(lab => Number(lab.id) === Number(id))?.name || `Lab ${id}`);
+    const roomNames = (item.roomIds || []).map(id => administrationRooms.find(room => Number(room.id) === Number(id))?.name || `Room ${id}`);
+    if (labNames.length) parts.push(`Lab: ${labNames.join(", ")} (all rooms)`);
+    if (roomNames.length) parts.push(`Room: ${roomNames.join(", ")}`);
     return parts.join(", ");
 }
 function showAdminMessage(message, error = false) { adminMessage.textContent = message; adminMessage.className = `message ${error ? "message-error" : "message-success"}`; }

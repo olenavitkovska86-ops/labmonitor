@@ -42,7 +42,9 @@ public record UserResponse(
                                 Permissions.organization(membership.getRole()),
                                 membership.getScopeType(),
                                 membership.getAccessibleLabs().stream().map(lab -> lab.getId()).toList(),
-                                membership.getAccessibleRooms().stream().map(room -> room.getId()).toList()
+                                membership.getAccessibleRooms().stream().map(room -> room.getId()).toList(),
+                                membership.getAccessibleLabs().stream().map(lab -> lab.getName()).toList(),
+                                membership.getAccessibleRooms().stream().map(room -> room.getName()).toList()
                         ))
                         .toList(),
                 user.getLastLoginAt(),
@@ -59,6 +61,8 @@ public record UserResponse(
             List<String> permissions,
             MembershipScopeType scopeType,
             List<Long> labIds,
-            List<Long> roomIds
+            List<Long> roomIds,
+            List<String> labNames,
+            List<String> roomNames
     ){}
 }
