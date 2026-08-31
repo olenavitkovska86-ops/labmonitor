@@ -7,6 +7,14 @@ const adminMessage = document.querySelector("#admin-message");
 const membershipFormPanel = document.querySelector("#membership-form-panel");
 const membershipForm = document.querySelector("#membership-form");
 const membershipScope = document.querySelector("#membership-scope");
+const userFilters = document.querySelector("#user-filters");
+const userFilterOrganization = document.querySelector("#user-filter-organization");
+const userFilterRole = document.querySelector("#user-filter-role");
+const userFilterStatus = document.querySelector("#user-filter-status");
+const userFilterLab = document.querySelector("#user-filter-lab");
+const userFilterRoom = document.querySelector("#user-filter-room");
+const userFilterSearch = document.querySelector("#user-filter-search");
+const usersEmpty = document.querySelector("#users-empty");
 let administrationUsers = [];
 let administrationOrganizations = [];
 let administrationLabs = [];
@@ -47,7 +55,10 @@ async function initializeAdministration(organization) {
         administrationLabs = labs;
         administrationRooms = rooms.filter(room => room.organizationId === organization.id);
         administrationUsers = members;
+        populateResourceFilters();
         renderTeamUsers(administrationUsers);
+        document.querySelector("#user-filter-organization-field").classList.add("hidden");
+        userFilterStatus.closest(".admin-toolbar-field").classList.add("hidden");
     } catch (error) {
         showAdminMessage(error.message, true);
     }
@@ -70,11 +81,47 @@ async function initializeSuperAdministration() {
         administrationOrganizations = organizations;
         administrationLabs = labs;
         administrationRooms = rooms;
+        populateResourceFilters();
         organizations.forEach(organization => organizationInput.append(new Option(organization.name, organization.id)));
+        organizations.forEach(organization => userFilterOrganization.append(new Option(organization.name, organization.id)));
         renderUsers(users, currentAdministratorId);
 }
 
+function populateResourceFilters() {
+    administrationLabs.forEach(lab => userFilterLab.append(new Option(lab.name, lab.id)));
+    administrationRooms.forEach(room => userFilterRoom.append(new Option(room.name, room.id)));
+}
+
+function filteredUsers(users) {
+    const role = userFilterRole.value;
+    const status = userFilterStatus.value;
+    const search = userFilterSearch.value.trim().toLowerCase();
+    const labId = userFilterLab.value;
+    const roomId = userFilterRoom.value;
+    return users.filter(user => {
+        const matchesRole = !role || user.globalRole === role || user.assignments?.some(assignment => assignment.role === role);
+        const matchesStatus = !status || user.status === status;
+        const haystack = `${user.firstName || ""} ${user.lastName || ""} ${user.email || ""}`.toLowerCase();
+        const assignments = user.assignments || [];
+        const matchesLab = !labId || assignments.some(a => (a.labIds || []).map(Number).includes(Number(labId)) || (a.scopeType === "ORGANIZATION" && administrationLabs.some(l => Number(l.id) === Number(labId) && Number(a.organizationId) === Number(l.organizationId))));
+        const selectedRoom = administrationRooms.find(room => Number(room.id) === Number(roomId));
+        const matchesRoom = !roomId || assignments.some(a => {
+            if ((a.roomIds || []).map(Number).includes(Number(roomId))) return true;
+            if (a.scopeType === "ORGANIZATION" && selectedRoom) return Number(a.organizationId) === Number(selectedRoom.organizationId);
+            return (a.labIds || []).map(Number).includes(Number(selectedRoom?.labId));
+        });
+        return matchesRole && matchesStatus && matchesLab && matchesRoom && (!search || haystack.includes(search));
+    });
+}
+
+function showUserResults(hasResults) {
+    document.querySelector("#users-loading").classList.add("hidden");
+    document.querySelector("#users-table").classList.toggle("hidden", !hasResults);
+    usersEmpty.classList.toggle("hidden", hasResults);
+}
+
 function renderTeamUsers(users) {
+    users = filteredUsers(users);
     userRows.replaceChildren();
     users.forEach(user => {
         const membership = user.assignments[0];
@@ -89,11 +136,11 @@ function renderTeamUsers(users) {
         }
         row.append(action); userRows.append(row);
     });
-    document.querySelector("#users-loading").classList.add("hidden");
-    document.querySelector("#users-table").classList.remove("hidden");
+    showUserResults(users.length > 0);
 }
 
 function renderUsers(users, currentUserId) {
+    users = filteredUsers(users);
     userRows.replaceChildren();
     users.forEach(user => {
         const row = document.createElement("tr");
@@ -111,8 +158,7 @@ function renderUsers(users, currentUserId) {
         row.append(actionCell);
         userRows.append(row);
     });
-    document.querySelector("#users-loading").classList.add("hidden");
-    document.querySelector("#users-table").classList.remove("hidden");
+    showUserResults(users.length > 0);
 }
 
 function createMembershipCell(user) {
@@ -436,7 +482,11 @@ async function refreshUsers() {
         administrationUsers = members;
         renderTeamUsers(administrationUsers);
     } else {
-        administrationUsers = await apiRequest("/api/users/managed");
+        const params = new URLSearchParams();
+        if (userFilterOrganization.value) params.set("organizationId", userFilterOrganization.value);
+        if (userFilterSearch.value.trim()) params.set("search", userFilterSearch.value.trim());
+        const query = params.toString();
+        administrationUsers = await apiRequest(`/api/users/managed${query ? `?${query}` : ""}`);
         renderUsers(administrationUsers, currentAdministratorId);
     }
 }
@@ -488,8 +538,10 @@ function formatRole(role) { return role === "LAB_ADMIN" ? "Lab admin" : "Limited
 function formatScope(item) {
     if (item.scopeType === "ORGANIZATION") return "all resources";
     const parts = [];
-    if (item.labIds.length) parts.push(`${item.labIds.length} ${item.labIds.length === 1 ? "lab" : "labs"} (all rooms)`);
-    if (item.roomIds.length) parts.push(`${item.roomIds.length} individual ${item.roomIds.length === 1 ? "room" : "rooms"}`);
+    const labNames = (item.labIds || []).map(id => administrationLabs.find(lab => Number(lab.id) === Number(id))?.name || `Lab ${id}`);
+    const roomNames = (item.roomIds || []).map(id => administrationRooms.find(room => Number(room.id) === Number(id))?.name || `Room ${id}`);
+    if (labNames.length) parts.push(`Lab: ${labNames.join(", ")} (all rooms)`);
+    if (roomNames.length) parts.push(`Room: ${roomNames.join(", ")}`);
     return parts.join(", ");
 }
 function showAdminMessage(message, error = false) { adminMessage.textContent = message; adminMessage.className = `message ${error ? "message-error" : "message-success"}`; }
@@ -497,6 +549,20 @@ function closeForm() { userFormPanel.classList.add("hidden"); }
 document.querySelector("#show-user-form").addEventListener("click", () => userFormPanel.classList.remove("hidden"));
 document.querySelector("#close-user-form").addEventListener("click", closeForm);
 document.querySelector("#cancel-user-form").addEventListener("click", closeForm);
+userFilters.addEventListener("submit", event => { event.preventDefault(); refreshUsers(); });
+userFilterOrganization.addEventListener("change", () => refreshUsers());
+userFilterRole.addEventListener("change", () => administrationMode === "LAB_ADMIN" ? renderTeamUsers(administrationUsers) : renderUsers(administrationUsers, currentAdministratorId));
+userFilterStatus.addEventListener("change", () => administrationMode === "LAB_ADMIN" ? renderTeamUsers(administrationUsers) : renderUsers(administrationUsers, currentAdministratorId));
+userFilterLab.addEventListener("change", () => administrationMode === "LAB_ADMIN" ? renderTeamUsers(administrationUsers) : renderUsers(administrationUsers, currentAdministratorId));
+userFilterRoom.addEventListener("change", () => administrationMode === "LAB_ADMIN" ? renderTeamUsers(administrationUsers) : renderUsers(administrationUsers, currentAdministratorId));
+userFilterSearch.addEventListener("input", () => {
+    clearTimeout(userFilterSearch._timer);
+    userFilterSearch._timer = setTimeout(() => refreshUsers(), 250);
+});
+document.querySelector("#user-filter-clear").addEventListener("click", () => {
+    userFilters.reset();
+    administrationMode === "LAB_ADMIN" ? renderTeamUsers(administrationUsers) : refreshUsers();
+});
 roleInput.addEventListener("change", () => document.querySelector("#organization-field").classList.toggle("hidden", roleInput.value === "SUPER_ADMIN"));
 membershipScope.addEventListener("change", updateScopeVisibility);
 document.querySelector("#close-membership-form").addEventListener("click", closeMembershipForm);
