@@ -30,7 +30,7 @@ class MonitoringSessionServiceTests {
     @Test
     void startsPlannedSessionWhenRoomHasNoActiveSession() {
         MonitoringSession session = session(MonitoringSessionStatus.PLANNED);
-        when(repository.findById(10L)).thenReturn(Optional.of(session));
+        when(repository.findByIdForUpdate(10L)).thenReturn(Optional.of(session));
         when(repository.existsByRoomIdAndStatus(1L, MonitoringSessionStatus.ACTIVE)).thenReturn(false);
         when(repository.saveAndFlush(session)).thenReturn(session);
 
@@ -43,7 +43,7 @@ class MonitoringSessionServiceTests {
     @Test
     void rejectsSecondActiveSessionInSameRoom() {
         MonitoringSession session = session(MonitoringSessionStatus.PLANNED);
-        when(repository.findById(10L)).thenReturn(Optional.of(session));
+        when(repository.findByIdForUpdate(10L)).thenReturn(Optional.of(session));
         when(repository.existsByRoomIdAndStatus(1L, MonitoringSessionStatus.ACTIVE)).thenReturn(true);
 
         assertThrows(InvalidOperationException.class, () -> service.start(10L));
@@ -53,7 +53,7 @@ class MonitoringSessionServiceTests {
     @Test
     void completesOnlyActiveSession() {
         MonitoringSession session = session(MonitoringSessionStatus.PLANNED);
-        when(repository.findById(10L)).thenReturn(Optional.of(session));
+        when(repository.findByIdForUpdate(10L)).thenReturn(Optional.of(session));
 
         assertThrows(InvalidOperationException.class, () -> service.complete(10L));
     }

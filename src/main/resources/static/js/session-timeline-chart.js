@@ -2,6 +2,38 @@
     const colors = ["#16778f", "#7c3aed", "#ea580c", "#059669", "#be123c", "#4f46e5"];
 
     function create(canvas, timeline, readings, {showLegend = false} = {}) {
+        const model = buildModel(timeline, readings);
+        const datasets = model.datasets;
+        return new Chart(canvas, {type: "line", data: {datasets}, options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            interaction: {mode: "nearest", intersect: false},
+            scales: {
+                x: {type: "linear", min: model.from, max: model.to, grid: {color: "#e5eaed"}, ticks: {callback: value => new Date(value).toLocaleTimeString()}},
+                y: {min: model.minimum, max: model.maximum, grid: {color: "#e5eaed"}}
+            },
+            plugins: {
+                legend: {display: showLegend, labels: {filter: (item, data) => data.datasets[item.datasetIndex]?.timelineKind === "reading", usePointStyle: true}},
+                tooltip: {callbacks: {
+                    title: items => items.length ? new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "medium"}).format(new Date(items[0].parsed.x)) : "",
+                    label: item => item.dataset.timelineKind === "marker" ? item.dataset.markerLabel
+                        : `${item.dataset.label}: ${item.parsed.y}${item.raw.reading.unit ? ` ${item.raw.reading.unit}` : ""}${item.raw.reading.status === "OUTSIDE_RANGE" ? " · Outside safe range" : ""}`
+                }}
+            }
+        }});
+    }
+
+    function update(chart, timeline, readings, {showLegend = false} = {}) {
+        const model = buildModel(timeline, readings);
+        chart.data.datasets = model.datasets;
+        chart.options.scales.x.min = model.from;
+        chart.options.scales.x.max = model.to;
+        chart.options.scales.y.min = model.minimum;
+        chart.options.scales.y.max = model.maximum;
+        chart.options.plugins.legend.display = showLegend;
+        chart.update("none");
+    }
+
+    function buildModel(timeline, readings) {
         const from = new Date(timeline.from).getTime();
         const to = Math.max(new Date(timeline.to).getTime(), from + 1000);
         const values = readings.flatMap(reading => [reading.value, reading.safeMin, reading.safeMax])
@@ -23,22 +55,7 @@
             const markerTime = new Date(originalTime).getTime() < from ? timeline.from : originalTime;
             datasets.push(markerDataset(markerTime, minimum, maximum, "#b42318", [2, 3], `${alert.severity}: ${alert.title}`, from, to));
         });
-        return new Chart(canvas, {type: "line", data: {datasets}, options: {
-            responsive: true, maintainAspectRatio: false, animation: false,
-            interaction: {mode: "nearest", intersect: false},
-            scales: {
-                x: {type: "linear", min: from, max: to, grid: {color: "#e5eaed"}, ticks: {callback: value => new Date(value).toLocaleTimeString()}},
-                y: {min: minimum, max: maximum, grid: {color: "#e5eaed"}}
-            },
-            plugins: {
-                legend: {display: showLegend, labels: {filter: item => datasets[item.datasetIndex]?.timelineKind === "reading", usePointStyle: true}},
-                tooltip: {callbacks: {
-                    title: items => items.length ? new Intl.DateTimeFormat(undefined, {dateStyle: "medium", timeStyle: "medium"}).format(new Date(items[0].parsed.x)) : "",
-                    label: item => item.dataset.timelineKind === "marker" ? item.dataset.markerLabel
-                        : `${item.dataset.label}: ${item.parsed.y}${item.raw.reading.unit ? ` ${item.raw.reading.unit}` : ""}${item.raw.reading.status === "OUTSIDE_RANGE" ? " · Outside safe range" : ""}`
-                }}
-            }
-        }});
+        return {from, to, minimum, maximum, datasets};
     }
 
     function readingDataset(readings, color) {
@@ -61,5 +78,5 @@
     }
 
     function humanize(value) { return String(value || "Event").toLowerCase().replaceAll("_", " ").replace(/^./, letter => letter.toUpperCase()); }
-    window.LabMonitorSessionChart = {create};
+    window.LabMonitorSessionChart = {create, update};
 })();

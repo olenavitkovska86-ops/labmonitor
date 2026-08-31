@@ -5,10 +5,13 @@ import java.util.List;
 import java.util.Set;
 
 public final class Permissions {
+    public static final String ALERTS_MANAGE = "alerts.manage";
+    public static final String SESSIONS_MANAGE = "sessions.manage";
+
     private static final List<String> PROFILE = List.of(
             "profile.read", "profile.update", "password.change");
     private static final List<String> EMPLOYEE = List.of(
-            "resources.read", "alerts.manage", "sessions.manage", "exports.read");
+            "resources.read", ALERTS_MANAGE, SESSIONS_MANAGE, "exports.read");
     private static final List<String> LAB_ADMIN = List.of(
             "sensors.settings.update", "team.access.manage");
     private static final List<String> SUPER_ADMIN = List.of(

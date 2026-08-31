@@ -72,6 +72,14 @@ public class AccessPolicy {
             return grant != null && "LAB_ADMIN".equals(grant.role()) && grant.includesRoom(labId, roomId);
         }
 
+        public boolean canManageAlert(Long organizationId, Long labId, Long roomId) {
+            return canManageRoomResource(organizationId, labId, roomId, Permissions.ALERTS_MANAGE);
+        }
+
+        public boolean canManageSession(Long organizationId, Long labId, Long roomId) {
+            return canManageRoomResource(organizationId, labId, roomId, Permissions.SESSIONS_MANAGE);
+        }
+
         public void requireViewOrganization(Long organizationId) {
             require(canViewOrganization(organizationId));
         }
@@ -86,6 +94,22 @@ public class AccessPolicy {
 
         public void requireManageSensor(Long organizationId, Long labId, Long roomId) {
             require(canManageSensor(organizationId, labId, roomId));
+        }
+
+        public void requireManageAlert(Long organizationId, Long labId, Long roomId) {
+            require(canManageAlert(organizationId, labId, roomId));
+        }
+
+        public void requireManageSession(Long organizationId, Long labId, Long roomId) {
+            require(canManageSession(organizationId, labId, roomId));
+        }
+
+        private boolean canManageRoomResource(Long organizationId, Long labId, Long roomId, String permission) {
+            if (superAdmin) return true;
+            OrganizationGrant grant = organizations.get(organizationId);
+            return grant != null
+                    && Permissions.organization(grant.role()).contains(permission)
+                    && grant.includesRoom(labId, roomId);
         }
 
         private void require(boolean allowed) {

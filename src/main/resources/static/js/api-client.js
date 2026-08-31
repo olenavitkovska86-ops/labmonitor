@@ -1,23 +1,52 @@
+let csrfTokenPromise;
+let sessionRefreshPromise;
+
+async function csrfToken() {
+    if (!csrfTokenPromise) {
+        csrfTokenPromise = authenticatedFetch("/api/csrf", {cache: "no-store"}).then(async response => {
+            if (!response.ok) throw new Error("Unable to initialize request security.");
+            return response.json();
+        }).catch(error => {
+            csrfTokenPromise = null;
+            throw error;
+        });
+    }
+    return csrfTokenPromise;
+}
+
 async function apiFetch(url, options = {}) {
     const method = (options.method || "GET").toUpperCase();
     const headers = new Headers(options.headers || {});
     if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
-        const csrfResponse = await fetch("/api/csrf", {cache: "no-store"});
-        if (csrfResponse.status === 401) {
-            if (window.location.pathname !== "/login.html") window.location.href = "/login.html";
-            throw new Error("Your session has expired. Please sign in again.");
-        }
-        if (!csrfResponse.ok) throw new Error("Unable to initialize request security.");
-        const csrf = await csrfResponse.json();
+        const csrf = await csrfToken();
         headers.set(csrf.headerName, csrf.token);
     }
 
-    const response = await fetch(url, {...options, headers});
+    return authenticatedFetch(url, {...options, headers});
+}
+
+async function authenticatedFetch(url, options = {}) {
+    let response = await fetch(url, options);
     if (response.status === 401) {
-        if (window.location.pathname !== "/login.html") window.location.href = "/login.html";
-        throw new Error("Authentication is required.");
+        csrfTokenPromise = null;
+        const refreshed = await refreshSession();
+        if (refreshed) response = await fetch(url, options);
+    }
+    if (response.status === 401) {
+        redirectToLogin();
+        throw new Error("Your session has expired. Please sign in again.");
     }
     return response;
+}
+
+async function refreshSession() {
+    if (!sessionRefreshPromise) {
+        sessionRefreshPromise = fetch("/auth/refresh", {method: "POST"})
+            .then(response => response.ok)
+            .catch(() => false)
+            .finally(() => { sessionRefreshPromise = null; });
+    }
+    return sessionRefreshPromise;
 }
 
 async function apiRequest(url, options = {}) {
@@ -26,10 +55,20 @@ async function apiRequest(url, options = {}) {
     const response = await apiFetch(url, {...options, headers});
     if (response.ok) return response.status === 204 ? null : response.json();
 
-    const error = await response.json().catch(() => ({}));
+    const error = await readApiError(response);
     const details = error.details?.length ? `: ${error.details.join(", ")}` : "";
     const message = response.status === 403
         ? "You do not have permission to perform this action."
         : error.message || error.error || `Request failed with status ${response.status}`;
     throw new Error(`${message}${details}`);
+}
+
+async function readApiError(response) {
+    return response.json().catch(() => ({}));
+}
+
+function redirectToLogin() {
+    if (!["/login", "/login.html"].includes(window.location.pathname)) {
+        window.location.assign("/login.html");
+    }
 }

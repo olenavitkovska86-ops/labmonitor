@@ -11,7 +11,9 @@ import java.util.List;
 import java.util.Optional;
 import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 public interface AlertRepository extends JpaRepository<Alert, Long>, JpaSpecificationExecutor<Alert> {
 
@@ -23,11 +25,10 @@ public interface AlertRepository extends JpaRepository<Alert, Long>, JpaSpecific
     @EntityGraph(attributePaths = {"room.lab.organization", "sensor", "acknowledgedByUser", "resolvedByUser", "reopenedByUser"})
     Optional<Alert> findById(Long id);
 
-    boolean existsBySensorIdAndTypeAndStatusIn(
-            Long sensorId,
-            AlertType type,
-            Collection<AlertStatus> statuses
-    );
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"room.lab.organization", "sensor", "acknowledgedByUser", "resolvedByUser", "reopenedByUser"})
+    @Query("select alert from Alert alert where alert.id = :id")
+    Optional<Alert> findByIdForUpdate(@Param("id") Long id);
 
     Optional<Alert> findFirstBySensorIdAndTypeAndStatusInAndRecoveredAtIsNull(
             Long sensorId,

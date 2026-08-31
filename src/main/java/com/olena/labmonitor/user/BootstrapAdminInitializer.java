@@ -8,8 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Component
+@ConditionalOnProperty(name = "labmonitor.bootstrap-admin.enabled", havingValue = "true")
 public class BootstrapAdminInitializer implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(BootstrapAdminInitializer.class);

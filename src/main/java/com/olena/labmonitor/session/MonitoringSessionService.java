@@ -9,7 +9,6 @@ import com.olena.labmonitor.session.dto.MonitoringSessionResponse;
 import com.olena.labmonitor.user.User;
 import com.olena.labmonitor.user.UserRepository;
 import org.springframework.data.domain.Sort;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,14 +25,8 @@ public class MonitoringSessionService {
     private final UserRepository userRepository;
     private final Clock clock;
 
-    @Autowired
     public MonitoringSessionService(MonitoringSessionRepository repository, RoomService roomService,
-                                    UserRepository userRepository) {
-        this(repository, roomService, userRepository, Clock.systemDefaultZone());
-    }
-
-    MonitoringSessionService(MonitoringSessionRepository repository, RoomService roomService,
-                             UserRepository userRepository, Clock clock) {
+                                    UserRepository userRepository, Clock clock) {
         this.repository = repository;
         this.roomService = roomService;
         this.userRepository = userRepository;
@@ -65,7 +58,7 @@ public class MonitoringSessionService {
     }
 
     public MonitoringSessionResponse start(Long id) {
-        MonitoringSession session = getSession(id);
+        MonitoringSession session = getSessionForUpdate(id);
         if (session.getStatus() != MonitoringSessionStatus.PLANNED) {
             throw new InvalidOperationException("Only a planned monitoring session can be started");
         }
@@ -85,7 +78,7 @@ public class MonitoringSessionService {
     }
 
     public MonitoringSessionResponse cancel(Long id) {
-        MonitoringSession session = getSession(id);
+        MonitoringSession session = getSessionForUpdate(id);
         if (session.getStatus() != MonitoringSessionStatus.PLANNED
                 && session.getStatus() != MonitoringSessionStatus.ACTIVE) {
             throw new InvalidOperationException("Only a planned or active monitoring session can be cancelled");
@@ -95,7 +88,7 @@ public class MonitoringSessionService {
     }
 
     public MonitoringSession requireActive(Long id, String operation) {
-        MonitoringSession session = getSession(id);
+        MonitoringSession session = getSessionForUpdate(id);
         if (session.getStatus() != MonitoringSessionStatus.ACTIVE) {
             throw new InvalidOperationException("Only an active monitoring session can be " + operation);
         }
@@ -104,6 +97,11 @@ public class MonitoringSessionService {
 
     public MonitoringSession getSession(Long id) {
         return repository.findById(id).orElseThrow(() ->
+                new ResourceNotFoundException("Monitoring session with id " + id + " was not found"));
+    }
+
+    private MonitoringSession getSessionForUpdate(Long id) {
+        return repository.findByIdForUpdate(id).orElseThrow(() ->
                 new ResourceNotFoundException("Monitoring session with id " + id + " was not found"));
     }
 

@@ -220,7 +220,7 @@ public class AlertService {
     }
 
     public AlertResponse acknowledge(Long id, String userEmail) {
-        Alert alert = getAlert(id);
+        Alert alert = getAlertForUpdate(id);
         if (alert.getStatus() != AlertStatus.ACTIVE) {
             throw new InvalidOperationException("Only an active alert can be acknowledged");
         }
@@ -242,7 +242,7 @@ public class AlertService {
     }
 
     public AlertResponse resolve(Long id, String userEmail, ResolveAlertRequest request) {
-        Alert alert = getAlert(id);
+        Alert alert = getAlertForUpdate(id);
         if (alert.getStatus() != AlertStatus.ACKNOWLEDGED) {
             throw new InvalidOperationException("Only an acknowledged alert can be resolved");
         }
@@ -266,7 +266,7 @@ public class AlertService {
     }
 
     public AlertResponse reopen(Long id, String userEmail, ReopenAlertRequest request) {
-        Alert alert = getAlert(id);
+        Alert alert = getAlertForUpdate(id);
         if (alert.getStatus() != AlertStatus.RESOLVED) {
             throw new InvalidOperationException("Only a resolved alert can be reopened");
         }
@@ -306,6 +306,11 @@ public class AlertService {
 
     private Alert getAlert(Long id) {
         return alertRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Alert with id " + id + " was not found"));
+    }
+
+    private Alert getAlertForUpdate(Long id) {
+        return alertRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Alert with id " + id + " was not found"));
     }
 

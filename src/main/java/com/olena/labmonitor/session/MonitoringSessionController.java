@@ -40,7 +40,7 @@ public class MonitoringSessionController {
     public MonitoringSessionResponse create(@Valid @RequestBody CreateMonitoringSessionRequest request,
                                             @AuthenticationPrincipal UserDetails user,
                                             Authentication authentication) {
-        requireRoomAccess(request.roomId(), authentication);
+        requireRoomManagement(request.roomId(), authentication);
         return service.create(request, user.getUsername());
     }
 
@@ -80,17 +80,17 @@ public class MonitoringSessionController {
 
     @PostMapping("/{id}/start")
     public MonitoringSessionResponse start(@PathVariable Long id, Authentication authentication) {
-        requireSessionAccess(id, authentication); return service.start(id);
+        requireSessionManagement(id, authentication); return service.start(id);
     }
 
     @PostMapping("/{id}/complete")
     public MonitoringSessionResponse complete(@PathVariable Long id, Authentication authentication) {
-        requireSessionAccess(id, authentication); return service.complete(id);
+        requireSessionManagement(id, authentication); return service.complete(id);
     }
 
     @PostMapping("/{id}/cancel")
     public MonitoringSessionResponse cancel(@PathVariable Long id, Authentication authentication) {
-        requireSessionAccess(id, authentication); return service.cancel(id);
+        requireSessionManagement(id, authentication); return service.cancel(id);
     }
 
     private MonitoringSessionResponse requireSessionAccess(Long id, Authentication authentication) {
@@ -100,9 +100,16 @@ public class MonitoringSessionController {
         return session;
     }
 
-    private void requireRoomAccess(Long roomId, Authentication authentication) {
+    private MonitoringSessionResponse requireSessionManagement(Long id, Authentication authentication) {
+        MonitoringSessionResponse session = service.findById(id);
+        accessPolicy.forAuthentication(authentication).requireManageSession(
+                session.organizationId(), session.labId(), session.roomId());
+        return session;
+    }
+
+    private void requireRoomManagement(Long roomId, Authentication authentication) {
         var room = service.getRoom(roomId);
-        accessPolicy.forAuthentication(authentication).requireViewRoom(
+        accessPolicy.forAuthentication(authentication).requireManageSession(
                 room.getLab().getOrganization().getId(), room.getLab().getId(), room.getId());
     }
 }

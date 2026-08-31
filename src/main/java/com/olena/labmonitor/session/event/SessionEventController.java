@@ -31,7 +31,7 @@ public class SessionEventController {
                                        @Valid @RequestBody CreateSessionEventRequest request,
                                        @AuthenticationPrincipal UserDetails user,
                                        Authentication authentication) {
-        requireSessionAccess(sessionId, authentication);
+        requireSessionManagement(sessionId, authentication);
         return service.create(sessionId, request, user.getUsername());
     }
 
@@ -44,6 +44,12 @@ public class SessionEventController {
     private void requireSessionAccess(Long sessionId, Authentication authentication) {
         var session = sessionService.findById(sessionId);
         accessPolicy.forAuthentication(authentication).requireViewRoom(
+                session.organizationId(), session.labId(), session.roomId());
+    }
+
+    private void requireSessionManagement(Long sessionId, Authentication authentication) {
+        var session = sessionService.findById(sessionId);
+        accessPolicy.forAuthentication(authentication).requireManageSession(
                 session.organizationId(), session.labId(), session.roomId());
     }
 }

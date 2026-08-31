@@ -1,27 +1,28 @@
 package com.olena.labmonitor.user.dto;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record CreateUserRequest(
-        @NotNull(message = "Email is required")
+        @NotBlank(message = "Email is required")
         @Email
+        @Size(max = 255)
         String email,
 
-        @NotNull(message = "First name is required")
+        @NotBlank(message = "First name is required")
         @Size(max = 100)
         String firstName,
 
-        @NotNull(message = "Last name is Required")
+        @NotBlank(message = "Last name is required")
         @Size(max = 100)
         String lastName,
 
-        @NotNull(message = "Password is required")
-        @Size(min = 8, message = "Password must be at least 8 characters")
+        @NotBlank(message = "Password is required")
+        @Size(min = 8, max = 72, message = "Password must contain between 8 and 72 characters")
         String password,
 
-        @NotNull(message = "Role is required")
+        @NotBlank(message = "Role is required")
         String role,
 
         Long organization

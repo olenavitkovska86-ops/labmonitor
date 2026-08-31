@@ -11,6 +11,7 @@ import com.olena.labmonitor.config.MonitoringProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -24,21 +25,24 @@ public class SensorReadingService {
     private final SensorService sensorService;
     private final AlertService alertService;
     private final MonitoringProperties monitoringProperties;
+    private final Clock clock;
 
     public SensorReadingService(
             SensorReadingRepository sensorReadingRepository,
             SensorService sensorService,
             AlertService alertService,
-            MonitoringProperties monitoringProperties
+            MonitoringProperties monitoringProperties,
+            Clock clock
     ) {
         this.sensorReadingRepository = sensorReadingRepository;
         this.sensorService = sensorService;
         this.alertService = alertService;
         this.monitoringProperties = monitoringProperties;
+        this.clock = clock;
     }
 
     public SensorReadingResponse create(CreateSensorReadingRequest request) {
-        Sensor sensor = sensorService.getExistingSensor(request.sensorId());
+        Sensor sensor = sensorService.getExistingSensorForUpdate(request.sensorId());
         if (!sensor.isActive()) {
             throw new InvalidOperationException(
                     "Inactive sensor with id " + sensor.getId() + " cannot accept readings"
@@ -47,7 +51,7 @@ public class SensorReadingService {
         sensorService.requireOperationalParents(sensor, "accept a reading for sensor with id " + sensor.getId());
 
         LocalDateTime measuredAt = request.measuredAt() == null
-                ? LocalDateTime.now()
+                ? LocalDateTime.now(clock)
                 : request.measuredAt();
 
         return createForSensor(sensor, request.value(), measuredAt, null, null);
@@ -120,7 +124,7 @@ public class SensorReadingService {
             throw new IllegalArgumentException("History limit must be between 1 and " + maximumLimit);
         }
 
-        LocalDateTime effectiveTo = to == null ? LocalDateTime.now() : to;
+        LocalDateTime effectiveTo = to == null ? LocalDateTime.now(clock) : to;
         LocalDateTime effectiveFrom = from == null
                 ? effectiveTo.minus(monitoringProperties.getReadings().getHistoryDefaultPeriod())
                 : from;

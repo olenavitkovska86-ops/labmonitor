@@ -223,7 +223,7 @@ class AlertServiceTests {
     void acknowledgesActiveAlert() {
         Alert alert = thresholdAlert();
         User user = authenticatedUser();
-        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(alert));
         when(alertRepository.saveAndFlush(alert)).thenReturn(alert);
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
@@ -265,7 +265,7 @@ class AlertServiceTests {
         alert.acknowledge(user);
         alert.startThresholdViolation(new BigDecimal("28"), MEASURED_AT.minusMinutes(10));
         alert.markRecovered(MEASURED_AT);
-        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(alert));
         when(alertRepository.saveAndFlush(alert)).thenReturn(alert);
         when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
 
@@ -285,7 +285,7 @@ class AlertServiceTests {
     void rejectsAcknowledgingResolvedAlert() {
         Alert alert = thresholdAlert();
         alert.resolve(authenticatedUser(), AlertResolutionOutcome.FALSE_ALARM, null);
-        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(alert));
 
         assertThrows(RuntimeException.class, () -> alertService.acknowledge(1L, "user@example.com"));
     }
@@ -293,7 +293,7 @@ class AlertServiceTests {
     @Test
     void rejectsResolvingActiveAlertBeforeAcknowledgement() {
         Alert alert = thresholdAlert();
-        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(alert));
 
         assertThrows(RuntimeException.class, () -> alertService.resolve(
                 1L,
@@ -307,7 +307,7 @@ class AlertServiceTests {
         Alert alert = thresholdAlert();
         alert.acknowledge(authenticatedUser());
         alert.startThresholdViolation(new BigDecimal("28"), MEASURED_AT);
-        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(alert));
 
         assertThrows(RuntimeException.class, () -> alertService.resolve(
                 1L,
@@ -320,7 +320,7 @@ class AlertServiceTests {
     void rejectsFalseAlarmWithoutExplanation() {
         Alert alert = thresholdAlert();
         alert.acknowledge(authenticatedUser());
-        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(alert));
 
         assertThrows(RuntimeException.class, () -> alertService.resolve(
                 1L,
@@ -362,7 +362,7 @@ class AlertServiceTests {
         alert.resolve(resolver, AlertResolutionOutcome.FALSE_ALARM, "Incorrect result");
         User reopeningUser = new User("admin@example.com", "password-hash", "Lab", "Admin", null);
         ReflectionTestUtils.setField(reopeningUser, "id", 43L);
-        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(alert));
         when(userRepository.findByEmail(reopeningUser.getEmail())).thenReturn(Optional.of(reopeningUser));
         when(alertRepository.saveAndFlush(alert)).thenReturn(alert);
 
@@ -384,7 +384,7 @@ class AlertServiceTests {
     @Test
     void rejectsReopeningActiveAlert() {
         Alert alert = thresholdAlert();
-        when(alertRepository.findById(1L)).thenReturn(Optional.of(alert));
+        when(alertRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(alert));
 
         assertThrows(RuntimeException.class, () -> alertService.reopen(
                 1L, "user@example.com", new ReopenAlertRequest("Incorrect resolution")
