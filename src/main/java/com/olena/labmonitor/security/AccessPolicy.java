@@ -23,6 +23,42 @@ public class AccessPolicy {
         this.userRepository = userRepository;
     }
 
+    public void require(Authentication authentication, String permission) {
+        User user = authenticatedUser(authentication);
+        if (Permissions.global(user.getGlobalRole()).contains(permission)) return;
+        throw new AccessDeniedException("You do not have permission for this action");
+    }
+
+    public void requireOrganization(Authentication authentication, String permission, Long organizationId) {
+        UserAccess access = forAuthentication(authentication);
+        if (access.superAdmin()) return;
+        OrganizationGrant grant = access.organizations().get(organizationId);
+        if (grant != null && Permissions.organization(grant.role()).contains(permission)) return;
+        throw new AccessDeniedException("You do not have permission for this organization");
+    }
+
+    public void requireLab(Authentication authentication, String permission, Long organizationId, Long labId) {
+        UserAccess access = forAuthentication(authentication);
+        if (access.superAdmin()) return;
+        OrganizationGrant grant = access.organizations().get(organizationId);
+        if (grant != null && Permissions.organization(grant.role()).contains(permission) && grant.includesLab(labId)) return;
+        throw new AccessDeniedException("You do not have permission for this laboratory");
+    }
+
+    public void requireRoom(Authentication authentication, String permission, Long organizationId, Long labId, Long roomId) {
+        UserAccess access = forAuthentication(authentication);
+        if (access.superAdmin()) return;
+        OrganizationGrant grant = access.organizations().get(organizationId);
+        if (grant != null && Permissions.organization(grant.role()).contains(permission) && grant.includesRoom(labId, roomId)) return;
+        throw new AccessDeniedException("You do not have permission for this room");
+    }
+
+    private User authenticatedUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) throw new AccessDeniedException("Authentication is required");
+        return userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user was not found"));
+    }
+
     @Transactional(readOnly = true)
     public UserAccess forAuthentication(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -69,7 +105,9 @@ public class AccessPolicy {
         public boolean canManageSensor(Long organizationId, Long labId, Long roomId) {
             if (superAdmin) return true;
             OrganizationGrant grant = organizations.get(organizationId);
-            return grant != null && "LAB_ADMIN".equals(grant.role()) && grant.includesRoom(labId, roomId);
+            return grant != null
+                    && Permissions.organization(grant.role()).contains(PermissionCatalog.SENSORS_SETTINGS_UPDATE)
+                    && grant.includesRoom(labId, roomId);
         }
 
         public boolean canManageAlert(Long organizationId, Long labId, Long roomId) {
@@ -77,7 +115,7 @@ public class AccessPolicy {
         }
 
         public boolean canManageSession(Long organizationId, Long labId, Long roomId) {
-            return canManageRoomResource(organizationId, labId, roomId, Permissions.SESSIONS_MANAGE);
+            return canManageRoomResource(organizationId, labId, roomId, PermissionCatalog.SESSIONS_MANAGE);
         }
 
         public void requireViewOrganization(Long organizationId) {
