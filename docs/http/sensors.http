@@ -2,6 +2,7 @@
 @baseUrl = http://localhost:8080
 @roomId = 1
 @sensorId = 1
+@csrfToken = replace-with-xsrf-cookie-value
 
 ### Get all sensors
 GET {{baseUrl}}/api/sensors
@@ -21,6 +22,7 @@ GET {{baseUrl}}/api/sensors/{{sensorId}}
 ### Create sensor
 POST {{baseUrl}}/api/sensors
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "roomId": {{roomId}},
@@ -32,6 +34,7 @@ Content-Type: application/json
 ### Update sensor
 PUT {{baseUrl}}/api/sensors/{{sensorId}}
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "name": "Main Temperature Sensor",
@@ -41,6 +44,7 @@ Content-Type: application/json
 ### Update safe range
 PUT {{baseUrl}}/api/sensors/{{sensorId}}/safe-range
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "minSafeValue": 18.0,
@@ -49,13 +53,16 @@ Content-Type: application/json
 
 ### Deactivate sensor
 POST {{baseUrl}}/api/sensors/{{sensorId}}/deactivate
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Activate sensor
 POST {{baseUrl}}/api/sensors/{{sensorId}}/activate
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Validation error: invalid safe range
 PUT {{baseUrl}}/api/sensors/{{sensorId}}/safe-range
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "minSafeValue": 30.0,

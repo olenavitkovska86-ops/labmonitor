@@ -1,32 +1,88 @@
-### Login
-POST http://localhost:8080/auth/login
+### Variables
+@baseUrl = http://localhost:8080
+@userId = 2
+@organizationId = 1
+@csrfToken = replace-with-xsrf-cookie-value
+
+# Use auth.http first. These requests rely on the retained authentication
+# cookies. Every state-changing request also needs the CSRF token.
+
+### View own profile
+GET {{baseUrl}}/api/users/me
+
+### Update own profile
+PUT {{baseUrl}}/api/users/me
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
-  "email": "test.admin@labmonitor.local",
-  "password": "Test123!"
-}
-
-### Change password (kör login ovan först, kopiera token hit)
-POST http://localhost:8080/auth/change-password
-Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0LmFkbWluQGxhYm1vbml0b3IubG9jYWwiLCJyb2xlcyI6WyJST0xFX1NVUEVSX0FETUlOIl0sImlhdCI6MTc4NjcwNjMzOSwiZXhwIjoxNzg2NzA5OTM5fQ.3TLx0uaV5aImpglp91LqKULdV9dTc8_6rMBMGpsZ8x4
-
-{
-  "oldPassword": "Test123!",
-  "newPassword": "NyttLosen456!"
-}
-
-### Create user (SUPER_ADMIN only)
-POST http://localhost:8080/api/users
-Content-Type: application/json
-Authorization: Bearer KLISTRA_IN_FÄRSKT_TOKEN_HÄR
-
-{
-  "email": "ny.anvandare@labmonitor.local",
   "firstName": "Anna",
   "lastName": "Andersson",
-  "password": "TempLosen123!",
+  "phone": "+48 123 456 789"
+}
+
+### Update alert notification preference
+PUT {{baseUrl}}/api/users/me/preferences/notifications
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "alertNotificationsEnabled": true
+}
+
+### Change own password; this revokes existing refresh-token families
+POST {{baseUrl}}/auth/change-password
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "oldPassword": "replace-with-current-password",
+  "newPassword": "replace-with-new-password"
+}
+
+# The remaining operations require SUPER_ADMIN.
+
+### List managed users
+GET {{baseUrl}}/api/users/managed?organizationId={{organizationId}}
+
+### Create an active organization user
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "email": "anna@example.com",
+  "firstName": "Anna",
+  "lastName": "Andersson",
+  "password": "TemporaryPassword123!",
   "role": "LAB_ADMIN",
-  "organizationId": 1
+  "organization": {{organizationId}}
+}
+
+### Disable or reactivate a user
+PUT {{baseUrl}}/api/users/{{userId}}/status
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "status": "DISABLED"
+}
+
+### Promote a user to global SUPER_ADMIN
+PATCH {{baseUrl}}/api/users/{{userId}}/promote
+X-XSRF-TOKEN: {{csrfToken}}
+
+### Demote a SUPER_ADMIN into an organization membership
+PATCH {{baseUrl}}/api/users/{{userId}}/demote
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "role": "LAB_ADMIN",
+  "organizationId": {{organizationId}},
+  "scope": {
+    "type": "ORGANIZATION",
+    "labIds": [],
+    "roomIds": []
+  }
 }

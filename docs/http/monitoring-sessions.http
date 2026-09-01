@@ -2,10 +2,12 @@
 @baseUrl = http://localhost:8080
 @roomId = 1
 @sessionId = 1
+@csrfToken = replace-with-xsrf-cookie-value
 
 ### Create a planned monitoring session
 POST {{baseUrl}}/api/monitoring-sessions
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "roomId": {{roomId}},
@@ -22,16 +24,20 @@ GET {{baseUrl}}/api/monitoring-sessions/{{sessionId}}
 ### Start a planned session
 # A room can have only one ACTIVE session.
 POST {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/start
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Complete an active session
 POST {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/complete
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Cancel a planned or active session
 POST {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/cancel
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Add an event to an active session
 POST {{baseUrl}}/api/monitoring-sessions/{{sessionId}}/events
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "category": "INTERVENTION",

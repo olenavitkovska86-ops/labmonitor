@@ -105,6 +105,7 @@ GET  /api/devices
 GET  /api/devices/{deviceId}
 PATCH /api/devices/{deviceId}/status
 PUT  /api/devices/{deviceId}/sensors/{sensorId}
+POST /api/devices/{deviceId}/sensor-channels
 GET  /api/devices/{deviceId}/channels
 DELETE /api/devices/{deviceId}/sensors/{sensorId}
 GET  /api/devices/{deviceId}/credentials
@@ -143,6 +144,9 @@ http://localhost:8080/sensors.html
 http://localhost:8080/sensor-readings.html?sensorId=1
 http://localhost:8080/analytics.html
 http://localhost:8080/alerts.html
+http://localhost:8080/monitoring-sessions.html
+http://localhost:8080/devices.html
+http://localhost:8080/profile.html
 ```
 
 The root URL opens the LabMonitor home page. The web interface follows the
@@ -186,6 +190,11 @@ exists:
 ```json
 []
 ```
+
+The examples under `docs/http` assume an authenticated browser/API session.
+State-changing user API requests also require the `X-XSRF-TOKEN` header matching
+the `XSRF-TOKEN` cookie obtained from `GET /api/csrf`. Device ingestion uses its
+own `Authorization: Device <token>` authentication and is not CSRF-protected.
 
 A successful application startup is confirmed by these messages in the log:
 
@@ -270,7 +279,18 @@ docs/menu-sketch.md
 docs/roles-and-permissions.md
 docs/user-stories.md
 docs/architecture/domain-model.md
+docs/architecture/data-ingestion.md
+docs/analytics-mvp.md
+docs/http/auth.http
+docs/http/organizations.http
+docs/http/labs.http
+docs/http/rooms.http
 docs/http/sensors.http
 docs/http/sensor-readings.http
 docs/http/monitoring-sessions.http
+docs/http/alerts.http
+docs/http/analytics.http
+docs/http/user.http
+docs/http/access.http
+docs/http/devices.http
 ```

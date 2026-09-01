@@ -1,0 +1,110 @@
+### Variables
+@baseUrl = http://localhost:8080
+@organizationId = 1
+@roomId = 1
+@deviceId = 1
+@sensorId = 1
+@credentialId = 1
+@deviceToken = replace-with-the-one-time-provisioned-token
+@csrfToken = replace-with-xsrf-cookie-value
+
+# Administration requests require a SUPER_ADMIN session and CSRF protection.
+# First log in, call GET /api/csrf, then send the X-XSRF-TOKEN cookie value as
+# the X-XSRF-TOKEN header for POST, PUT, PATCH, and DELETE requests.
+
+### List devices, optionally filtered by organization
+GET {{baseUrl}}/api/devices?organizationId={{organizationId}}
+
+### Get one device
+GET {{baseUrl}}/api/devices/{{deviceId}}
+
+### Register a room-scoped HTTP device
+POST {{baseUrl}}/api/devices
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "roomId": {{roomId}},
+  "name": "Room gateway",
+  "type": "GATEWAY"
+}
+
+### Activate or deactivate a device
+PATCH {{baseUrl}}/api/devices/{{deviceId}}/status
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "status": "ACTIVE"
+}
+
+### Assign an existing sensor to a device channel
+PUT {{baseUrl}}/api/devices/{{deviceId}}/sensors/{{sensorId}}
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "channelKey": "temperature"
+}
+
+### Create a sensor and device channel together
+POST {{baseUrl}}/api/devices/{{deviceId}}/sensor-channels
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "name": "Humidity",
+  "type": "HUMIDITY",
+  "unit": "%",
+  "channelKey": "humidity",
+  "minSafeValue": 30,
+  "maxSafeValue": 70
+}
+
+### List configured channels
+GET {{baseUrl}}/api/devices/{{deviceId}}/channels
+
+### Remove a sensor channel assignment
+DELETE {{baseUrl}}/api/devices/{{deviceId}}/sensors/{{sensorId}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+### List credential metadata (never returns the raw token)
+GET {{baseUrl}}/api/devices/{{deviceId}}/credentials
+
+### Provision the first credential; copy token from this one-time response
+POST {{baseUrl}}/api/devices/{{deviceId}}/credentials/provision
+X-XSRF-TOKEN: {{csrfToken}}
+
+### Rotate the active credential
+POST {{baseUrl}}/api/devices/{{deviceId}}/credentials/rotate
+X-XSRF-TOKEN: {{csrfToken}}
+
+### Revoke a credential
+POST {{baseUrl}}/api/devices/{{deviceId}}/credentials/{{credentialId}}/revoke
+X-XSRF-TOKEN: {{csrfToken}}
+
+# Device ingestion does not use the user session or CSRF token.
+
+### Submit an idempotent device reading
+POST {{baseUrl}}/api/device/readings
+Authorization: Device {{deviceToken}}
+Content-Type: application/json
+
+{
+  "channel": "temperature",
+  "value": 22.4,
+  "measuredAt": "2026-09-01T12:00:00+02:00",
+  "messageId": "gateway-1-000001"
+}
+
+### Retry with the same messageId; response status is already_processed
+POST {{baseUrl}}/api/device/readings
+Authorization: Device {{deviceToken}}
+Content-Type: application/json
+
+{
+  "channel": "temperature",
+  "value": 22.4,
+  "measuredAt": "2026-09-01T12:00:00+02:00",
+  "messageId": "gateway-1-000001"
+}

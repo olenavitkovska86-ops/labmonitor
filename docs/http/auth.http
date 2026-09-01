@@ -1,0 +1,30 @@
+### Variables
+@baseUrl = http://localhost:8080
+@email = admin@example.com
+@password = replace-with-local-password
+@csrfToken = replace-with-xsrf-cookie-value
+
+### Log in; an HTTP client with a cookie jar retains both auth cookies
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Obtain the CSRF cookie and token for state-changing user API calls
+GET {{baseUrl}}/api/csrf
+
+# Copy the returned token (or the XSRF-TOKEN cookie value) into the
+# X-XSRF-TOKEN header used by POST, PUT, PATCH, and DELETE examples.
+
+### Rotate the refresh token and issue a new access token
+POST {{baseUrl}}/auth/refresh
+
+### Show the authenticated user
+GET {{baseUrl}}/api/users/me
+
+### Log out
+POST {{baseUrl}}/auth/logout
+X-XSRF-TOKEN: {{csrfToken}}

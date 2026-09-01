@@ -45,17 +45,37 @@ is updated only when the newly stored reading is current in measurement order.
 An older measurement therefore remains available in history and exports but
 cannot reopen or otherwise rewrite the sensor's current threshold condition.
 
-## Sensor Data Flow
+## Browser and authenticated HTTP flow
 
 ```text
-Browser client / device / HTTP API / MQTT
+Browser client / authenticated HTTP API
         ->
 SensorReadingService
         ->
-sensor_readings
+persist SensorReading
         ->
 AlertService
 ```
+
+## Device flow
+
+```text
+Device HTTP client
+        -> Authorization: Device <token>
+DeviceAuthenticationFilter
+        ->
+DeviceIngestionService
+        -> resolve channel and enforce message idempotency
+SensorReadingService
+        ->
+persist SensorReading with source_device_id and message_id
+        ->
+AlertService
+```
+
+Device timestamps must fall within the configured past-age and future-skew
+limits. The device and its credential record receipt activity even when a
+repeated `messageId` returns an already processed reading.
 
 ## Planned Camera Data Flow
 
@@ -71,28 +91,17 @@ AlertService
 
 ## Current Project Version
 
-The current implementation uses the HTTP API. Browser pages may generate or
-acquire values and submit them to that API, while real sensors and MQTT support
-can be added later without changing the main domain model.
+The current implementation supports the user-authenticated HTTP API and the
+device-authenticated HTTP API. Browser pages may generate or acquire values and
+submit them through either route. MQTT remains future work.
 
 ## Source-neutral readings
 
-`SensorReading` intentionally does not store whether a value came from a
-browser client, an iPhone, an integration, or a physical device. The backend
-validates and processes every accepted reading identically. Client names and
-transport-specific details must not leak into the sensor domain or alert logic.
+`SensorReading` does not classify a value as simulated, mobile, or physical.
+Device-originated readings do retain `source_device_id` and `message_id` for
+authentication provenance and idempotency. The backend otherwise validates and
+processes browser and device readings through the same application service.
 
-If operational traceability is required later, it should be designed as
-transport-level ingestion metadata or audit logging rather than changing the
-meaning of a sensor or splitting the reading flow.
-
-## Future Device Fields
-
-Real sensor and camera integrations may require additional device fields, for example:
-
-```text
-external_device_id
-device_key_hash
-```
-
-These fields can be added later with database migrations when real device integration is implemented.
+Additional operational traceability should remain transport-level ingestion
+metadata or audit logging rather than changing the meaning of a sensor or
+splitting threshold and liveness logic.

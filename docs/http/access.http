@@ -1,0 +1,71 @@
+### Variables
+@baseUrl = http://localhost:8080
+@membershipId = 1
+@organizationId = 1
+@userId = 2
+@labId = 1
+@roomId = 1
+@csrfToken = replace-with-xsrf-cookie-value
+
+# Membership endpoints require SUPER_ADMIN. Team-access endpoints are available
+# to SUPER_ADMIN and to LAB_ADMIN within the administrator's own scope.
+
+### Create an organization-wide membership
+POST {{baseUrl}}/api/memberships
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "userId": {{userId}},
+  "organizationId": {{organizationId}},
+  "role": "LIMITED_EMPLOYEE",
+  "scope": {
+    "type": "ORGANIZATION",
+    "labIds": [],
+    "roomIds": []
+  }
+}
+
+### Get a membership
+GET {{baseUrl}}/api/memberships/{{membershipId}}
+
+### Restrict a membership to selected labs and rooms
+PUT {{baseUrl}}/api/memberships/{{membershipId}}
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "role": "LIMITED_EMPLOYEE",
+  "scope": {
+    "type": "SPECIFIC",
+    "labIds": [{{labId}}],
+    "roomIds": [{{roomId}}]
+  }
+}
+
+### Change a user's role inside one organization
+PATCH {{baseUrl}}/api/memberships/organizations/{{organizationId}}/users/{{userId}}/role
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "role": "LAB_ADMIN"
+}
+
+### Remove a membership
+DELETE {{baseUrl}}/api/memberships/{{membershipId}}
+X-XSRF-TOKEN: {{csrfToken}}
+
+### List employees manageable through scoped team access
+GET {{baseUrl}}/api/team-access/organizations/{{organizationId}}
+
+### Update an employee's scope through the LAB_ADMIN-safe endpoint
+PUT {{baseUrl}}/api/team-access/organizations/{{organizationId}}/users/{{userId}}/scope
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
+
+{
+  "type": "SPECIFIC",
+  "labIds": [{{labId}}],
+  "roomIds": [{{roomId}}]
+}

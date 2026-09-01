@@ -1,9 +1,16 @@
+### Variables
+@baseUrl = http://localhost:8080
+@labId = 1
+@roomId = 1
+@csrfToken = replace-with-xsrf-cookie-value
+
 ### Create room
-POST http://localhost:8080/api/rooms
+POST {{baseUrl}}/api/rooms
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
-  "labId": 1,
+  "labId": {{labId}},
   "name": "Chemistry Room 101",
   "type": "EXPERIMENT_ROOM",
   "floor": 1,
@@ -11,20 +18,21 @@ Content-Type: application/json
 }
 
 ### View all rooms
-GET http://localhost:8080/api/rooms
+GET {{baseUrl}}/api/rooms
 
 ### View rooms by lab
-GET http://localhost:8080/api/rooms?labId=1
+GET {{baseUrl}}/api/rooms?labId={{labId}}
 
 ### Search rooms
-GET http://localhost:8080/api/rooms?search=chem
+GET {{baseUrl}}/api/rooms?search=chem
 
 ### View room by id
-GET http://localhost:8080/api/rooms/1
+GET {{baseUrl}}/api/rooms/{{roomId}}
 
 ### Update room
-PUT http://localhost:8080/api/rooms/1
+PUT {{baseUrl}}/api/rooms/{{roomId}}
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "name": "Chemistry Room 101A",
@@ -34,7 +42,9 @@ Content-Type: application/json
 }
 
 ### Deactivate room
-POST http://localhost:8080/api/rooms/1/deactivate
+POST {{baseUrl}}/api/rooms/{{roomId}}/deactivate
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Activate room (the parent lab must be active)
-POST http://localhost:8080/api/rooms/1/activate
+POST {{baseUrl}}/api/rooms/{{roomId}}/activate
+X-XSRF-TOKEN: {{csrfToken}}

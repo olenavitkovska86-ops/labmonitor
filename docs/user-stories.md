@@ -1,8 +1,9 @@
 ## User Stories
 
-Sections for cameras and audit logs describe future scope and are not part of
-the current MVP. Monitoring sessions, timestamped events, the timeline UI, and
-the combined ZIP export are implemented.
+Unless explicitly marked as future scope, the stories below describe the
+current implementation. Cameras and audit logs are future scope. Device HTTP
+ingestion, rotating login refresh tokens, scoped memberships, monitoring
+sessions, timestamped events, the timeline UI, and ZIP export are implemented.
 
 ### 1. Organizations
 
@@ -44,20 +45,21 @@ Acceptance criteria:
 1. SUPER_ADMIN can delete organization by id.
 2. After deletion, organization is no longer available by id.
 3. If organization does not exist, system returns 404.
-4. Related labs, rooms, sensors, cameras and memberships are removed according to database rules.
+4. Related labs, rooms, sensors, devices, readings, alerts, sessions, and
+   memberships are removed according to database rules.
 
 ### 2. Users and Roles
 
 User story:
 As a SUPER_ADMIN,
-I want to create or invite a user,
+I want to create a user,
 so that the user can access the system.
 
 Acceptance criteria:
-1. SUPER_ADMIN can create or invite user by email.
+1. SUPER_ADMIN can create a user with email, first name, last name, and password.
 2. Email is required.
 3. Email must be unique.
-4. Invited user receives status INVITED.
+4. A newly created user receives status ACTIVE.
 5. User can be connected to an organization.
 6. User receives role SUPER_ADMIN, LAB_ADMIN or LIMITED_EMPLOYEE.
 7. If organization is provided and does not exist, system returns 404.
@@ -91,7 +93,7 @@ Acceptance criteria:
 User story:
 As a SUPER_ADMIN,
 I want to create a lab,
-so that rooms, sensors and cameras can be managed inside it.
+so that rooms and monitoring equipment can be managed inside it.
 
 Acceptance criteria:
 1. SUPER_ADMIN can create lab with name, location and description.
@@ -128,7 +130,7 @@ Acceptance criteria:
 User story:
 As a SUPER_ADMIN,
 I want to create a room,
-so that sensors and cameras can be connected to a specific place.
+so that sensors and devices can be connected to a specific place.
 
 Acceptance criteria:
 1. SUPER_ADMIN can create room with labId, name, type, floor and area.
@@ -153,16 +155,15 @@ Acceptance criteria:
 User story:
 As a LIMITED_EMPLOYEE,
 I want to view room details,
-so that I can monitor sensors, cameras, security state and alerts in the room.
+so that I can select and monitor a room I am allowed to access.
 
 Acceptance criteria:
 1. LIMITED_EMPLOYEE can view room details.
 2. Room details include basic room information.
-3. Room details include sensors in the room.
-4. Room details include cameras in the room.
-5. Room details include active alerts.
-6. LIMITED_EMPLOYEE cannot view rooms from another organization.
-7. If room does not exist, system returns 404.
+3. Sensors, readings, sessions, and alerts are obtained from their dedicated
+   endpoints using the room identifier.
+4. LIMITED_EMPLOYEE cannot view rooms outside the granted membership scope.
+5. If room does not exist, system returns 404.
 
 ### 5. Sensors
 
@@ -188,7 +189,7 @@ so that sensor behavior matches laboratory process requirements.
 
 Acceptance criteria:
 1. LAB_ADMIN can update sensor name, unit and operational settings.
-2. Sensor type cannot be changed if it would break existing readings.
+2. Sensor type and room cannot be changed by this operation.
 3. If sensor does not exist, system returns 404.
 4. LAB_ADMIN cannot add or deactivate sensors.
 
@@ -217,7 +218,7 @@ Acceptance criteria:
 4. If sensor has no readings, system returns empty current reading.
 5. LIMITED_EMPLOYEE cannot view sensors from another organization.
 
-### 6. Cameras
+### 6. Cameras — future scope
 
 User story:
 As a SUPER_ADMIN,
@@ -295,17 +296,19 @@ Acceptance criteria:
 6. Resolved alert cannot be resolved again.
 
 User story:
-As a LAB_ADMIN,
-I want to add alert and resolution notes,
-so that important lab decisions are documented.
+As an authorized user,
+I want to resolve or reopen an alert with structured context,
+so that workflow decisions remain understandable.
 
 Acceptance criteria:
-1. LAB_ADMIN can add a note to an alert.
-2. LAB_ADMIN can add a resolution note before or during alert resolution.
-3. Notes include author, text and createdAt.
-4. If alert does not exist, system returns 404.
+1. Resolution requires an outcome and may include a comment.
+2. A false-alarm resolution requires an explanation.
+3. Reopening a resolved alert requires a reason.
+4. Acknowledgement, resolution, reopening, and automatic recovery are recorded
+   in alert history with the acting user where applicable.
+5. The user must have alert-management permission for the alert's room.
 
-### 8. Audit Logs
+### 8. Audit Logs — future scope
 
 User story:
 As a LAB_ADMIN,
@@ -368,6 +371,7 @@ Acceptance criteria:
 3. New password must be stored as password hash.
 4. If current password is incorrect, system returns validation error.
 5. After password change, user can log in with new password.
+6. Existing refresh-token families for the user are revoked.
 
 ### 10. Monitoring Sessions and Events
 
@@ -417,3 +421,43 @@ Acceptance criteria:
 7. An active session has an empty `ended_at`; current time is only an effective
    query boundary.
 8. A cancelled session that never started has no timeline or export.
+
+### 11. Devices and Device Ingestion
+
+User story:
+As a SUPER_ADMIN,
+I want to register a room-scoped device and configure its sensor channels,
+so that a physical or browser data client can submit readings.
+
+Acceptance criteria:
+1. A device belongs to one room and has a name, type, and status.
+2. A channel can be assigned to an existing sensor in the same room.
+3. A sensor and its channel can also be created together.
+4. Channel keys are unique within one device.
+5. Device administration is restricted to `SUPER_ADMIN`.
+
+User story:
+As a SUPER_ADMIN,
+I want to manage device credentials,
+so that device access can be provisioned and revoked safely.
+
+Acceptance criteria:
+1. Provisioning or rotation returns the raw credential only once.
+2. Only a BCrypt credential hash is persisted.
+3. Rotation revokes the previous active credential.
+4. A credential can be revoked explicitly.
+
+User story:
+As a device client,
+I want to submit an idempotent timestamped reading for a configured channel,
+so that retries do not create duplicates.
+
+Acceptance criteria:
+1. Requests authenticate with `Authorization: Device <token>`.
+2. `channel`, `value`, `measuredAt`, and `messageId` are required.
+3. The device, credential, sensor, room, and lab must be operational.
+4. Timestamps must satisfy the configured past-age and future-skew policy.
+5. Reusing one `messageId` for the same device returns `already_processed` and
+   the original reading identifiers.
+6. Accepted device readings use the same liveness, threshold, and alert flow as
+   user-authenticated readings.

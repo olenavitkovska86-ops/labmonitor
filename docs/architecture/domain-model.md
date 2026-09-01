@@ -12,6 +12,8 @@ Organization
     └── Room
         ├── Sensor
         │   └── SensorReading
+        ├── Device
+        │   └── DeviceCredential
         ├── MonitoringSession
         │   └── SessionEvent
         ├── Camera
@@ -45,12 +47,14 @@ Status values:
 | `SensorReading` | Stores one measured value from a sensor | `Sensor`, `Room` | IMPLEMENTED |
 | `User` | Stores account and profile information | — | IMPLEMENTED |
 | `Membership` | Assigns a user and role to an organization | `User`, `Organization` | IMPLEMENTED |
-| `RefreshToken` | Supports future authenticated sessions | `User` | PLANNED |
+| `RefreshToken` | Stores rotating authenticated-session tokens as hashes | `User` | IMPLEMENTED |
+| `Device` | Represents a room-scoped HTTP or browser data client | `Room` | IMPLEMENTED |
+| `DeviceCredential` | Stores a revocable BCrypt hash used for device authentication | `Device` | IMPLEMENTED |
 | `Camera` | Represents a camera installed in a room | `Room` | PLANNED |
 | `CameraEvent` | Stores events reported by a camera | `Camera`, `Room` | PLANNED |
 | `EnergyReading` | Stores room-level power and energy measurements | `Room` | PLANNED |
 | `SecurityState` | Stores the current security state of a room | `Room` | PLANNED |
-| `Alert` | Represents sensor, camera, security, energy, or system incidents | `Room`, optionally `Sensor`, `Camera`, `User` | IMPLEMENTED |
+| `Alert` | Represents currently implemented sensor threshold and offline incidents | `Room`, optionally `Sensor` and workflow users | IMPLEMENTED |
 | `AlertHistory` | Records acknowledgement, resolution, reopening, and automatic recovery | `Alert`, optionally `User` | IMPLEMENTED |
 | `MonitoringSession` | Represents a bounded observation period in one room | `Room`, `User` | IMPLEMENTED |
 | `SessionEvent` | Records a timestamped user observation or action | `MonitoringSession`, `User` | IMPLEMENTED |
@@ -119,6 +123,27 @@ Status values:
 - Each reading snapshots the safe minimum, safe maximum, and resulting status so
   historical exports remain correct after sensor settings change.
 
+### Room, Device, and Sensor channels
+
+- Each device belongs to one room and has a type, operational status, and
+  `lastSeenAt` timestamp.
+- A device channel maps a device-scoped `channelKey` to one sensor in the same
+  room. A super-admin can assign an existing sensor or create a sensor and
+  channel together.
+- A device authenticates with a provisioned credential. Only the BCrypt hash is
+  persisted; the raw token is returned once when provisioned or rotated.
+- Device ingestion requires an active device and credential. Repeating the same
+  `messageId` for one device is idempotent and returns the existing reading.
+- Device readings retain `sourceDevice` and `messageId` as transport provenance,
+  but browser and device readings share the same validation, liveness, threshold,
+  storage, and alert processing in `SensorReadingService`.
+
+### User to RefreshToken
+
+- Login creates a short-lived access JWT and a rotating opaque refresh token.
+- Only the SHA-256 refresh-token hash is stored. Rotation replaces the token;
+  logout and password change revoke applicable token families.
+
 ### Room to MonitoringSession
 
 - A room can have many sessions over time but only one `ACTIVE` session at once.
@@ -139,6 +164,9 @@ Status values:
 
 - A user can belong to organizations through memberships.
 - A membership contains the organization-specific role.
+- A membership can cover the whole organization or selected labs and rooms.
+- A scoped `LAB_ADMIN` can manage team access only where the target user's
+  access intersects the administrator's own scope.
 - `SUPER_ADMIN` is a global role; `LAB_ADMIN` and `LIMITED_EMPLOYEE` are
   organization roles.
 
@@ -155,10 +183,11 @@ Status values:
 - Audit records may reference an organization, user, lab, or room.
 - They store the performed action and optional JSON details.
 
-## Next Implementation Order
+## Current Backlog
 
-1. Add a small Python analysis example.
-2. Prepare the UI, documentation, sample data, and screenshots for demonstration.
+- Add a small Python analysis example.
+- Prepare sample data and screenshots for demonstration.
+- Define a reading-retention policy.
 
 Cameras, AI, audit logs, MQTT, energy readings, and security state are outside
 the current MVP. A reading-retention policy is useful operational follow-up but

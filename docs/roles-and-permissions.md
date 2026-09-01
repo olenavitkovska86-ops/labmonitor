@@ -1,14 +1,13 @@
 ## Roles and Permissions
 
-This document describes the target permission model. The backend currently
-requires authentication for API access, but detailed method-level role checks
-are not yet applied consistently to every organization, lab, room, sensor, and
-alert operation. Camera and audit-log permissions below are planned and are not
-part of the current MVP.
+This document describes the effective permission model. The backend combines
+Spring method security with hierarchy-aware `AccessPolicy` checks. Camera and
+audit-log permissions are future scope and are listed separately at the end.
 
 1. LIMITED_EMPLOYEE
 
 Can:
+
 - view dashboard
 - view labs
 - view rooms
@@ -17,25 +16,24 @@ Can:
 - view sensor details
 - view current sensor readings
 - view sensor readings history
-- view cameras
-- view camera details
-- view camera status
-- view camera events
 - view alerts
 - filter alerts
 - acknowledge alerts
 - resolve alerts
+- reopen resolved alerts
+- create and manage monitoring sessions and session events in granted rooms
+- export permitted readings and monitoring sessions
 - view own profile
 - update own profile
 - change own password
 
 Cannot:
+
 - create/update/delete organizations
 - create/update/activate/deactivate labs
 - create/update/activate/deactivate rooms
 - add/update/activate/deactivate sensors
 - set sensor safe range
-- add/update/deactivate cameras
 - create/invite users
 - disable users
 - change user roles
@@ -47,26 +45,21 @@ Cannot:
 Can do everything LIMITED_EMPLOYEE can, plus:
 
 Sensors:
+
 - update sensor settings
 - set sensor safe range
 
-Cameras:
-- update camera operational settings
+Team access:
 
-Alerts:
-- add alert notes
-- add resolution notes
-
-Logs:
-- view lab activity logs
-- view process audit logs
+- view limited employees whose access intersects the admin's own scope
+- assign those employees to labs and rooms inside the admin's own scope
 
 Cannot:
+
 - create/update/delete organizations
 - create/update/activate/deactivate labs
 - create/update/activate/deactivate rooms
 - add/activate/deactivate sensors
-- add/deactivate cameras
 - create/invite users
 - disable users
 - change user roles
@@ -78,6 +71,7 @@ Cannot:
 Can do everything LAB_ADMIN can, plus:
 
 Organizations:
+
 - view all organizations
 - search organizations
 - create organization
@@ -85,43 +79,42 @@ Organizations:
 - delete organization
 
 Users:
+
 - view all users
 - search all users
-- create/invite users
+- create users
 - disable users
 - assign roles
 - change user roles
 - remove users from organizations
 
 Labs:
+
 - create lab
 - update lab
 - activate lab
 - deactivate lab
 
 Rooms:
+
 - create room
 - update room
 - activate room
 - deactivate room
 
 Sensors:
+
 - add sensor
 - update sensor
 - set sensor safe range
 - activate sensor
 - deactivate sensor
 
-Cameras:
-- add camera
-- update camera
-- deactivate camera
+Devices:
 
-Audit:
-- view all audit logs
-- filter all audit logs by organization
-- filter all audit logs by user
-- filter all audit logs by action
+- register and update devices
+- assign or create sensor channels
+- provision, rotate, and revoke device credentials
 
 
 Permission hierarchy:
@@ -133,11 +126,10 @@ LAB_ADMIN = LIMITED_EMPLOYEE + lab process/equipment settings
 SUPER_ADMIN = LAB_ADMIN + system structure and user management
 
 
-## NEW — proposed LAB_ADMIN responsibility model (2026-08-29)
+## Scoped LAB_ADMIN responsibility model
 
-> **Status: PARTIALLY IMPLEMENTED.** Scoped team access is available to
-> organization `LAB_ADMIN` memberships. Structural and metadata configuration
-> remains a `SUPER_ADMIN` responsibility.
+> **Status: IMPLEMENTED.** Structural administration remains a `SUPER_ADMIN`
+> responsibility.
 
 ### Role purpose
 
@@ -165,31 +157,30 @@ The current application does not allow a `LAB_ADMIN` to:
 - manage global users, global roles, or organization memberships
 - access system-wide settings or data belonging to another membership scope
 
-### Proposed additions
+### Team access
 
-The following capabilities are considered appropriate for this role but are
-not yet implemented:
-
-- editing lab and room metadata remains restricted to `SUPER_ADMIN`
-- view the members of their own organization without access to global user
-  administration; scoped admins see only limited employees whose access
-  intersects their own — `IMPLEMENTED`
-- assign existing organization members to labs or rooms inside the admin's
-  scope, without creating users or changing roles — `IMPLEMENTED`
+Scoped admins can view limited employees whose access intersects their own and
+assign those existing members to labs or rooms within that scope. They cannot
+create users, change roles, edit lab or room metadata, or expand access beyond
+their own scope.
 
 Creating or deleting structural resources, inviting or disabling users,
 changing global roles, and managing other organizations remain
 `SUPER_ADMIN` responsibilities.
 
-### Proposed navigation
+### Navigation
 
-The application shell should expose the following role-aware administration
-navigation:
+The application shell exposes role-aware administration navigation:
 
-- `Users & access` — visible only to `SUPER_ADMIN`
-- `Sensor settings` — visible to `SUPER_ADMIN` and `LAB_ADMIN`
-- `Users & access` — shared role-aware page: global administration for
-  `SUPER_ADMIN`, scoped team assignments for `LAB_ADMIN`
+- `Users & access` provides global administration to `SUPER_ADMIN` and scoped
+  team assignments to `LAB_ADMIN`.
+- `Sensor settings` is available to `SUPER_ADMIN` and `LAB_ADMIN`.
 
 The contextual `Sensor settings` action in Monitor should remain available;
 the administration entry is an additional discovery path, not a replacement.
+
+## Future permissions
+
+Camera management, camera viewing, audit logs, and configurable per-sensor
+alert rules are not implemented in the current MVP. Their detailed permission
+model should be documented when those features are introduced.

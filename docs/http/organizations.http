@@ -1,6 +1,7 @@
 ### Variables
 @baseUrl = http://localhost:8080
 @organizationId = 1
+@csrfToken = replace-with-xsrf-cookie-value
 
 ### Get all organizations
 GET {{baseUrl}}/api/organizations
@@ -14,6 +15,7 @@ GET {{baseUrl}}/api/organizations/{{organizationId}}
 ### Create organization
 POST {{baseUrl}}/api/organizations
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "name": "Central Lab Center",
@@ -23,6 +25,7 @@ Content-Type: application/json
 ### Create second organization
 POST {{baseUrl}}/api/organizations
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "name": "Bio Research Lab",
@@ -32,6 +35,7 @@ Content-Type: application/json
 ### Update organization
 PUT {{baseUrl}}/api/organizations/{{organizationId}}
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "name": "Central Lab Center Updated",
@@ -40,10 +44,12 @@ Content-Type: application/json
 
 ### Delete organization
 DELETE {{baseUrl}}/api/organizations/{{organizationId}}
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Validation error: empty name
 POST {{baseUrl}}/api/organizations
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "name": "",

@@ -1,6 +1,7 @@
 ### Variables
 @baseUrl = http://localhost:8080
 @alertId = 1
+@csrfToken = replace-with-xsrf-cookie-value
 
 ### Get all alerts
 GET {{baseUrl}}/api/alerts
@@ -23,11 +24,13 @@ GET {{baseUrl}}/api/alerts/{{alertId}}/history
 ### Acknowledge alert
 # Requires an authenticated session and CSRF token.
 POST {{baseUrl}}/api/alerts/{{alertId}}/acknowledge
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Resolve alert
 # Requires an authenticated session and CSRF token.
 POST {{baseUrl}}/api/alerts/{{alertId}}/resolve
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "outcome": "FIXED",
@@ -37,6 +40,7 @@ Content-Type: application/json
 ### Reopen a resolved alert after an incorrect resolution
 POST {{baseUrl}}/api/alerts/{{alertId}}/reopen
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "reason": "The cooling system is still offline; the issue was not actually resolved."

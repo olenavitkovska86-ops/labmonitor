@@ -2,6 +2,7 @@
 @baseUrl = http://localhost:8080
 @organizationId = 1
 @labId = 1
+@csrfToken = replace-with-xsrf-cookie-value
 
 ### Get all labs
 GET {{baseUrl}}/api/labs
@@ -21,6 +22,7 @@ GET {{baseUrl}}/api/labs/{{labId}}
 ### Create lab
 POST {{baseUrl}}/api/labs
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "organizationId": {{organizationId}},
@@ -32,6 +34,7 @@ Content-Type: application/json
 ### Create second lab
 POST {{baseUrl}}/api/labs
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "organizationId": {{organizationId}},
@@ -43,6 +46,7 @@ Content-Type: application/json
 ### Update lab
 PUT {{baseUrl}}/api/labs/{{labId}}
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "name": "Main Chemistry Lab Updated",
@@ -52,13 +56,16 @@ Content-Type: application/json
 
 ### Deactivate lab
 POST {{baseUrl}}/api/labs/{{labId}}/deactivate
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Activate lab
 POST {{baseUrl}}/api/labs/{{labId}}/activate
+X-XSRF-TOKEN: {{csrfToken}}
 
 ### Validation error: empty name
 POST {{baseUrl}}/api/labs
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "organizationId": {{organizationId}},

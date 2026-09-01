@@ -2,10 +2,12 @@
 @baseUrl = http://localhost:8080
 @sensorId = 1
 @roomId = 1
+@csrfToken = replace-with-xsrf-cookie-value
 
 ### Create reading with current server time
 POST {{baseUrl}}/api/sensor-readings
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "sensorId": {{sensorId}},
@@ -15,6 +17,7 @@ Content-Type: application/json
 ### Create reading with explicit measurement time
 POST {{baseUrl}}/api/sensor-readings
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "sensorId": {{sensorId}},
@@ -44,6 +47,7 @@ GET {{baseUrl}}/api/sensor-readings/export?roomId={{roomId}}&from=2026-08-24T00:
 ### Validation error: missing value
 POST {{baseUrl}}/api/sensor-readings
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "sensorId": {{sensorId}}
@@ -55,6 +59,7 @@ GET {{baseUrl}}/api/sensors/999999/readings
 ### Conflict error when the sensor, its room, or its lab is inactive
 POST {{baseUrl}}/api/sensor-readings
 Content-Type: application/json
+X-XSRF-TOKEN: {{csrfToken}}
 
 {
   "sensorId": {{sensorId}},
